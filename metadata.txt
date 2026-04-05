@@ -1,0 +1,26 @@
+; the next section is mandatory
+[general]
+name=PlanX
+email=yusuf.emnglu@gmail.com
+author=Yusuf Eminoglu
+qgisMinimumVersion=3.0
+description=PlanX is a comprehensive suite of spatial-planning tools for QGIS. It provides modules for data import, advanced spatial statistics, zoning-rule workflows, and urban-design analyses.
+about=PlanX equips city-planners and GIS professionals with a modular toolbox for Turkish and international planning tasks. Each sub-plugin offers a guided UI, robust error handling, and silent-mode batch capabilities, logically organized under a single PlanX menu.
+version=1.0.0
+tracker=https://github.com/YusufEminoglu/PlanX/issues
+repository=https://github.com/YusufEminoglu/PlanX
+; end of mandatory metadata
+
+; start of optional metadata
+category=Vector
+changelog=
+    1.0.0 - Initial public release with basic spatial statistics and core UI structures.
+tags=planx,urban planning,spatial statistics,zoning,QGIS,processing
+homepage=https://github.com/YusufEminoglu/PlanX
+icon=planx.png
+experimental=False
+deprecated=False
+qgisMaximumVersion=3.99
+plugin_dependencies=
+license=GPL-3
+; end of optional metadata
