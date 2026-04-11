@@ -19,7 +19,7 @@ changelog=
     1.0.0 - Initial public release with basic spatial statistics and core UI structures.
 tags=planx,urban planning,spatial statistics,zoning,QGIS,processing
 homepage=https://github.com/YusufEminoglu/PlanX
-icon=planx.png
+icon=icons/icon_main.svg
 experimental=False
 deprecated=False
 qgisMaximumVersion=3.99
