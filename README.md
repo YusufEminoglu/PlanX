@@ -45,4 +45,4 @@ PlanX acts as the main plugin that ties together the following specialized sub-p
 
 ## Author
 
-**Yusuf Eminoglu** — [GitHub](https://github.com/YusufEminoglu) | geospacephilo@gmail.com
+**Yusuf Eminoglu** — [GitHub](https://github.com/YusufEminoglu) | yusuf.eminoglu@deu.edu.tr

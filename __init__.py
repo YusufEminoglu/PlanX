@@ -8,7 +8,7 @@
                               -------------------
         begin                : 2025-05-07
         copyright            : (C) 2025 by Yusuf Eminoglu
-        email                : yusuf.emnglu@gmail.com
+        email                : yusuf.eminoglu@deu.edu.tr
         repository           : https://github.com/YusufEminoglu/PlanX
  ***************************************************************************/
 """
