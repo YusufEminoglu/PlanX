@@ -14,13 +14,13 @@ repository=https://github.com/YusufEminoglu/PlanX
 ; start of optional metadata
 category=Vector
 changelog=
-    1.0.4 - Metadata email standardization, DEU educational context note, stable Hub release refresh.
-    1.0.3 - Restore the original PlanX icon for packaging and refresh the Hub-ready release archive.
+    PlanX 1.0.4 - Standardized Plugin Hub metadata, updated contact email, added DEU educational context, and refreshed the stable release package.
+    PlanX 1.0.3 - Restored the original PlanX icon for packaging and refreshed the Hub-ready release archive.
         - Repackage the plugin with the current icon and metadata alignment.
         - Clean up release metadata for the next Plugin Hub submission.
-    1.0.2 - Replace the plugin icon with a clean PNG asset for plugins.qgis.org validation and refresh the packaged Hub zip.
-    1.0.1 - Remove accidentally committed __pycache__ / .pyc files from the repository; add .gitignore for Python artifacts.
-    1.0.0 - Initial public release with basic spatial statistics and core UI structures.
+    PlanX 1.0.2 - Replaced the plugin icon with a clean PNG asset for plugins.qgis.org validation and refreshed the packaged Hub zip.
+    PlanX 1.0.1 - Removed accidentally committed __pycache__ and .pyc files; added .gitignore for Python artifacts.
+    PlanX 1.0.0 - Initial public release with basic spatial statistics and core UI structures.
 tags=planx,urban planning,spatial statistics,zoning,QGIS,processing
 homepage=https://github.com/YusufEminoglu/PlanX
 icon=planx.png
