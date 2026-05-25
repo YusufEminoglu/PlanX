@@ -27,7 +27,7 @@ homepage=https://github.com/YusufEminoglu/PlanX
 icon=planx.png
 experimental=False
 deprecated=False
-qgisMaximumVersion=3.99
+qgisMaximumVersion=4.99
 plugin_dependencies=
 license=GPL-3
 ; end of optional metadata

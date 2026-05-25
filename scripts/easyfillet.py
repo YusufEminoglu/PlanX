@@ -42,7 +42,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
     def _set_cursor(self, mode):
         size = 32
         pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.transparent)
+        pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pixmap)
         if mode == 'extend':
             pen = QPen(QColor('#876582'))
@@ -60,11 +60,11 @@ class FilletMapTool(QgsMapToolEmitPoint):
         self.setCursor(QCursor(pixmap))
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Space:
+        if event.key() == Qt.Key.Key_Space:
             from .easyfillet_dialog import EasyFilletDialog
             dlg = EasyFilletDialog(self.iface.mainWindow())
             dlg.radiusLineEdit.setText(str(self.radius))
-            if dlg.exec_():
+            if dlg.exec():
                 try:
                     val = float(dlg.radiusLineEdit.text())
                     if val > 0:
@@ -95,7 +95,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
         self.canvas.setFocus()
 
     def canvasPressEvent(self, event):
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             if self.mode == 'extend':
                 self.mode = 'fillet'
                 self._set_cursor('fillet')
@@ -108,7 +108,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
                 iface.messageBar().pushMessage('Extend Mode', '', Qgis.Info, 2)
                 self.reset()
                 return
-        elif event.button() == Qt.LeftButton and self.mode == 'extend':
+        elif event.button() == Qt.MouseButton.LeftButton and self.mode == 'extend':
             layer = self.iface.activeLayer()
             if not layer or layer.geometryType() != QgsWkbTypes.LineGeometry:
                 return
@@ -143,14 +143,14 @@ class FilletMapTool(QgsMapToolEmitPoint):
                     self.canvas.scene().removeItem(self.node_marker)
                 self.node_marker = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
                 self.node_marker.setToGeometry(QgsGeometry.fromPointXY(node), layer)
-                self.node_marker.setColor(Qt.green)
+                self.node_marker.setColor(Qt.GlobalColor.green)
                 self.node_marker.setWidth(10)
                 # Highlight the line
                 if self.first_band:
                     self.canvas.scene().removeItem(self.first_band)
                 self.first_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
                 self.first_band.setToGeometry(QgsGeometry.fromPolylineXY(geom), layer)
-                self.first_band.setColor(Qt.blue)
+                self.first_band.setColor(Qt.GlobalColor.blue)
                 self.first_band.setWidth(3)
             else:
                 # Second click: select target node or location
@@ -174,7 +174,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
                     self.canvas.scene().removeItem(self.target_marker)
                 self.target_marker = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
                 self.target_marker.setToGeometry(QgsGeometry.fromPointXY(target_node), layer)
-                self.target_marker.setColor(Qt.red)
+                self.target_marker.setColor(Qt.GlobalColor.red)
                 self.target_marker.setWidth(10)
                 # Always use the highlighted/selected node as the start of the new line
                 node, feat = self.selected_node
@@ -205,7 +205,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
                 self.first_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
                 geom = QgsGeometry.fromPolylineXY(self.tool.get_single_line_geometry(feat.geometry()))
                 self.first_band.setToGeometry(geom, layer)
-                self.first_band.setColor(Qt.blue)
+                self.first_band.setColor(Qt.GlobalColor.blue)
                 self.first_band.setWidth(3)
             else:
                 if not layer.isEditable():
@@ -260,7 +260,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
             if result:
                 self.preview_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
                 self.preview_band.setToGeometry(result['extended'], layer)
-                self.preview_band.setColor(Qt.red)
+                self.preview_band.setColor(Qt.GlobalColor.red)
                 self.preview_band.setWidth(3)
             # Highlight target node
             if self.target_marker:
@@ -268,7 +268,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
                 self.target_marker = None
             self.target_marker = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
             self.target_marker.setToGeometry(QgsGeometry.fromPointXY(target_node), layer)
-            self.target_marker.setColor(Qt.red)
+            self.target_marker.setColor(Qt.GlobalColor.red)
             self.target_marker.setWidth(10)
         else:
             if self.mode == 'fillet':
@@ -297,7 +297,7 @@ class FilletMapTool(QgsMapToolEmitPoint):
                 arc = result['arc']
                 self.preview_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
                 self.preview_band.setToGeometry(arc, layer)
-                self.preview_band.setColor(Qt.red)
+                self.preview_band.setColor(Qt.GlobalColor.red)
                 self.preview_band.setWidth(3)
 
 class EasyFilletTool:
@@ -372,7 +372,7 @@ class EasyFilletTool:
     def run(self):
         dlg = EasyFilletDialog(iface.mainWindow())
         dlg.radiusLineEdit.setText(str(self.radius))
-        if not dlg.exec_():
+        if not dlg.exec():
             return
         try:
             val = float(dlg.radiusLineEdit.text())
