@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.7] - 2026-05-26
+
+- Maintenance release: refreshed Plugin Hub package after QGIS 3 and QGIS 4 compatibility validation.
+
 All notable changes to **PlanX** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: [SemVer](https://semver.org/).
 
