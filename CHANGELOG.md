@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.8] - 2026-05-26
+
+- Maintenance release: compatibility validation for QGIS 3.40+/4 and release packaging refresh.
+
 ## [1.0.7] - 2026-05-26
 
 - Maintenance release: refreshed Plugin Hub package after QGIS 3 and QGIS 4 compatibility validation.
