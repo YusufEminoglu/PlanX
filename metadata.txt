@@ -1,33 +1,32 @@
-; the next section is mandatory
 [general]
 name=PlanX
 email=yusuf.eminoglu@deu.edu.tr
 author=Yusuf Eminoglu
-qgisMinimumVersion=3.0
-description=PlanX is a comprehensive suite of spatial-planning tools for QGIS. It provides modules for data import, advanced spatial statistics, zoning-rule workflows, and urban-design analyses.
-about=PlanX equips city-planners and GIS professionals with a modular toolbox for Turkish and international planning tasks. Each sub-plugin offers a guided UI, robust error handling, and silent-mode batch capabilities, logically organized under a single PlanX menu. Developed with feedback from educational workflows at Dokuz Eylul University, Department of City and Regional Planning.
-version=1.0.9
+qgisMinimumVersion=3.22
+description=Embedded urban analytics engine: space syntax (segment angular analysis), network centrality, urban morphology, OD matrices, service areas and 15-minute-city accessibility - all computed natively inside QGIS, no external plugins or services.
+about=PlanX 2.0 is the flagship of the PlanX ecosystem: a self-contained urban analytics studio for city planners and researchers. It embeds real implementations of the methods urban analysts usually need separate tools for - space syntax segment angular analysis (integration, choice, NACH/NAIN), the full centrality family (degree, closeness, straightness, betweenness), urban morphology (building form metrics, morphological tessellation, Spacematrix GSI/FSI/OSR, street orientation entropy), and network accessibility (OD cost matrix, service-area isochrones, nearest-facility allocation, multi-amenity 15-minute-city scores). Everything is computed inside the plugin with NumPy (SciPy used automatically when available, identical pure-Python fallback otherwise): no QNEAT3, no GRASS dependency, no servers, no pip installs. All tools are Processing algorithms - model-designer and batch friendly. Developed with feedback from educational workflows at Dokuz Eylul University, Department of City and Regional Planning.
+version=2.0.0
 tracker=https://github.com/YusufEminoglu/PlanX/issues
 repository=https://github.com/YusufEminoglu/PlanX
-; end of mandatory metadata
 
-; start of optional metadata
 category=Vector
-changelog=
-    PlanX 1.0.5 - Replaced the main Plugin Hub and toolbar icon with a premium PlanX brand mark aligned with the 3D City visual system.
-    PlanX 1.0.4 - Standardized Plugin Hub metadata, updated contact email, added DEU educational context, and refreshed the stable release package.
-    PlanX 1.0.3 - Restored the original PlanX icon for packaging and refreshed the Hub-ready release archive.
-        - Repackage the plugin with the current icon and metadata alignment.
-        - Clean up release metadata for the next Plugin Hub submission.
-    PlanX 1.0.2 - Replaced the plugin icon with a clean PNG asset for plugins.qgis.org validation and refreshed the packaged Hub zip.
-    PlanX 1.0.1 - Removed accidentally committed __pycache__ and .pyc files; added .gitignore for Python artifacts.
-    PlanX 1.0.0 - Initial public release with basic spatial statistics and core UI structures.
-tags=planx,urban planning,spatial statistics,zoning,QGIS,processing
+tags=planx,space syntax,centrality,betweenness,urban morphology,spacematrix,tessellation,accessibility,15 minute city,isochrone,service area,od matrix,network analysis,urban planning,processing
 homepage=https://github.com/YusufEminoglu/PlanX
-icon=planx.svg
+icon=icons/icon.png
 experimental=False
 deprecated=False
 qgisMaximumVersion=4.99
+hasProcessingProvider=yes
 plugin_dependencies=
 license=GPL-3
-; end of optional metadata
+changelog=
+    PlanX 2.0.0 - Complete rewrite as the Urban Analytics Studio.
+        - New embedded analytics engine (NumPy core, SciPy fast path with identical pure-Python fallback); zero external plugin/server/pip dependencies.
+        - Space Syntax: segment angular analysis with metric radii - angular integration, choice, NACH and NAIN per radius.
+        - Network Centrality: degree, closeness, straightness and Brandes betweenness (node and edge), radius-limited and sampled variants.
+        - Network Analysis: Prepare Network, OD Cost Matrix with detour ratios and desire lines, Service Areas (isochrone bands as edges and polygons), Nearest Facility Allocation with facility load summary.
+        - Urban Morphology: Building Form Metrics, Morphological Tessellation, Spacematrix Density (GSI/FSI/OSR/L plus class), Street Network Morphology (orientation entropy and order, meshedness, node typology).
+        - Accessibility: Multi-Amenity Access Score (15-minute city) across any number of amenity layers.
+        - PlanX Studio dock for browsing and launching the toolset; all tools also live in the Processing toolbox.
+        - Removed the legacy mixed script collection (QNEAT/GRASS dependent tools and duplicates of other PlanX plugins).
+    PlanX 1.0.9 - Legacy script suite (superseded).

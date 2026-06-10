@@ -1,79 +1,71 @@
 # -*- coding: utf-8 -*-
+"""PlanX - Urban Analytics Studio: plugin shell.
+
+Registers the Processing provider and a lightweight "PlanX Studio" dock
+that browses and launches the toolset. All analytics live in Processing
+algorithms (see `algorithms/`), all math lives in `engine/`.
 """
-/***************************************************************************
- PlanX
-     QGIS Plugin
- Comprehensive suite of spatial-planning tools under a unified menu,
- dynamically loading sub-plugins from the scripts folder.
-***************************************************************************/
-"""
+from __future__ import annotations
 
 import os
-import importlib
-from qgis.PyQt.QtWidgets import QAction, QMenu
+
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsApplication
 
+from .provider import PlanXProvider
+
+PLUGIN_DIR = os.path.dirname(__file__)
+
+
 class PlanX:
-    """
-    PlanX QGIS Plugin
-    Dynamically loads all modules in the scripts folder as sub-plugins.
-    """
+    """Plugin entry: Processing provider + PlanX menu + Studio dock."""
+
     def __init__(self, iface):
         self.iface = iface
-        self.plugin_dir = os.path.dirname(__file__)
-        self.menu = None
+        self.provider = None
+        self.dock = None
         self.actions = []
-        self.providers = []
+
+    # ------------------------------------------------------------------ #
+    def initProcessing(self):
+        if self.provider is None:
+            self.provider = PlanXProvider()
+            QgsApplication.processingRegistry().addProvider(self.provider)
 
     def initGui(self):
-        """Create the PlanX menu directly on the main menu bar."""
-        # Load plugin icon
-        icon_file = os.path.join(self.plugin_dir, 'icons', 'planx.png')
-        menu_icon = QIcon(icon_file) if os.path.exists(icon_file) else QIcon()
+        self.initProcessing()
 
-        # Create PlanX menu on the main window's menu bar
-        self.menu = QMenu('PlanX', self.iface.mainWindow().menuBar())
-        self.menu.menuAction().setIcon(menu_icon)
-        self.iface.mainWindow().menuBar().addMenu(self.menu)
-
-        # Discover and load script modules
-        scripts_dir = os.path.join(self.plugin_dir, 'scripts')
-        for fname in sorted(os.listdir(scripts_dir)):
-            if not fname.endswith('.py') or fname.startswith('_'):
-                continue
-            mod_name = fname[:-3]
-            try:
-                module = importlib.import_module(f'.scripts.{mod_name}', package='planx')
-
-                # Prepare icon for the sub-plugin
-                icon_path = os.path.join(self.plugin_dir, 'icons', f'{mod_name}.png')
-                action_icon = QIcon(icon_path) if os.path.exists(icon_path) else QIcon()
-
-                # Add QAction if module has run_tool()
-                if hasattr(module, 'run_tool'):
-                    label = getattr(module, 'MENU_LABEL', mod_name.replace('_', ' ').title())
-                    action = QAction(action_icon, label, self.iface.mainWindow())
-                    action.triggered.connect(module.run_tool)
-                    self.menu.addAction(action)
-                    self.actions.append(action)
-
-                # Register processing provider if available
-                if hasattr(module, 'provider'):
-                    QgsApplication.processingRegistry().addProvider(module.provider)
-                    self.providers.append(module.provider)
-
-            except Exception as e:
-                print(f"PlanX: failed to load '{mod_name}': {e}")
+        icon = QIcon(os.path.join(PLUGIN_DIR, "icons", "icon.png"))
+        action = QAction(icon, "PlanX Studio", self.iface.mainWindow())
+        action.setToolTip("Open the PlanX Urban Analytics Studio panel")
+        action.triggered.connect(self.toggle_dock)
+        self.iface.addPluginToMenu("PlanX", action)
+        self.iface.addToolBarIcon(action)
+        self.actions.append(action)
 
     def unload(self):
-        """Clean up menu and processing providers."""
-        if self.menu:
-            self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
         for action in self.actions:
-            self.menu.removeAction(action)
-        self.actions.clear()
+            self.iface.removePluginMenu("PlanX", action)
+            self.iface.removeToolBarIcon(action)
+        self.actions = []
+        if self.dock is not None:
+            self.iface.removeDockWidget(self.dock)
+            self.dock.deleteLater()
+            self.dock = None
+        if self.provider is not None:
+            QgsApplication.processingRegistry().removeProvider(self.provider)
+            self.provider = None
 
-        for prov in self.providers:
-            QgsApplication.processingRegistry().removeProvider(prov)
-        self.providers.clear()
+    # ------------------------------------------------------------------ #
+    def toggle_dock(self):
+        if self.dock is None:
+            try:
+                from .studio_dock import PlanXStudioDock
+                self.dock = PlanXStudioDock(self.iface)
+                self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
+            except Exception as exc:  # never break the plugin over the dock
+                self.iface.messageBar().pushWarning("PlanX", f"Studio panel unavailable: {exc}")
+                return
+        self.dock.setVisible(not self.dock.isVisible())

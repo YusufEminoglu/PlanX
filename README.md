@@ -1,15 +1,17 @@
 <div align="center">
 
-<img src="planx.svg" width="96" alt="PlanX icon"/>
+<img src="icons/icon.png" width="96" alt="PlanX icon"/>
 
 # PlanX
 
-**Comprehensive spatial-planning suite for QGIS — data import, spatial statistics, zoning workflows and urban-design analysis in one toolbox.**
+**Embedded urban analytics engine for QGIS: space syntax, centrality, urban morphology, OD matrices, isochrones and 15-minute-city scores — no external plugins or services.**
 
-[![QGIS](https://img.shields.io/badge/QGIS-3.0%2B-93b023?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
+[![QGIS](https://img.shields.io/badge/QGIS-3.22%2B-93b023?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
 [![Version](https://img.shields.io/github/v/tag/YusufEminoglu/PlanX?label=version&color=blue)](https://github.com/YusufEminoglu/PlanX/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](LICENSE)
 [![QGIS Plugin Hub](https://img.shields.io/badge/QGIS%20Hub-install-589632?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
+
+<img src="docs/hero.png" width="800" alt="PlanX in action"/>
 
 </div>
 
@@ -17,15 +19,18 @@
 
 ## Why PlanX?
 
-PlanX is the core hub of a modular QGIS plugin ecosystem built for city planners and GIS professionals. It provides spatial statistics, zoning-rule workflows, urban-design analyses, and data utilities — all organized under a single PlanX menu with guided UI panels, robust error handling, and silent-mode batch capabilities for Turkish and international planning tasks.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives eleven Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
-- **Single PlanX menu** — every tool grouped in one place, with guided, icon-supported UI panels.
-- **Spatial statistics** — zoning-rule analysis and urban-pattern diagnostics built for planning data.
-- **Data import & export utilities** — move planning datasets in and out of QGIS without friction.
-- **Silent-mode batch processing** — run repetitive workflows unattended.
-- **Standards-aware** — compatible with Turkish and international planning conventions.
+- **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.
+- **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
+- **Real network accessibility** — OD cost matrices with detour ratios, multi-facility **service-area isochrones**, nearest-facility allocation with load summaries.
+- **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
+- **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
+- **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
+- **Verified math** — 52 engine unit checks against hand-computed graphs + 43 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **PlanX Studio dock** — browse and launch the whole toolset from one panel.
 
 ## 🚀 Installation
 
@@ -33,31 +38,37 @@ PlanX is the core hub of a modular QGIS plugin ecosystem built for city planners
 
 **From a release zip:** download the latest zip from [Releases](https://github.com/YusufEminoglu/PlanX/releases) → `Plugins → Install from ZIP`.
 
-Requires QGIS 3.0 or newer. No external Python dependencies.
+Requires QGIS 3.22 or newer. No external Python dependencies.
 
 ## 📖 Quick start
 
-1. Install and activate **PlanX** — a *PlanX* menu appears in the QGIS menu bar.
-2. Load your planning layers (zones, parcels, networks).
-3. Pick a module from the PlanX menu and follow its guided panel.
-4. For batch runs, enable silent mode in the module's dialog.
+1. Load a street network (OSM export, plan centerlines…) in a **projected CRS** and run **Prepare Network** to node it.
+2. Run **Space Syntax (Segment Angular Analysis)** with radii `800, n` and style the output by `NACH_800` — your first integration/choice map.
+3. Add facility points and run **Service Areas (Isochrones)** with breaks `250, 500, 1000` for catchment bands.
+4. Drop building footprints in and run **Building Form Metrics** or **Morphological Tessellation → Spacematrix Density** for a density portrait.
+5. Pick amenity layers and run **Multi-Amenity Access Score** for a 15-minute-city map.
 
-## ⚙️ Suite overview
+## ⚙️ Reference
 
-PlanX is the umbrella plugin; these specialized siblings extend it:
+| Group | Tool | What it does |
+|-------|------|--------------|
+| Network Analysis | Prepare Network | Explode, node at intersections, dedupe, drop slivers |
+| Network Analysis | OD Cost Matrix | Many-to-many network costs, detour ratio, desire lines |
+| Network Analysis | Service Areas (Isochrones) | Multi-facility cost bands as edges + dissolved polygons |
+| Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary |
+| Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, Brandes betweenness (nodes + edges) |
+| Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |
+| Urban Morphology | Building Form Metrics | Area, IPQ, convexity, elongation, orientation, courtyards, shared walls… |
+| Urban Morphology | Morphological Tessellation | Voronoi plot proxies around buildings (Fleischmann method) |
+| Urban Morphology | Spacematrix Density | GSI / FSI / OSR / L per block + Spacematrix class |
+| Urban Morphology | Street Network Morphology | Orientation entropy & order, meshedness, junction typology |
+| Accessibility | Multi-Amenity Access Score | 15-minute-city composite over any amenity layers |
 
-| Plugin | Description |
-|---|---|
-| [PlanX CAD Toolset](https://github.com/YusufEminoglu/PlanX-CAD) | 25+ CAD drawing & editing tools with dockable panel |
-| [PlanX UIP Toolset](https://github.com/YusufEminoglu/PlanX-UIP) | 8-stage automated Uygulama İmar Planı (Master Plan) workflow |
-| [PlanX Settlement Toolset](https://github.com/YusufEminoglu/PlanX-Settlement) | 9-stage parametric settlement plan generation pipeline |
-| [EasyFillet](https://github.com/YusufEminoglu/EasyFillet) | Standalone tangent-arc fillet tool |
-
-Full version history: [CHANGELOG.md](CHANGELOG.md)
+Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## 🧩 Part of the PlanX ecosystem
 
-This plugin is one of 15 open-source QGIS plugins for urban planning by the same author:
+PlanX is one of 15 open-source QGIS plugins for urban planning by the same author:
 
 | Planning & analysis | CAD & production | 3D & visualization |
 |---|---|---|

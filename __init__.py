@@ -1,24 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-/***************************************************************************
- PlanX
-                                 A QGIS plugin
- Comprehensive suite of spatial‐planning tools for data import,
- advanced spatial statistics, zoning-rule workflows, and urban-design analyses.
-                              -------------------
-        begin                : 2025-05-07
-        copyright            : (C) 2025 by Yusuf Eminoglu
-        email                : yusuf.eminoglu@deu.edu.tr
-        repository           : https://github.com/YusufEminoglu/PlanX
- ***************************************************************************/
-"""
+"""QGIS plugin entry point for PlanX - Urban Analytics Studio."""
+from __future__ import annotations
+
 
 def classFactory(iface):
-    """
-    QGIS calls this factory function to instantiate your plugin.
-    
-    :param iface: A QGIS interface instance.
-    :returns: Instance of PlanX.
-    """
+    """Factory function loaded by QGIS to instantiate the plugin."""
     from .planx import PlanX
     return PlanX(iface)
