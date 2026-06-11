@@ -24,6 +24,7 @@ from ..engine import graphs, optimize, paths
 
 class FacilityLocationAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_OPTIMIZE
+    ICON = "tool_facilitylocation.png"
     NETWORK = "NETWORK"
     DEMAND = "DEMAND"
     POP_FIELD = "POP_FIELD"

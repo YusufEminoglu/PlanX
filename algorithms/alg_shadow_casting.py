@@ -19,6 +19,7 @@ from ..engine import solar
 
 class ShadowCastingAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MICRO
+    ICON = "tool_shadowcasting.png"
     DSM = "DSM"
     WHEN = "WHEN"
     UTC_OFFSET = "UTC_OFFSET"

@@ -46,7 +46,9 @@ class PlanX:
         self.iface.addToolBarIcon(action)
         self.actions.append(action)
 
-        dash_action = QAction(icon, "Plan Dashboard", self.iface.mainWindow())
+        dash_icon_path = os.path.join(PLUGIN_DIR, "icons", "tool_performancereport.png")
+        dash_icon = QIcon(dash_icon_path) if os.path.exists(dash_icon_path) else icon
+        dash_action = QAction(dash_icon, "Plan Dashboard", self.iface.mainWindow())
         dash_action.setToolTip("Live plan score cards + one-click HTML "
                                "Plan Performance Report")
         dash_action.triggered.connect(self.toggle_dashboard)

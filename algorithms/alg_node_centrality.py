@@ -23,6 +23,7 @@ from ..engine import centrality, graphs
 
 class NetworkCentralityAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_CENTRALITY
+    ICON = "tool_networkcentrality.png"
     NETWORK = "NETWORK"
     COST_FIELD = "COST_FIELD"
     RADIUS = "RADIUS"
@@ -46,7 +47,9 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
             "(robust to disconnected parts)\n"
             "- straightness: how close network paths are to straight lines\n"
             "- betweenness: exact Brandes (2001) on junctions AND street "
-            "segments\n\n"
+            "segments\n"
+            "- eigenvector: influence of a junction given its neighbours' "
+            "influence (Bonacich power iteration, max = 1)\n\n"
             "Radius limits the analysis to a local catchment (recommended on "
             "large networks; 0 = global). Betweenness sampling approximates "
             "from N random sources (0 = exact; use ~500 for metropolitan "
@@ -115,12 +118,16 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
         edge_bc /= 2.0
         norm = (n - 1) * (n - 2) / 2.0 if n > 2 else 1.0
 
+        feedback.pushInfo(self.tr("Eigenvector pass (power iteration)..."))
+        eig = centrality.eigenvector(graph.indptr, graph.adj_node, n)
+
         crs = network.sourceCrs()
         degrees = graph.degrees()
         node_fields = self.make_fields(
             ("node_id", INT), ("degree", INT), ("reach", INT),
             ("closeness", DOUBLE), ("harm_clo", DOUBLE),
-            ("straight", DOUBLE), ("betweenness", DOUBLE), ("betw_norm", DOUBLE))
+            ("straight", DOUBLE), ("betweenness", DOUBLE), ("betw_norm", DOUBLE),
+            ("eigen", DOUBLE))
         node_sink, nodes_dest = self.parameterAsSink(
             parameters, self.NODES, context, node_fields, QgsWkbTypes.Point, crs)
         for i in range(n):
@@ -129,7 +136,7 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
             f.setAttributes([i, int(degrees[i]), int(clo["reach"][i]),
                              float(clo["closeness"][i]), float(clo["harmonic"][i]),
                              float(clo["straightness"][i]), float(node_bc[i]),
-                             float(node_bc[i] / norm)])
+                             float(node_bc[i] / norm), float(eig[i])])
             node_sink.addFeature(f, QgsFeatureSink.FastInsert)
 
         edge_fields = self.make_fields(

@@ -59,6 +59,9 @@ planx/
 | Microclimate (v2.1) | Shadow Casting (DSM) | NOAA sun position + UMEP-style iterative DSM sweep |
 | Microclimate (v2.1) | Sky View Factor (DSM) | N-direction horizon scan, SVF = 1 - mean sin² horizon |
 | Microclimate (v2.1) | Frontal Area Index | λf/λp roughness grid, footprint-share distribution |
+| Microclimate (v2.5) | Sun Hours | whole-day shadow sweep -> direct-sun hours per cell |
+| Microclimate (v2.5) | Solar Irradiation | ASHRAE clear-sky beam (shadow-aware) + SVF-weighted diffuse, kWh/m2/day |
+| Microclimate (v2.5) | Heat Island Risk Grid | built/green/water/height composite, fixed-scale 0-100 risk |
 | Plan Standards (v2.2) | Land-Use Balance | per-capita areas vs configurable standards, surplus/deficit |
 | Plan Standards (v2.2) | Facility Adequacy | capacity + catchment distance, utilization & coverage |
 | Plan Standards (v2.2) | Density Grid | area-share dasymetric disaggregation, density/ha |
@@ -87,12 +90,22 @@ planx/
   within the catchment); outputs selected sites (rank + marginal gain) and
   demand allocation (facility, cost, covered).
 
-### Future ideas (post-2.4, unscheduled)
+- **v2.5 — Microclimate II + per-tool icons:** SHIPPED 2026-06-11 — Sun
+  Hours (whole-day direct-sun maps), clear-sky Solar Irradiation
+  (shadow-aware ASHRAE beam + SVF-weighted isotropic diffuse, kWh/m2/day),
+  vector Heat Island Risk Grid (fixed-scale 0-100 from buildings/green/
+  water), eigenvector centrality in Network Centrality,
+  population-weighted 15-minute-city summary, and a distinct
+  group-coloured icon for every algorithm (toolbox + Studio dock).
+  Engine fix: shadow sweep capped at the raster diagonal (low-sun crash).
+
+### Future ideas (post-2.5, unscheduled)
 
 - Capacitated location-allocation (respect facility capacities while
   siting).
 - Land-use allocation optimizer (multi-objective parcel assignment).
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
+- Annual/monthly solar aggregation (multi-day irradiation sweeps).
 
 ## Quality gates (every release)
 

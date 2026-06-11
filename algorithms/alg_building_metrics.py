@@ -38,6 +38,7 @@ def _main_rings(geometry):
 
 class BuildingFormMetricsAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MORPHOLOGY
+    ICON = "tool_buildingmetrics.png"
     BUILDINGS = "BUILDINGS"
     OUTPUT = "OUTPUT"
 

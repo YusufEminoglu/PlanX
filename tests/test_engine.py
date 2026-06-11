@@ -471,6 +471,89 @@ except ValueError:
     check("empty candidates raise", True)
 
 # --------------------------------------------------------------------------- #
+# 10. Eigenvector centrality (v2.5)
+# --------------------------------------------------------------------------- #
+# Path A-B-C: eigen of P3 -> center 1, ends 1/sqrt(2).
+eig_path = centrality.eigenvector(g.indptr, g.adj_node, g.num_nodes)
+deg_path = g.degrees()
+mid = int(np.argmax(deg_path))
+ends = [i for i in range(3) if i != mid]
+check("eigenvector P3: center == 1", close(eig_path[mid], 1.0, 1e-6))
+check("eigenvector P3: ends == 1/sqrt(2)",
+      close(eig_path[ends[0]], 1.0 / math.sqrt(2.0), 1e-6)
+      and close(eig_path[ends[1]], 1.0 / math.sqrt(2.0), 1e-6))
+
+# Star K1,4: center 1, leaves 0.5 (lambda = 2).
+star_lines = [np.array([[0.0, 0.0], [1.0, 0.0]]),
+              np.array([[0.0, 0.0], [-1.0, 0.0]]),
+              np.array([[0.0, 0.0], [0.0, 1.0]]),
+              np.array([[0.0, 0.0], [0.0, -1.0]])]
+gs = graphs.build_node_graph(star_lines)
+eig_star = centrality.eigenvector(gs.indptr, gs.adj_node, gs.num_nodes)
+hub = int(np.argmax(gs.degrees()))
+check("eigenvector star: hub == 1", close(eig_star[hub], 1.0, 1e-6))
+leaf_vals = [eig_star[i] for i in range(gs.num_nodes) if i != hub]
+check("eigenvector star: leaves == 0.5",
+      all(close(v, 0.5, 1e-6) for v in leaf_vals))
+check("eigenvector empty graph", centrality.eigenvector(
+    np.zeros(1, dtype=np.int64), np.zeros(0, dtype=np.int64), 0).size == 0)
+
+# --------------------------------------------------------------------------- #
+# 11. Sun hours and clear-sky irradiation (v2.5)
+# --------------------------------------------------------------------------- #
+flat10 = np.zeros((10, 10))
+hrs_flat, daylight = solar.sun_hours(flat10, 1.0, 2026, 6, 21, 0.0, 0.0, 0.0,
+                                     interval_min=60.0)
+check("sun hours flat: every cell == site daylight",
+      np.allclose(hrs_flat, daylight))
+check("sun hours equator June: ~12 h daylight", 10.0 <= daylight <= 14.0)
+
+tower_dsm = np.zeros((30, 30))
+tower_dsm[15, 15] = 30.0
+hrs_t, day_t = solar.sun_hours(tower_dsm, 1.0, 2026, 6, 21, 0.0, 40.0, 0.0,
+                               interval_min=60.0)
+check("sun hours: cells beside the tower lose sun vs far corner (lat 40N)",
+      hrs_t[14, 15] < hrs_t[2, 2] and hrs_t[15, 17] < hrs_t[2, 2])
+check("sun hours: tower top keeps full daylight",
+      close(hrs_t[15, 15], day_t, 1e-9))
+
+b0, d0 = solar.clear_sky_irradiance(-5.0, 172)
+check("clear sky: sun below horizon -> 0", b0 == 0.0 and d0 == 0.0)
+b90, d90 = solar.clear_sky_irradiance(90.0, 172)
+check("clear sky zenith: beam 800-1100 W/m2, diffuse smaller",
+      800.0 <= b90 <= 1100.0 and 0.0 < d90 < b90)
+b30, _ = solar.clear_sky_irradiance(30.0, 172)
+check("clear sky: beam grows with altitude", b30 < b90)
+
+kwh_flat, kwh_ref = solar.daily_irradiation(flat10, 1.0, 2026, 6, 21, 0.0,
+                                            38.0, 27.0, interval_min=60.0)
+check("irradiation flat: all cells == flat reference",
+      np.allclose(kwh_flat, kwh_ref) and kwh_ref > 3.0)
+kwh_dec, kwh_dec_ref = solar.daily_irradiation(flat10, 1.0, 2026, 12, 21, 0.0,
+                                               38.0, 27.0, interval_min=60.0)
+check("irradiation: June > December at 38N", kwh_ref > kwh_dec_ref > 0.0)
+svf_half = np.full((10, 10), 0.5)
+kwh_svf, _ = solar.daily_irradiation(flat10, 1.0, 2026, 6, 21, 0.0, 38.0, 27.0,
+                                     interval_min=60.0, svf=svf_half)
+check("irradiation: SVF 0.5 cuts the diffuse share",
+      float(kwh_svf.mean()) < float(kwh_flat.mean()))
+
+# --------------------------------------------------------------------------- #
+# 12. Heat island risk index (v2.5)
+# --------------------------------------------------------------------------- #
+r_hot = solar.heat_risk_index(1.0, 0.0, 0.0, 20.0)
+r_cool = solar.heat_risk_index(0.0, 1.0, 0.0, 0.0)
+check("heat risk: fully built at h_ref == 100", close(float(r_hot), 100.0))
+check("heat risk: fully green == 0", close(float(r_cool), 0.0))
+check("heat risk: empty flat cell == 100/3 (default weights)",
+      close(float(solar.heat_risk_index(0.0, 0.0, 0.0, 0.0)), 100.0 / 3.0, 1e-9))
+r_arr = solar.heat_risk_index(np.array([0.8, 0.8]), np.array([0.0, 0.5]),
+                              np.zeros(2), np.array([10.0, 10.0]))
+check("heat risk: green cover lowers the score", r_arr[1] < r_arr[0])
+check("heat risk: height capped at h_ref",
+      close(float(solar.heat_risk_index(1.0, 0.0, 0.0, 60.0)), 100.0))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

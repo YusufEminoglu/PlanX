@@ -24,6 +24,7 @@ from .base import DOUBLE, GROUP_STANDARDS, INT, PlanXAlgorithm
 
 class DensityGridAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_STANDARDS
+    ICON = "tool_densitygrid.png"
     INPUT = "INPUT"
     VALUE_FIELD = "VALUE_FIELD"
     CELL_SIZE = "CELL_SIZE"

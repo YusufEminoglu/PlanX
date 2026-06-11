@@ -24,6 +24,7 @@ DEFAULT_STANDARDS = "green=10, park=10, playground=1.5, education=4, school=4, h
 
 class LandUseBalanceAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_STANDARDS
+    ICON = "tool_landusebalance.png"
     LANDUSE = "LANDUSE"
     CATEGORY_FIELD = "CATEGORY_FIELD"
     POPULATION = "POPULATION"

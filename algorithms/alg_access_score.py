@@ -15,6 +15,7 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField,
     QgsProcessingParameterMultipleLayers,
     QgsProcessingParameterNumber,
     QgsWkbTypes,
@@ -37,9 +38,11 @@ def field_token(name: str, used: set) -> str:
 
 class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_ACCESS
+    ICON = "tool_accessscore.png"
     ORIGINS = "ORIGINS"
     NETWORK = "NETWORK"
     AMENITIES = "AMENITIES"
+    POP_FIELD = "POP_FIELD"
     SPEED = "SPEED"
     THRESHOLD = "THRESHOLD"
     OUTPUT = "OUTPUT"
@@ -63,6 +66,10 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
             "2x threshold)\n"
             "- n_reach: categories reachable within the threshold\n"
             "- score: 0-100 share of categories within the threshold\n\n"
+            "Give an optional population field on the origins to get a "
+            "population-weighted summary in the log: mean score, residents "
+            "with full access and residents missing every category - the "
+            "headline numbers of a 15-minute-city audit.\n\n"
             "Defaults: 4.8 km/h walking speed, 15-minute threshold. All "
             "layers are snapped to the same network; use a projected CRS."
         )
@@ -75,6 +82,11 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterMultipleLayers(
             self.AMENITIES, self.tr("Amenity layers (one per category)"),
             QgsProcessing.TypeVectorAnyGeometry))
+        self.addParameter(QgsProcessingParameterField(
+            self.POP_FIELD,
+            self.tr("Population field on origins (optional, for weighted summary)"),
+            parentLayerParameterName=self.ORIGINS, optional=True,
+            type=QgsProcessingParameterField.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.SPEED, self.tr("Walking speed (km/h)"),
             QgsProcessingParameterNumber.Double, 4.8, minValue=0.5))
@@ -88,6 +100,7 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
         origins = self.parameterAsSource(parameters, self.ORIGINS, context)
         network = self.parameterAsSource(parameters, self.NETWORK, context)
         amenity_layers = self.parameterAsLayerList(parameters, self.AMENITIES, context)
+        pop_field = self.parameterAsString(parameters, self.POP_FIELD, context)
         speed = self.parameterAsDouble(parameters, self.SPEED, context)
         threshold = self.parameterAsDouble(parameters, self.THRESHOLD, context)
         self.require_projected(network, "Street network")
@@ -128,18 +141,38 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
 
         n_src = len(origins.fields())
         n_cat = len(amenity_layers)
+        p_idx = origins.fields().lookupField(pop_field) if pop_field else -1
+        pop_total = pop_wsum = pop_full = pop_none = 0.0
         for i, feat in enumerate(o_feats):
             if feedback.isCanceled():
                 break
             col = times[:, i]
             reached = int(((col >= 0) & (col <= threshold)).sum())
+            score = 100.0 * reached / n_cat
+            if p_idx >= 0:
+                try:
+                    pop = max(0.0, float(feat.attributes()[p_idx] or 0.0))
+                except (TypeError, ValueError):
+                    pop = 0.0
+                pop_total += pop
+                pop_wsum += pop * score
+                if reached == n_cat:
+                    pop_full += pop
+                elif reached == 0:
+                    pop_none += pop
             out = QgsFeature(fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*o_xy[i])))
             out.setAttributes(
                 list(feat.attributes())[:n_src]
                 + [round(float(v), 2) if v >= 0 else -1.0 for v in col]
-                + [reached, round(100.0 * reached / n_cat, 1)])
+                + [reached, round(score, 1)])
             sink.addFeature(out, QgsFeatureSink.FastInsert)
+        if p_idx >= 0 and pop_total > 0:
+            feedback.pushInfo(self.tr(
+                f"Population {pop_total:,.0f} | weighted mean score "
+                f"{pop_wsum / pop_total:.1f} | full access "
+                f"{pop_full / pop_total:.1%} | no category reachable "
+                f"{pop_none / pop_total:.1%}"))
         return {self.OUTPUT: dest}
 
     def createInstance(self):

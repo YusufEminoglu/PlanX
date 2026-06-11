@@ -23,6 +23,7 @@ from ..engine import graphs, morphology
 
 class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MORPHOLOGY
+    ICON = "tool_streetmorphology.png"
     NETWORK = "NETWORK"
     NODES = "NODES"
     SUMMARY = "SUMMARY"

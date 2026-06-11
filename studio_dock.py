@@ -63,7 +63,7 @@ class PlanXStudioDock(QDockWidget):
         if provider is None:
             self.tree.addTopLevelItem(QTreeWidgetItem(["PlanX provider not loaded"]))
             return
-        icon = QIcon(os.path.join(PLUGIN_DIR, "icons", "icon.png"))
+        fallback = QIcon(os.path.join(PLUGIN_DIR, "icons", "icon.png"))
         groups = {}
         for alg in provider.algorithms():
             groups.setdefault(alg.group(), []).append(alg)
@@ -72,7 +72,11 @@ class PlanXStudioDock(QDockWidget):
             self.tree.addTopLevelItem(parent)
             for alg in sorted(groups[group], key=lambda a: a.displayName()):
                 item = QTreeWidgetItem([alg.displayName()])
-                item.setIcon(0, icon)
+                try:
+                    icon = alg.icon()  # per-tool icon from PlanXAlgorithm.ICON
+                except Exception:
+                    icon = fallback
+                item.setIcon(0, icon if not icon.isNull() else fallback)
                 item.setToolTip(0, alg.shortHelpString())
                 item.setData(0, Qt.ItemDataRole.UserRole, alg.id())
                 parent.addChild(item)

@@ -30,14 +30,20 @@ GROUP_OPTIMIZE = ("Optimization", "optimization")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):
-    """Base: shared icon, translation helper and geometry extraction."""
+    """Base: per-tool icon, translation helper and geometry extraction."""
 
     GROUP = GROUP_NETWORK
+    #: per-tool icon file under icons/ (falls back to the plugin icon)
+    ICON = ""
 
     def tr(self, text: str) -> str:
         return QCoreApplication.translate(self.__class__.__name__, text)
 
     def icon(self) -> QIcon:
+        if self.ICON:
+            path = os.path.join(PLUGIN_DIR, "icons", self.ICON)
+            if os.path.exists(path):
+                return QIcon(path)
         path = os.path.join(PLUGIN_DIR, "icons", "icon.png")
         return QIcon(path) if os.path.exists(path) else super().icon()
 

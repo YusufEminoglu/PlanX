@@ -37,6 +37,7 @@ def spacematrix_class(fsi: float, gsi: float, levels: float) -> str:
 
 class SpacematrixDensityAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MORPHOLOGY
+    ICON = "tool_spacematrix.png"
     BUILDINGS = "BUILDINGS"
     LEVELS_FIELD = "LEVELS_FIELD"
     DEFAULT_LEVELS = "DEFAULT_LEVELS"

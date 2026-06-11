@@ -21,6 +21,7 @@ from ..engine import graphs, syntax
 
 class SpaceSyntaxAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_CENTRALITY
+    ICON = "tool_spacesyntax.png"
     NETWORK = "NETWORK"
     RADII = "RADII"
     OUTPUT = "OUTPUT"

@@ -23,6 +23,7 @@ from ..engine import graphs, paths
 
 class ODCostMatrixAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_NETWORK
+    ICON = "tool_odmatrix.png"
     NETWORK = "NETWORK"
     ORIGINS = "ORIGINS"
     ORIGIN_ID = "ORIGIN_ID"

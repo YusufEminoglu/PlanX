@@ -10,6 +10,13 @@ Pure NumPy, no qgis imports:
 * :func:`sky_view_factor` - hemispheric SVF from horizon scans:
   ``SVF = 1 - mean(sin^2(horizon))`` over equally spaced azimuths
   (flat plane -> 1, foot of an infinite wall -> 0.5).
+* :func:`sun_hours` - direct-sun duration per cell over one day (shadow
+  sweep at a fixed interval).
+* :func:`clear_sky_irradiance` - ASHRAE-style clear-sky beam + diffuse.
+* :func:`daily_irradiation` - clear-sky global irradiation per cell over one
+  day: shadow-aware beam + SVF-weighted isotropic diffuse.
+* :func:`heat_risk_index` - normalized 0-100 urban heat island risk from
+  built/green/water fractions and building height.
 """
 from __future__ import annotations
 
@@ -97,6 +104,8 @@ def _shift(arr, dy, dx, fill):
     """Shift a 2D array by integer (dy, dx); exposed edges get ``fill``."""
     out = np.full_like(arr, fill)
     h, w = arr.shape
+    if abs(dy) >= h or abs(dx) >= w:
+        return out  # fully shifted off the grid
     ys = slice(max(0, dy), min(h, h + dy))
     xs = slice(max(0, dx), min(w, w + dx))
     ys_src = slice(max(0, -dy), min(h, h - dy))
@@ -124,6 +133,9 @@ def shadow_mask(dsm, sun_altitude_deg, sun_azimuth_deg, pixel_size,
     reach = relief / tan_alt
     if max_search is not None:
         reach = min(reach, float(max_search))
+    # Scanning past the raster diagonal is pointless: every further shift
+    # falls completely off the grid (also guards very low sun altitudes).
+    reach = min(reach, math.hypot(*dsm.shape) * pixel_size)
     steps = max(1, int(math.ceil(reach / pixel_size)))
 
     # Unit vector pointing TOWARD the sun: compass azimuth A -> (east, north)
@@ -178,6 +190,134 @@ def sky_view_factor(dsm, pixel_size, directions=16, max_radius=100.0,
     svf = 1.0 - sin2_sum / directions
     svf[np.isnan(dsm)] = np.nan
     return np.clip(svf, 0.0, 1.0)
+
+
+# --------------------------------------------------------------------------- #
+# Daily sweeps: sun hours and clear-sky irradiation
+# --------------------------------------------------------------------------- #
+def _day_of_year(year, month, day):
+    days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
+        days[1] = 29
+    return sum(days[:month - 1]) + day
+
+
+def sun_hours(dsm, pixel_size, year, month, day, utc_offset, lat_deg, lon_deg,
+              interval_min=30.0, max_search=None, progress=None, cancel=None):
+    """Hours of direct sun per DSM cell over one day.
+
+    Sweeps the day in ``interval_min`` steps; for every step with the sun
+    above the horizon a shadow mask is cast and sunlit cells accumulate
+    ``interval_min / 60`` hours. Returns ``(hours, daylight_hours)`` where
+    ``daylight_hours`` is the site's total potential (unobstructed) sun.
+    """
+    dsm = np.asarray(dsm, dtype=np.float64)
+    hours = np.zeros(dsm.shape, dtype=np.float64)
+    daylight = 0.0
+    step_h = interval_min / 60.0
+    n_steps = max(1, int(round(24.0 * 60.0 / interval_min)))
+    for i in range(n_steps):
+        if cancel is not None and cancel():
+            break
+        local_h = (i + 0.5) * 24.0 / n_steps
+        alt, az = sun_position(year, month, day, local_h - utc_offset,
+                               lat_deg, lon_deg)
+        if alt <= 0.0:
+            continue
+        daylight += step_h
+        shadow = shadow_mask(dsm, alt, az, pixel_size, max_search=max_search)
+        hours[~shadow] += step_h
+        if progress is not None:
+            progress((i + 1) / n_steps)
+    hours[np.isnan(dsm)] = np.nan
+    return hours, daylight
+
+
+def clear_sky_irradiance(altitude_deg, day_of_year):
+    """Clear-sky direct-horizontal and diffuse-horizontal irradiance (W/m2).
+
+    ASHRAE-style clear-sky model (Masters 2004): beam ``DNI = A exp(-k/sin h)``
+    with seasonally varying apparent extraterrestrial flux ``A``, optical
+    depth ``k`` and isotropic diffuse ``DHI = C * DNI``. Good for screening,
+    not for bankable yield studies.
+    """
+    if altitude_deg <= 0.0:
+        return 0.0, 0.0
+    n = day_of_year
+    a = 1160.0 + 75.0 * math.sin(2.0 * math.pi * (n - 275) / 365.0)
+    k = 0.174 + 0.035 * math.sin(2.0 * math.pi * (n - 100) / 365.0)
+    c = 0.095 + 0.04 * math.sin(2.0 * math.pi * (n - 100) / 365.0)
+    sin_h = math.sin(math.radians(altitude_deg))
+    dni = a * math.exp(-k / sin_h)
+    return dni * sin_h, c * dni
+
+
+def daily_irradiation(dsm, pixel_size, year, month, day, utc_offset,
+                      lat_deg, lon_deg, interval_min=30.0, svf=None,
+                      max_search=None, progress=None, cancel=None):
+    """Clear-sky global irradiation per cell over one day (kWh/m2).
+
+    Per time step: sunlit cells receive the beam (direct-horizontal)
+    component, every cell receives the isotropic diffuse component scaled
+    by its sky view factor (``svf=None`` treats the sky as fully visible).
+    Returns ``(kwh, flat_kwh)`` where ``flat_kwh`` is the unobstructed
+    flat-ground total for the same day (useful as a reference).
+    """
+    dsm = np.asarray(dsm, dtype=np.float64)
+    wh = np.zeros(dsm.shape, dtype=np.float64)
+    flat_wh = 0.0
+    doy = _day_of_year(year, month, day)
+    step_h = interval_min / 60.0
+    n_steps = max(1, int(round(24.0 * 60.0 / interval_min)))
+    for i in range(n_steps):
+        if cancel is not None and cancel():
+            break
+        local_h = (i + 0.5) * 24.0 / n_steps
+        alt, az = sun_position(year, month, day, local_h - utc_offset,
+                               lat_deg, lon_deg)
+        if alt <= 0.0:
+            continue
+        beam_h, diff_h = clear_sky_irradiance(alt, doy)
+        flat_wh += (beam_h + diff_h) * step_h
+        shadow = shadow_mask(dsm, alt, az, pixel_size, max_search=max_search)
+        contrib = np.where(shadow, 0.0, beam_h)
+        if svf is not None:
+            contrib = contrib + diff_h * svf
+        else:
+            contrib = contrib + diff_h
+        wh += contrib * step_h
+        if progress is not None:
+            progress((i + 1) / n_steps)
+    wh[np.isnan(dsm)] = np.nan
+    return wh / 1000.0, flat_wh / 1000.0
+
+
+# --------------------------------------------------------------------------- #
+# Urban heat island risk (vector grid composite)
+# --------------------------------------------------------------------------- #
+def heat_risk_index(built_frac, green_frac, water_frac, mean_height,
+                    h_ref=20.0, w_built=0.4, w_height=0.2,
+                    w_green=0.3, w_water=0.1):
+    """Normalized 0-100 urban heat island risk score (vectorized).
+
+    ``raw = w_built*built + w_height*min(h/h_ref, 1) - w_green*green -
+    w_water*water`` mapped linearly so the attainable extremes land on 0
+    and 100: fully built at reference height -> 100; fully covered by the
+    stronger coolant (green and water covers are disjoint, so the minimum
+    is ``-max(w_green, w_water)``) -> 0. The mapping is fixed by the
+    weights - NOT by the data - so scores stay comparable between runs
+    and study areas.
+    """
+    built = np.clip(np.asarray(built_frac, dtype=np.float64), 0.0, 1.0)
+    green = np.clip(np.asarray(green_frac, dtype=np.float64), 0.0, 1.0)
+    water = np.clip(np.asarray(water_frac, dtype=np.float64), 0.0, 1.0)
+    h = np.asarray(mean_height, dtype=np.float64)
+    h_norm = np.clip(h / max(h_ref, 1e-9), 0.0, 1.0)
+    raw = w_built * built + w_height * h_norm - w_green * green - w_water * water
+    lo = -max(w_green, w_water)
+    hi = w_built + w_height
+    span = (hi - lo) if hi > lo else 1.0
+    return np.clip(100.0 * (raw - lo) / span, 0.0, 100.0)
 
 
 # --------------------------------------------------------------------------- #

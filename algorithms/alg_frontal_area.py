@@ -26,6 +26,7 @@ from ..engine import solar
 
 class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MICRO
+    ICON = "tool_frontalarea.png"
     BUILDINGS = "BUILDINGS"
     HEIGHT_FIELD = "HEIGHT_FIELD"
     DEFAULT_HEIGHT = "DEFAULT_HEIGHT"

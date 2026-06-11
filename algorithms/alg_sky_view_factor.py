@@ -17,6 +17,7 @@ from ..engine import solar
 
 class SkyViewFactorAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MICRO
+    ICON = "tool_skyviewfactor.png"
     DSM = "DSM"
     DIRECTIONS = "DIRECTIONS"
     RADIUS = "RADIUS"

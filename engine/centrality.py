@@ -69,6 +69,38 @@ def closeness_straightness(indptr, adj, weights, n, node_xy=None,
     return out
 
 
+def eigenvector(indptr, adj, n, max_iter=200, tol=1e-10):
+    """Eigenvector centrality by power iteration on the binary adjacency.
+
+    Influence of a junction given the influence of its neighbours
+    (Bonacich). Normalized so the maximum is 1. Converges to the dominant
+    connected component; isolated parts get near-zero scores.
+    """
+    if n == 0:
+        return np.zeros(0, dtype=np.float64)
+    x = np.full(n, 1.0 / n, dtype=np.float64)
+    for _ in range(max_iter):
+        # Power-iterate on A + I: same dominant eigenvector as A, but the
+        # +I shift breaks the +/-lambda tie on bipartite graphs (trees,
+        # grids) where plain iteration oscillates forever.
+        nxt = x.copy()
+        for u in range(n):
+            s = x[u]
+            if s != 0.0:
+                # np.add.at: parallel edges must each contribute
+                np.add.at(nxt, adj[indptr[u]:indptr[u + 1]], s)
+        norm = float(np.sqrt((nxt * nxt).sum()))
+        if norm <= 0.0:
+            return np.zeros(n, dtype=np.float64)
+        nxt /= norm
+        if float(np.abs(nxt - x).max()) < tol:
+            x = nxt
+            break
+        x = nxt
+    peak = float(x.max())
+    return x / peak if peak > 0 else x
+
+
 def brandes_betweenness(indptr, adj, weights, n, adj_edge=None, num_edges=0,
                         w_prune=None, radius=None, sources=None,
                         cancel=None, progress=None, collect_depth=False):

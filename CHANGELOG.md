@@ -1,7 +1,58 @@
 # Changelog
 
+## [2.5.0] - 2026-06-11
+
+- Microclimate II + per-tool icons: Sun Hours, clear-sky Solar Irradiation, Heat Island Risk Grid, eigenvector centrality, population-weighted access summary, 22 distinct tool icons
+
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [2.5.0] - 2026-06-11
+
+Microclimate II + per-tool icons: three new tools — 22 algorithms total.
+
+### Added
+- **Sun Hours (DSM)** (Microclimate): hours of direct sunlight per cell
+  over one full day in a single run — the day is swept at a configurable
+  interval (default 30 min), each step casts the DSM shadow mask with the
+  embedded NOAA sun position. Replaces the old "run Shadow Casting in
+  Batch mode" workaround. Right-to-light checks, courtyard/playground sun
+  audits; the log reports the site's potential daylight.
+- **Solar Irradiation (DSM)** (Microclimate): clear-sky daily global
+  irradiation per cell (kWh/m²) — ASHRAE-style beam (Masters 2004) blocked
+  by cast shadows + isotropic diffuse weighted per cell by the sky view
+  factor. Quick screening of roofs and open spaces for solar potential or
+  summer heat exposure; flat-ground reference reported for comparison.
+- **Heat Island Risk Grid** (Microclimate): vector UHI screening from the
+  layers every plan already has — building footprints (with optional
+  height field), green areas and water polygons. Per cell: built fraction,
+  area-weighted mean height, green/water fractions and a **fixed-scale
+  0–100 risk score** (weights are parameters; the scale is set by the
+  weights, not stretched to the data, so scenarios stay comparable) with
+  Low/Moderate/High/Very High classes.
+- **Eigenvector centrality** in Network Centrality (Bonacich power
+  iteration on A + I — the shift makes it converge on bipartite street
+  graphs; max-normalized to 1), new `eigen` field on junction output.
+- **Population-weighted summary** in Multi-Amenity Access Score: optional
+  population field on origins reports total population, weighted mean
+  score, share with full access and share with no category reachable.
+- **Per-tool icons**: all 22 algorithms now carry their own meaningful
+  icon (colour-coded by group) in the Processing toolbox and the PlanX
+  Studio dock; the Plan Dashboard menu action got the report icon.
+  Generator: `scratch/make_planx_tool_icons.ps1` (GDI+, 256 px PNG).
+- `engine/solar.py`: `sun_hours`, `clear_sky_irradiance`,
+  `daily_irradiation`, `heat_risk_index`; `engine/centrality.py`:
+  `eigenvector` (all pure NumPy, unit-tested).
+
+### Fixed
+- Shadow casting could crash (negative-slice broadcast in the array
+  shifter) and wastefully over-scan at very low sun altitudes: shifts
+  beyond the raster now short-circuit and the sweep is capped at the
+  raster diagonal.
+
+### Tests
+- Engine suite 111 → 131 checks; e2e harness 90 → 109 assertions —
+  verified on QGIS 3.44 LTR and QGIS 4.0.2 (including icon coverage).
 
 ## [2.4.0] - 2026-06-11
 

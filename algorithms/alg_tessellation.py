@@ -24,6 +24,7 @@ from .base import DOUBLE, GROUP_MORPHOLOGY, LONG, PlanXAlgorithm
 
 class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_MORPHOLOGY
+    ICON = "tool_tessellation.png"
     BUILDINGS = "BUILDINGS"
     STUDY_AREA = "STUDY_AREA"
     SHRINK = "SHRINK"

@@ -33,6 +33,7 @@ def parse_breaks(text: str):
 
 class ServiceAreasAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_NETWORK
+    ICON = "tool_serviceareas.png"
     NETWORK = "NETWORK"
     FACILITIES = "FACILITIES"
     COST_FIELD = "COST_FIELD"

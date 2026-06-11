@@ -43,6 +43,7 @@ def layer_rows(source, names):
 
 class PlanPerformanceReportAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_REPORT
+    ICON = "tool_performancereport.png"
     TITLE = "TITLE"
     POPULATION = "POPULATION"
     ACCESS = "ACCESS"

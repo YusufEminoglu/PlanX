@@ -20,6 +20,7 @@ from .base import DOUBLE, GROUP_NETWORK, LONG, PlanXAlgorithm
 
 class PrepareNetworkAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_NETWORK
+    ICON = "tool_preparenetwork.png"
     INPUT = "INPUT"
     MIN_LENGTH = "MIN_LENGTH"
     OUTPUT = "OUTPUT"

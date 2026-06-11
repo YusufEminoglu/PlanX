@@ -23,6 +23,7 @@ from ..engine import graphs, paths
 
 class FacilityAdequacyAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_STANDARDS
+    ICON = "tool_facilityadequacy.png"
     NETWORK = "NETWORK"
     DEMAND = "DEMAND"
     POP_FIELD = "POP_FIELD"

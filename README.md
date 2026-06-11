@@ -19,22 +19,22 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives nineteen Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-two Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
 - **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.
-- **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
+- **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness, **eigenvector** and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
 - **Real network accessibility** — OD cost matrices with detour ratios, multi-facility **service-area isochrones**, nearest-facility allocation with load summaries.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
-- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sky View Factor**, and frontal-area wind-roughness grids.
+- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Sky View Factor**, frontal-area wind-roughness grids, and a vector **Heat Island Risk Grid** from the layers every plan already has.
 - **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
 - **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
 - **Facility-location optimization** — site new schools/clinics/parks among your candidates with the classic location-allocation models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected — no external solver.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
-- **Verified math** — 111 engine unit checks against hand-computed values + 90 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
-- **PlanX Studio dock** — browse and launch the whole toolset from one panel.
+- **Verified math** — 131 engine unit checks against hand-computed values + 109 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
 
@@ -61,7 +61,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Network Analysis | OD Cost Matrix | Many-to-many network costs, detour ratio, desire lines |
 | Network Analysis | Service Areas (Isochrones) | Multi-facility cost bands as edges + dissolved polygons |
 | Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary |
-| Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, Brandes betweenness (nodes + edges) |
+| Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, eigenvector, Brandes betweenness (nodes + edges) |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |
 | Urban Morphology | Building Form Metrics | Area, IPQ, convexity, elongation, orientation, courtyards, shared walls… |
 | Urban Morphology | Morphological Tessellation | Voronoi plot proxies around buildings (Fleischmann method) |
@@ -69,8 +69,11 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Urban Morphology | Street Network Morphology | Orientation entropy & order, meshedness, junction typology |
 | Accessibility | Multi-Amenity Access Score | 15-minute-city composite over any amenity layers |
 | Microclimate | Shadow Casting (DSM) | Building/terrain shadows for any date & time, embedded sun position |
+| Microclimate | Sun Hours (DSM) | Hours of direct sun per cell over one day — right-to-light & sun audits |
+| Microclimate | Solar Irradiation (DSM) | Clear-sky daily kWh/m²: shadow-aware beam + SVF-weighted diffuse |
 | Microclimate | Sky View Factor (DSM) | Visible-sky fraction per cell — heat island & canyon studies |
 | Microclimate | Frontal Area Index | λf / λp wind-roughness grid (Grimmond & Oke) |
+| Microclimate | Heat Island Risk Grid | Fixed-scale 0–100 UHI screening from buildings, green & water polygons |
 | Plan Standards & QA | Land-Use Balance | Per-capita areas vs configurable standards, surplus/deficit |
 | Plan Standards & QA | Facility Adequacy | Capacity + network distance in one check, utilization & coverage |
 | Plan Standards & QA | Density Grid | Area-share value disaggregation to a grid, density per hectare |

@@ -23,6 +23,7 @@ from ..engine import graphs, paths
 
 class NearestFacilityAlgorithm(PlanXAlgorithm):
     GROUP = GROUP_NETWORK
+    ICON = "tool_nearestfacility.png"
     NETWORK = "NETWORK"
     DEMAND = "DEMAND"
     FACILITIES = "FACILITIES"
