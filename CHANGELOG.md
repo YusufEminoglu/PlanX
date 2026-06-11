@@ -1,9 +1,5 @@
 # Changelog
 
-## [2.5.0] - 2026-06-11
-
-- Microclimate II + per-tool icons: Sun Hours, clear-sky Solar Irradiation, Heat Island Risk Grid, eigenvector centrality, population-weighted access summary, 22 distinct tool icons
-
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
