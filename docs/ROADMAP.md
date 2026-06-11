@@ -63,6 +63,7 @@ planx/
 | Plan Standards (v2.2) | Facility Adequacy | capacity + catchment distance, utilization & coverage |
 | Plan Standards (v2.2) | Density Grid | area-share dasymetric disaggregation, density/ha |
 | Reporting (v2.3) | Plan Performance Report (HTML) | one-file scorecard report: inline-SVG charts, balance bars, score map |
+| Optimization (v2.4) | Facility Location Optimizer | greedy maximal coverage (Church & ReVelle) / p-median (Teitz-Bart), candidate screening |
 
 ## Release roadmap
 
@@ -77,8 +78,21 @@ planx/
   (score histogram + SVG score map, standards balance bars, facility
   utilization, density summary), also available headless as the
   `planx:performancereport` algorithm. Pure-stdlib `engine/report.py`.
-- **v2.4 — Optimization:** facility location (greedy maximal coverage /
-  p-median heuristic), network-aware site screening.
+- **v2.4 — Optimization:** SHIPPED 2026-06-11 — Facility Location Optimizer
+  (new "Optimization" group): greedy maximal coverage (Church & ReVelle
+  1974) and p-median via greedy construction + Teitz & Bart (1968) vertex
+  substitution in pure-NumPy `engine/optimize.py`, network distances from
+  the embedded Dijkstra kernels; existing facilities enter the solution as
+  fixed sites; every candidate gets a standalone screening score (demand
+  within the catchment); outputs selected sites (rank + marginal gain) and
+  demand allocation (facility, cost, covered).
+
+### Future ideas (post-2.4, unscheduled)
+
+- Capacitated location-allocation (respect facility capacities while
+  siting).
+- Land-use allocation optimizer (multi-objective parcel assignment).
+- Scenario comparison in the dashboard (A/B plan score cards side by side).
 
 ## Quality gates (every release)
 

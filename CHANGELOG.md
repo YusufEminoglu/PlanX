@@ -3,6 +3,31 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.4.0] - 2026-06-11
+
+Optimization release: facility location on the network — 19 algorithms
+total. The v2.x roadmap is complete.
+
+### Added
+- **Facility Location Optimizer (Coverage / P-Median)** (new
+  "Optimization" group): chooses the best sites for new facilities among
+  candidate locations on real network distances — no external solver.
+  - *Maximize coverage* (Church & ReVelle 1974): greedy picks, each adding
+    the most uncovered weighted demand within the catchment radius;
+  - *Minimize total travel* (p-median): greedy construction + Teitz & Bart
+    (1968) vertex substitution on the population-weighted travel cost;
+  - existing facilities (optional) are kept in the solution as fixed
+    sites — new picks complement them;
+  - outputs: every candidate with its standalone **screening score**
+    (demand within reach), selection flag, pick rank and marginal gain;
+    plus the demand allocation (assigned facility, network cost, covered).
+- `engine/optimize.py`: coverage weights, greedy maximal coverage,
+  p-median with vertex substitution and penalty handling for unreachable
+  demand, nearest-assignment helper (pure NumPy, unit-tested).
+- Tests: engine suite 98 → 111 checks (incl. a greedy-trap case the
+  substitution phase must escape); e2e harness 80 → 90 assertions with
+  hand-computed selections, verified on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.3.0] - 2026-06-11
 
 Performance Dashboard release: live score cards + one-click HTML report —

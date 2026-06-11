@@ -15,7 +15,9 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, report, solar, standards, syntax  # noqa: E402
+from planx.engine import (  # noqa: E402
+    HAS_SCIPY, centrality, graphs, morphology, optimize, paths, report, solar, standards, syntax,
+)
 
 CHECKS = []
 
@@ -403,6 +405,70 @@ check("svg map thins to max_points",
                            max_points=10).count("<circle") == 10)
 check("balance bars skip no-standard rows",
       report.svg_balance_bars(bal_rows).count("<text x=\"0\"") == 2)
+
+# --------------------------------------------------------------------------- #
+# 9. Facility-location optimization
+# --------------------------------------------------------------------------- #
+# Demand at positions 0..4 on a line; candidates at the same positions.
+LINE = np.abs(np.arange(5)[:, None] - np.arange(5)[None, :]).astype(float)
+ones = np.ones(5)
+
+cw = optimize.coverage_weights(LINE, ones, radius=1.0)
+check("screening weights on line == [2,3,3,3,2]",
+      cw.tolist() == [2.0, 3.0, 3.0, 3.0, 2.0])
+
+mc = optimize.greedy_max_coverage(LINE, ones, p=2, radius=1.0)
+check("greedy coverage picks [1, 3] with gains [3, 2]",
+      mc["selected"] == [1, 3] and mc["gains"] == [3.0, 2.0])
+check("greedy coverage covers everything", mc["covered"].all()
+      and close(mc["covered_weight"], 5.0) and close(mc["total_weight"], 5.0))
+check("greedy coverage stops early when saturated",
+      optimize.greedy_max_coverage(LINE, ones, p=5, radius=1.0)["selected"] == [1, 3])
+
+w_heavy = np.array([10.0, 1.0, 1.0, 1.0, 1.0])
+check("weighted coverage chases the heavy demand",
+      optimize.greedy_max_coverage(LINE, w_heavy, p=1, radius=1.0)["selected"] == [1])
+
+mc_fixed = optimize.greedy_max_coverage(LINE, ones, p=1, radius=1.0, fixed=[1])
+check("coverage with fixed=1 picks 3 (gain 2)",
+      mc_fixed["selected"] == [3] and mc_fixed["gains"] == [2.0]
+      and close(mc_fixed["covered_weight"], 5.0))
+
+# p-median: weighted 1-median sits at the heavy end.
+pm1 = optimize.p_median(LINE, np.array([1.0, 1.0, 1.0, 1.0, 10.0]), p=1)
+check("1-median with heavy tail == node 4, objective 10",
+      pm1["selected"] == [4] and close(pm1["objective"], 10.0))
+
+# Greedy trap: greedy picks the middle first (objective 50); Teitz-Bart
+# substitution must find the optimum {0, 20} (objective 40).
+TRAP = np.abs(np.array([0.0, 10.0, 20.0])[:, None]
+              - np.array([0.0, 10.0, 20.0])[None, :])
+w_trap = np.array([5.0, 4.0, 5.0])
+pm2 = optimize.p_median(TRAP, w_trap, p=2)
+check("Teitz-Bart escapes the greedy trap (objective 40, swaps >= 1)",
+      sorted(pm2["selected"]) == [0, 2] and close(pm2["objective"], 40.0)
+      and pm2["swaps"] >= 1)
+
+pm_fixed = optimize.p_median(LINE, ones, p=1, fixed=[0])
+check("p-median with existing at 0 adds node 3",
+      pm_fixed["selected"] == [3] and close(pm_fixed["objective"], 3.0))
+
+# Unreachable demand: penalty applied, assignment flags it.
+D_INF = np.array([[0.0, 5.0, np.inf], [5.0, 0.0, np.inf]])
+pm_inf = optimize.p_median(D_INF, np.array([1.0, 1.0, 4.0]), p=1)
+check("p-median penalty = 1.5 x max finite", close(pm_inf["penalty"], 7.5))
+assign, cost = optimize.assign_to_nearest(D_INF, [0, 1])
+check("assignment flags unreachable as -1",
+      assign.tolist() == [0, 1, -1] and cost.tolist() == [0.0, 0.0, -1.0])
+assign2, cost2 = optimize.assign_to_nearest(LINE, [1, 3])
+check("assignment to nearest of {1,3}",
+      assign2.tolist() == [0, 0, 0, 1, 1] and cost2.tolist() == [1.0, 0.0, 1.0, 0.0, 1.0])
+
+try:
+    optimize.greedy_max_coverage(np.empty((0, 3)), np.ones(3), p=1, radius=1.0)
+    check("empty candidates raise", False)
+except ValueError:
+    check("empty candidates raise", True)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

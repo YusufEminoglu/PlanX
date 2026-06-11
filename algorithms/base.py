@@ -26,6 +26,7 @@ GROUP_ACCESS = ("Accessibility", "accessibility")
 GROUP_MICRO = ("Microclimate", "microclimate")
 GROUP_STANDARDS = ("Plan Standards and QA", "standards")
 GROUP_REPORT = ("Reporting and Dashboard", "reporting")
+GROUP_OPTIMIZE = ("Optimization", "optimization")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):
