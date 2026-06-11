@@ -15,7 +15,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, solar, syntax  # noqa: E402
+from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, solar, standards, syntax  # noqa: E402
 
 CHECKS = []
 
@@ -278,6 +278,36 @@ check("frontal width, west wind == 20",
       close(solar.projected_width(rect_fp, 270.0), 20.0, 1e-9))
 check("frontal width, 45 deg wind == (10+20)/sqrt(2)",
       close(solar.projected_width(rect_fp, 45.0), 30.0 / math.sqrt(2.0), 1e-9))
+
+# --------------------------------------------------------------------------- #
+# 7. Plan standards
+# --------------------------------------------------------------------------- #
+stds = standards.parse_standards("green=10, Education = 4; health=1.5")
+check("parse_standards: 3 entries", stds == [("green", 10.0), ("education", 4.0), ("health", 1.5)])
+check("match contains, case-insensitive",
+      standards.match_standard("Urban GREEN Area", stds) == ("green", 10.0))
+check("no match -> None", standards.match_standard("Industry", stds) == (None, None))
+try:
+    standards.parse_standards("green:10")
+    check("malformed standards raise", False)
+except ValueError:
+    check("malformed standards raise", True)
+
+rows = standards.balance_rows(
+    {"Green Area": 2000.0, "School Site": 1000.0, "Industry": 500.0},
+    population=100.0, standards=standards.parse_standards("green=10, school=4"))
+by_cat = {r["category"]: r for r in rows}
+check("balance: green surplus 1000",
+      close(by_cat["Green Area"]["balance_m2"], 1000.0)
+      and by_cat["Green Area"]["status"] == "Meets standard")
+check("balance: per-capita actual 20", close(by_cat["Green Area"]["m2_per_capita"], 20.0))
+check("balance: no standard for industry", by_cat["Industry"]["status"] == "No standard")
+rows_deficit = standards.balance_rows(
+    {"Green Area": 2000.0}, population=1000.0,
+    standards=standards.parse_standards("green=10"))
+check("balance: deficit -8000",
+      close(rows_deficit[0]["balance_m2"], -8000.0)
+      and rows_deficit[0]["status"] == "Deficit")
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

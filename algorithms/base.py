@@ -24,6 +24,7 @@ GROUP_CENTRALITY = ("Centrality and Space Syntax", "centrality")
 GROUP_MORPHOLOGY = ("Urban Morphology", "morphology")
 GROUP_ACCESS = ("Accessibility", "accessibility")
 GROUP_MICRO = ("Microclimate", "microclimate")
+GROUP_STANDARDS = ("Plan Standards and QA", "standards")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

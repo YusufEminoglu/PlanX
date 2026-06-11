@@ -3,6 +3,30 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.2.0] - 2026-06-11
+
+Plan Standards & QA release: three new tools in a new group — 17 algorithms
+total.
+
+### Added
+- **Land-Use Balance (Per-Capita Standards)**: the classic balance table —
+  area and m² per capita per category, required area from *configurable*
+  per-capita standards ("green=10, education=4"...), surplus/deficit and
+  status. Standards are free text, never hard-coded regulation values;
+  keywords match category names by containment.
+- **Facility Adequacy (Capacity + Distance)**: one multi-source network
+  pass assigns population to its nearest facility within a catchment cost,
+  then compares assigned load with capacity — outputs facility utilization
+  (Adequate / Overloaded / Unused) and covered/uncovered demand, with the
+  covered-population share in the log.
+- **Density Grid**: distributes any numeric value (population, dwellings,
+  GFA) from polygons or points onto a regular grid by area share (simple
+  dasymetric disaggregation) and reports density per hectare.
+- `engine/standards.py`: standards parser, category matcher and balance
+  computation (pure Python, unit-tested).
+- Tests: engine suite 69 → 77 checks; e2e harness 56 → 70 assertions, all
+  verified on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.1.0] - 2026-06-11
 
 Microclimate (UMEP-lite) release: three new tools in a new "Microclimate"

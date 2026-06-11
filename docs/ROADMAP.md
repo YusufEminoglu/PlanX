@@ -59,14 +59,17 @@ planx/
 | Microclimate (v2.1) | Shadow Casting (DSM) | NOAA sun position + UMEP-style iterative DSM sweep |
 | Microclimate (v2.1) | Sky View Factor (DSM) | N-direction horizon scan, SVF = 1 - mean sin² horizon |
 | Microclimate (v2.1) | Frontal Area Index | λf/λp roughness grid, footprint-share distribution |
+| Plan Standards (v2.2) | Land-Use Balance | per-capita areas vs configurable standards, surplus/deficit |
+| Plan Standards (v2.2) | Facility Adequacy | capacity + catchment distance, utilization & coverage |
+| Plan Standards (v2.2) | Density Grid | area-share dasymetric disaggregation, density/ha |
 
 ## Release roadmap
 
 - **v2.1 — Microclimate (UMEP-lite):** SHIPPED 2026-06-11 — DSM shadow
   casting (embedded NOAA sun position), Sky View Factor, frontal area index.
-- **v2.2 — Plan Standards & QA:** land-use balance table against
-  configurable per-capita standard presets; facility adequacy
-  (capacity + distance, reusing Nearest Facility); density grids.
+- **v2.2 — Plan Standards & QA:** SHIPPED 2026-06-11 — land-use balance vs
+  configurable per-capita standards, facility adequacy (capacity +
+  distance), dasymetric density grids.
 - **v2.3 — Performance Dashboard:** dock with score cards + one-click HTML
   "Plan Performance Report" (accessibility maps + standards compliance).
 - **v2.4 — Optimization:** facility location (greedy maximal coverage /

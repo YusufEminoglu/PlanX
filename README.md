@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fourteen Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventeen Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -29,8 +29,9 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
 - **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sky View Factor**, and frontal-area wind-roughness grids.
+- **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
-- **Verified math** — 69 engine unit checks against hand-computed values + 56 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Verified math** — 77 engine unit checks against hand-computed values + 70 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel.
 
 ## 🚀 Installation
@@ -67,6 +68,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Microclimate | Shadow Casting (DSM) | Building/terrain shadows for any date & time, embedded sun position |
 | Microclimate | Sky View Factor (DSM) | Visible-sky fraction per cell — heat island & canyon studies |
 | Microclimate | Frontal Area Index | λf / λp wind-roughness grid (Grimmond & Oke) |
+| Plan Standards & QA | Land-Use Balance | Per-capita areas vs configurable standards, surplus/deficit |
+| Plan Standards & QA | Facility Adequacy | Capacity + network distance in one check, utilization & coverage |
+| Plan Standards & QA | Density Grid | Area-share value disaggregation to a grid, density per hectare |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

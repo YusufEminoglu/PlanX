@@ -21,6 +21,9 @@ from .algorithms.alg_access_score import MultiAmenityAccessAlgorithm
 from .algorithms.alg_shadow_casting import ShadowCastingAlgorithm
 from .algorithms.alg_sky_view_factor import SkyViewFactorAlgorithm
 from .algorithms.alg_frontal_area import FrontalAreaIndexAlgorithm
+from .algorithms.alg_landuse_balance import LandUseBalanceAlgorithm
+from .algorithms.alg_facility_adequacy import FacilityAdequacyAlgorithm
+from .algorithms.alg_density_grid import DensityGridAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -60,3 +63,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(ShadowCastingAlgorithm())
         self.addAlgorithm(SkyViewFactorAlgorithm())
         self.addAlgorithm(FrontalAreaIndexAlgorithm())
+        # 6 | Plan Standards and QA
+        self.addAlgorithm(LandUseBalanceAlgorithm())
+        self.addAlgorithm(FacilityAdequacyAlgorithm())
+        self.addAlgorithm(DensityGridAlgorithm())

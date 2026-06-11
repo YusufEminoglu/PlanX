@@ -3,9 +3,9 @@ name=PlanX
 email=yusuf.eminoglu@deu.edu.tr
 author=Yusuf Eminoglu
 qgisMinimumVersion=3.22
-description=Embedded urban analytics engine: space syntax (segment angular analysis), network centrality, urban morphology, OD matrices, service areas, 15-minute-city accessibility and microclimate (shadow casting, sky view factor, frontal area) - all computed natively inside QGIS, no external plugins or services.
-about=PlanX is the flagship of the PlanX ecosystem: a self-contained urban analytics studio for city planners and researchers. It embeds real implementations of the methods urban analysts usually need separate tools for - space syntax segment angular analysis (integration, choice, NACH/NAIN), the full centrality family (degree, closeness, straightness, betweenness), urban morphology (building form metrics, morphological tessellation, Spacematrix GSI/FSI/OSR, street orientation entropy), network accessibility (OD cost matrix, service-area isochrones, nearest-facility allocation, multi-amenity 15-minute-city scores), and microclimate screening (date-and-time shadow casting with an embedded NOAA solar-position model, sky view factor, frontal area index). Everything is computed inside the plugin with NumPy (SciPy used automatically when available, identical pure-Python fallback otherwise): no QNEAT3, no GRASS dependency, no UMEP, no servers, no pip installs. All tools are Processing algorithms - model-designer and batch friendly. Developed with feedback from educational workflows at Dokuz Eylul University, Department of City and Regional Planning.
-version=2.1.0
+description=Embedded urban analytics engine: space syntax (segment angular analysis), network centrality, urban morphology, OD matrices, service areas, 15-minute-city accessibility, microclimate (shadow casting, sky view factor, frontal area) and plan standards QA (per-capita land-use balance, facility adequacy, density grids) - all computed natively inside QGIS, no external plugins or services.
+about=PlanX is the flagship of the PlanX ecosystem: a self-contained urban analytics studio for city planners and researchers. It embeds real implementations of the methods urban analysts usually need separate tools for - space syntax segment angular analysis (integration, choice, NACH/NAIN), the full centrality family (degree, closeness, straightness, betweenness), urban morphology (building form metrics, morphological tessellation, Spacematrix GSI/FSI/OSR, street orientation entropy), network accessibility (OD cost matrix, service-area isochrones, nearest-facility allocation, multi-amenity 15-minute-city scores), microclimate screening (date-and-time shadow casting with an embedded NOAA solar-position model, sky view factor, frontal area index), and plan standards QA (land-use balance against configurable per-capita standards, facility adequacy combining capacity with network distance, dasymetric density grids). Everything is computed inside the plugin with NumPy (SciPy used automatically when available, identical pure-Python fallback otherwise): no QNEAT3, no GRASS dependency, no UMEP, no servers, no pip installs. All tools are Processing algorithms - model-designer and batch friendly. Developed with feedback from educational workflows at Dokuz Eylul University, Department of City and Regional Planning.
+version=2.2.0
 tracker=https://github.com/YusufEminoglu/PlanX/issues
 repository=https://github.com/YusufEminoglu/PlanX
 
@@ -20,6 +20,11 @@ hasProcessingProvider=yes
 plugin_dependencies=
 license=GPL-3
 changelog=
+    PlanX 2.2.0 - Plan Standards and QA: three new tools, 17 algorithms total.
+        - Land-Use Balance: per-capita areas vs configurable standards (e.g. green=10, education=4), surplus/deficit and status per category.
+        - Facility Adequacy: capacity and network distance checked together - facility utilization (Adequate/Overloaded/Unused) plus covered/uncovered demand and covered-population share.
+        - Density Grid: distributes population/dwellings/GFA from polygons or points onto a grid by area share; density per hectare.
+        - Test suite grown to 77 unit checks and 70 end-to-end assertions on QGIS 3.44 LTR and QGIS 4.0.2.
     PlanX 2.1.0 - Microclimate (UMEP-lite): three new tools on the embedded engine, 14 algorithms total.
         - Shadow Casting (DSM): shadows for any date and local time; embedded NOAA solar-position model, UMEP-style DSM sweep; batch-friendly for shadow-duration maps.
         - Sky View Factor (DSM): visible-sky fraction per cell from multi-direction horizon scans; configurable directions and search radius.
