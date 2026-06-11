@@ -18,6 +18,9 @@ from .algorithms.alg_tessellation import MorphologicalTessellationAlgorithm
 from .algorithms.alg_spacematrix import SpacematrixDensityAlgorithm
 from .algorithms.alg_street_morphology import StreetNetworkMorphologyAlgorithm
 from .algorithms.alg_access_score import MultiAmenityAccessAlgorithm
+from .algorithms.alg_shadow_casting import ShadowCastingAlgorithm
+from .algorithms.alg_sky_view_factor import SkyViewFactorAlgorithm
+from .algorithms.alg_frontal_area import FrontalAreaIndexAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -53,3 +56,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(StreetNetworkMorphologyAlgorithm())
         # 4 | Accessibility
         self.addAlgorithm(MultiAmenityAccessAlgorithm())
+        # 5 | Microclimate
+        self.addAlgorithm(ShadowCastingAlgorithm())
+        self.addAlgorithm(SkyViewFactorAlgorithm())
+        self.addAlgorithm(FrontalAreaIndexAlgorithm())

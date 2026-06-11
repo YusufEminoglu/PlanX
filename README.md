@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives eleven Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fourteen Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -28,8 +28,9 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Real network accessibility** — OD cost matrices with detour ratios, multi-facility **service-area isochrones**, nearest-facility allocation with load summaries.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
+- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sky View Factor**, and frontal-area wind-roughness grids.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
-- **Verified math** — 52 engine unit checks against hand-computed graphs + 43 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Verified math** — 69 engine unit checks against hand-computed values + 56 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel.
 
 ## 🚀 Installation
@@ -63,6 +64,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Urban Morphology | Spacematrix Density | GSI / FSI / OSR / L per block + Spacematrix class |
 | Urban Morphology | Street Network Morphology | Orientation entropy & order, meshedness, junction typology |
 | Accessibility | Multi-Amenity Access Score | 15-minute-city composite over any amenity layers |
+| Microclimate | Shadow Casting (DSM) | Building/terrain shadows for any date & time, embedded sun position |
+| Microclimate | Sky View Factor (DSM) | Visible-sky fraction per cell — heat island & canyon studies |
+| Microclimate | Frontal Area Index | λf / λp wind-roughness grid (Grimmond & Oke) |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

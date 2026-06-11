@@ -23,6 +23,7 @@ GROUP_NETWORK = ("Network Analysis", "network")
 GROUP_CENTRALITY = ("Centrality and Space Syntax", "centrality")
 GROUP_MORPHOLOGY = ("Urban Morphology", "morphology")
 GROUP_ACCESS = ("Accessibility", "accessibility")
+GROUP_MICRO = ("Microclimate", "microclimate")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

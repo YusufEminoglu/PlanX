@@ -3,6 +3,29 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.0] - 2026-06-11
+
+Microclimate (UMEP-lite) release: three new tools in a new "Microclimate"
+group, all on the embedded engine — 14 algorithms total.
+
+### Added
+- **Shadow Casting (DSM)**: cast shadows for any date and local time with an
+  embedded NOAA solar-position model (sun altitude/azimuth computed at the
+  raster center); UMEP-style iterative DSM sweep; byte raster output
+  (1 = shadow), batch-friendly for shadow-duration maps.
+- **Sky View Factor (DSM)**: hemispheric SVF per cell from N-direction
+  horizon scans (SVF = 1 - mean sin² horizon; flat = 1, foot of a long
+  wall ≈ 0.5); configurable directions and search radius.
+- **Frontal Area Index**: λf (wind-facing facade area / cell area) and λp
+  (plan area ratio) on a grid, building frontal areas distributed by
+  footprint overlap (Grimmond & Oke roughness indicators).
+- `engine/solar.py`: solar position (NOAA simplified), shadow ray-march,
+  SVF horizon scan, projected footprint width — pure NumPy, no qgis
+  imports.
+- Tests: engine suite 52 → 69 checks (solstice/equinox sun positions,
+  closed-form shadow lengths, SVF flat/wall values, projected widths);
+  e2e harness 43 → 56 assertions (synthetic DSM tower) on QGIS 3 LTR + 4.
+
 ## [2.0.0] - 2026-06-11
 
 Complete rewrite: PlanX is now the **Urban Analytics Studio** — an embedded

@@ -56,11 +56,14 @@ planx/
 | Urban Morphology | Spacematrix Density | GSI/FSI/OSR/L per block + Spacematrix class |
 | Urban Morphology | Street Network Morphology | orientation entropy & order (Boeing), meshedness, node typology |
 | Accessibility | Multi-Amenity Access Score | 15-minute-city composite: per-category nearest times + coverage score |
+| Microclimate (v2.1) | Shadow Casting (DSM) | NOAA sun position + UMEP-style iterative DSM sweep |
+| Microclimate (v2.1) | Sky View Factor (DSM) | N-direction horizon scan, SVF = 1 - mean sin² horizon |
+| Microclimate (v2.1) | Frontal Area Index | λf/λp roughness grid, footprint-share distribution |
 
 ## Release roadmap
 
-- **v2.1 — Microclimate (UMEP-lite):** DSM shadow casting (sun-position ray
-  marching), Sky View Factor, frontal area index. NumPy raster kernels.
+- **v2.1 — Microclimate (UMEP-lite):** SHIPPED 2026-06-11 — DSM shadow
+  casting (embedded NOAA sun position), Sky View Factor, frontal area index.
 - **v2.2 — Plan Standards & QA:** land-use balance table against
   configurable per-capita standard presets; facility adequacy
   (capacity + distance, reusing Nearest Facility); density grids.

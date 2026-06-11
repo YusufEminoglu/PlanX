@@ -15,7 +15,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, syntax  # noqa: E402
+from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, solar, syntax  # noqa: E402
 
 CHECKS = []
 
@@ -221,6 +221,63 @@ check("5x5 grid: alpha == 16/45", close(mesh_grid["alpha"], 16.0 / 45.0, 1e-9))
 # Convex hull + min rect basics
 hull = morphology.convex_hull(np.array([[0, 0], [1, 0], [1, 1], [0, 1], [0.5, 0.5]]))
 check("convex hull drops interior point", len(hull) == 4)
+
+# --------------------------------------------------------------------------- #
+# 6. Solar / microclimate
+# --------------------------------------------------------------------------- #
+# Equator, March equinox, solar noon -> sun nearly overhead.
+alt, az = solar.sun_position(2026, 3, 20, 12.0, 0.0, 0.0)
+check("equinox equator noon: altitude > 87", alt > 87.0)
+
+# London (51.5N, 0E), June solstice noon UTC: altitude ~ 90-51.5+23.44 = 61.9
+alt, az = solar.sun_position(2026, 6, 21, 12.0, 51.5, 0.0)
+check("london solstice noon: altitude ~ 61.9", abs(alt - 61.9) < 1.0)
+check("london solstice noon: azimuth ~ 180", abs(az - 180.0) < 4.0)
+
+# Izmir (38.42N, 27.14E), winter solstice noon local solar time
+# (UTC ~ 10.2h): altitude ~ 90-38.42-23.44 = 28.1
+alt, az = solar.sun_position(2026, 12, 21, 12.0 - 27.14 / 15.0, 38.42, 27.14)
+check("izmir winter noon: altitude ~ 28.1", abs(alt - 28.1) < 1.0)
+
+# Morning sun rises in the east.
+alt, az = solar.sun_position(2026, 6, 21, 5.0, 51.5, 0.0)
+check("london solstice morning: azimuth < 120 (east)", 0.0 < az < 120.0)
+
+# Shadow casting: 10 m tower on a flat plane, sun from the south at 45 deg
+# -> shadow extends exactly 10 m (10 px at 1 m pixels) due north.
+dsm = np.zeros((40, 40))
+dsm[20, 20] = 10.0
+sh = solar.shadow_mask(dsm, 45.0, 180.0, pixel_size=1.0)
+check("tower shadow: 10 cells north shadowed",
+      all(sh[20 - i, 20] for i in range(1, 10)))
+check("tower shadow: 12 m north is lit", not sh[8, 20])
+check("tower shadow: nothing south/east/west",
+      not sh[21, 20] and not sh[20, 21] and not sh[20, 19] and not sh[25, 25])
+sh_low = solar.shadow_mask(dsm, 26.5651, 180.0, pixel_size=1.0)  # tan = 0.5
+check("low sun: shadow reaches ~20 m", sh_low[2, 20] and not sh_low[20, 25])
+check("sun below horizon: everything shadowed",
+      solar.shadow_mask(dsm, -5.0, 180.0, 1.0).all())
+sh_west = solar.shadow_mask(dsm, 45.0, 270.0, pixel_size=1.0)
+check("western sun: shadow points east", sh_west[20, 25] and not sh_west[20, 15])
+
+# SVF: flat plane -> 1 everywhere; foot of a long wall -> about 0.5.
+flat = np.zeros((30, 30))
+svf_flat = solar.sky_view_factor(flat, 1.0, directions=8, max_radius=10.0)
+check("SVF flat == 1", np.allclose(svf_flat, 1.0))
+wall = np.zeros((40, 40))
+wall[:, 20] = 200.0  # very tall north-south wall
+svf_wall = solar.sky_view_factor(wall, 1.0, directions=16, max_radius=15.0)
+check("SVF at the foot of a tall wall ~ 0.5", abs(svf_wall[20, 21] - 0.5) < 0.08)
+check("SVF far from wall ~ 1", svf_wall[20, 38] > 0.9)
+
+# Frontal width: 10x20 rectangle, wind from north -> width 10; from west -> 20.
+rect_fp = np.array([[0, 0], [10, 0], [10, 20], [0, 20]], dtype=float)
+check("frontal width, north wind == 10",
+      close(solar.projected_width(rect_fp, 0.0), 10.0, 1e-9))
+check("frontal width, west wind == 20",
+      close(solar.projected_width(rect_fp, 270.0), 20.0, 1e-9))
+check("frontal width, 45 deg wind == (10+20)/sqrt(2)",
+      close(solar.projected_width(rect_fp, 45.0), 30.0 / math.sqrt(2.0), 1e-9))
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
