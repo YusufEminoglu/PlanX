@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventeen Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives eighteen Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -30,8 +30,9 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
 - **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sky View Factor**, and frontal-area wind-roughness grids.
 - **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
+- **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
-- **Verified math** — 77 engine unit checks against hand-computed values + 70 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Verified math** — 98 engine unit checks against hand-computed values + 80 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel.
 
 ## 🚀 Installation
@@ -49,6 +50,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 3. Add facility points and run **Service Areas (Isochrones)** with breaks `250, 500, 1000` for catchment bands.
 4. Drop building footprints in and run **Building Form Metrics** or **Morphological Tessellation → Spacematrix Density** for a density portrait.
 5. Pick amenity layers and run **Multi-Amenity Access Score** for a 15-minute-city map.
+6. Open **PlanX → Plan Dashboard** for live score cards over your outputs, then **Save HTML Report…** (or run **Plan Performance Report (HTML)** in Processing) for a shareable one-file report.
 
 ## ⚙️ Reference
 
@@ -71,6 +73,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Plan Standards & QA | Land-Use Balance | Per-capita areas vs configurable standards, surplus/deficit |
 | Plan Standards & QA | Facility Adequacy | Capacity + network distance in one check, utilization & coverage |
 | Plan Standards & QA | Density Grid | Area-share value disaggregation to a grid, density per hectare |
+| Reporting & Dashboard | Plan Performance Report (HTML) | One-file scorecard report: charts, balance bars, score map — inline SVG |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

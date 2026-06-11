@@ -24,6 +24,7 @@ from .algorithms.alg_frontal_area import FrontalAreaIndexAlgorithm
 from .algorithms.alg_landuse_balance import LandUseBalanceAlgorithm
 from .algorithms.alg_facility_adequacy import FacilityAdequacyAlgorithm
 from .algorithms.alg_density_grid import DensityGridAlgorithm
+from .algorithms.alg_performance_report import PlanPerformanceReportAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -67,3 +68,5 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(LandUseBalanceAlgorithm())
         self.addAlgorithm(FacilityAdequacyAlgorithm())
         self.addAlgorithm(DensityGridAlgorithm())
+        # 7 | Reporting and Dashboard
+        self.addAlgorithm(PlanPerformanceReportAlgorithm())

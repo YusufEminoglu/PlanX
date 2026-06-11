@@ -62,6 +62,7 @@ planx/
 | Plan Standards (v2.2) | Land-Use Balance | per-capita areas vs configurable standards, surplus/deficit |
 | Plan Standards (v2.2) | Facility Adequacy | capacity + catchment distance, utilization & coverage |
 | Plan Standards (v2.2) | Density Grid | area-share dasymetric disaggregation, density/ha |
+| Reporting (v2.3) | Plan Performance Report (HTML) | one-file scorecard report: inline-SVG charts, balance bars, score map |
 
 ## Release roadmap
 
@@ -70,8 +71,12 @@ planx/
 - **v2.2 — Plan Standards & QA:** SHIPPED 2026-06-11 — land-use balance vs
   configurable per-capita standards, facility adequacy (capacity +
   distance), dasymetric density grids.
-- **v2.3 — Performance Dashboard:** dock with score cards + one-click HTML
-  "Plan Performance Report" (accessibility maps + standards compliance).
+- **v2.3 — Performance Dashboard:** SHIPPED 2026-06-11 — "Plan Dashboard"
+  dock with live score cards over the PlanX output layers (auto-detected by
+  field signatures) + one-click single-file HTML "Plan Performance Report"
+  (score histogram + SVG score map, standards balance bars, facility
+  utilization, density summary), also available headless as the
+  `planx:performancereport` algorithm. Pure-stdlib `engine/report.py`.
 - **v2.4 — Optimization:** facility location (greedy maximal coverage /
   p-median heuristic), network-aware site screening.
 

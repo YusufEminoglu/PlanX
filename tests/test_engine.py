@@ -15,7 +15,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, solar, standards, syntax  # noqa: E402
+from planx.engine import HAS_SCIPY, centrality, graphs, morphology, paths, report, solar, standards, syntax  # noqa: E402
 
 CHECKS = []
 
@@ -308,6 +308,101 @@ rows_deficit = standards.balance_rows(
 check("balance: deficit -8000",
       close(rows_deficit[0]["balance_m2"], -8000.0)
       and rows_deficit[0]["status"] == "Deficit")
+
+# --------------------------------------------------------------------------- #
+# 8. Performance report
+# --------------------------------------------------------------------------- #
+a_sum = report.access_summary([100.0, 50.0, 0.0, 100.0])
+check("access summary: mean 62.5, median 75",
+      close(a_sum["mean"], 62.5) and close(a_sum["median"], 75.0))
+check("access summary: 50% full, 25% low",
+      close(a_sum["share_full"], 50.0) and close(a_sum["share_low"], 25.0))
+
+bal_rows = [
+    {"category": "Green", "status": "Meets standard", "balance_m2": 500.0,
+     "area_m2": 2500.0, "m2_per_capita": 12.5, "required_m2": 2000.0},
+    {"category": "School", "status": "Deficit", "balance_m2": -800.0,
+     "area_m2": 0.0, "m2_per_capita": 0.0, "required_m2": 800.0},
+    {"category": "Industry", "status": "No standard", "balance_m2": 0.0,
+     "area_m2": 900.0, "m2_per_capita": 4.5, "required_m2": 0.0},
+]
+b_sum = report.balance_summary(bal_rows)
+check("balance summary: 2 with std, 1 deficit, 50% compliance",
+      b_sum["n_with_standard"] == 2 and b_sum["n_deficit"] == 1
+      and close(b_sum["compliance_pct"], 50.0))
+check("balance summary: worst is School -800",
+      b_sum["worst_category"] == "School" and close(b_sum["worst_deficit_m2"], -800.0))
+check("balance summary: no standards -> compliance None",
+      report.balance_summary([bal_rows[2]])["compliance_pct"] is None)
+
+q_sum = report.adequacy_summary(
+    [{"facility": "West", "capacity": 60.0, "assigned": 80.0,
+      "utilization": 1.333, "status": "Overloaded"},
+     {"facility": "East", "capacity": 100.0, "assigned": 40.0,
+      "utilization": 0.4, "status": "Adequate"},
+     {"facility": "Spare", "capacity": 50.0, "assigned": 0.0,
+      "utilization": 0.0, "status": "Unused"}],
+    [{"covered": 1, "pop": 30.0}, {"covered": 1, "pop": 50.0},
+     {"covered": 0, "pop": 20.0}])
+check("adequacy summary: covered 80%",
+      close(q_sum["covered_share"], 80.0) and close(q_sum["covered_pop"], 80.0))
+check("adequacy summary: 1 overloaded 1 unused, mean util of used",
+      q_sum["n_overloaded"] == 1 and q_sum["n_unused"] == 1
+      and close(q_sum["mean_utilization"], (1.333 + 0.4) / 2.0, 1e-9))
+check("adequacy summary: pop defaults to 1",
+      close(report.adequacy_summary([], [{"covered": 1}, {"covered": 0}])
+            ["covered_share"], 50.0))
+
+d_sum = report.density_summary([10.0, 30.0, 20.0])
+check("density summary: mean 20 max 30",
+      close(d_sum["mean"], 20.0) and close(d_sum["max"], 30.0))
+
+check("overall score == mean of components",
+      close(report.overall_score(a_sum, b_sum, q_sum), (62.5 + 50.0 + 80.0) / 3.0))
+check("overall score None when nothing", report.overall_score() is None)
+
+check("ramp endpoints red->green",
+      report.ramp_color(0.0) == "#d64541" and report.ramp_color(1.0) == "#27ae60"
+      and report.ramp_color(0.5) == "#f5b041")
+
+cards = report.report_cards(a_sum, b_sum, q_sum, d_sum)
+check("5 cards with index first",
+      len(cards) == 5 and cards[0]["label"] == "Plan Performance Index"
+      and cards[0]["value"] == "64")
+check("compliance card flags worst deficit",
+      "School" in cards[2]["sub"] and cards[2]["tone"] == "bad")
+
+html_doc = report.build_html(
+    "Test <Plan>", population=2000.0,
+    access={"scores": [100.0, 50.0, 0.0, 100.0],
+            "points": [(0, 0), (100, 0), (0, 100), (100, 100)]},
+    balance=bal_rows,
+    adequacy={"facilities": [{"facility": "West", "capacity": 60.0,
+                              "assigned": 80.0, "utilization": 1.333,
+                              "status": "Overloaded"}],
+              "demand": [{"covered": 1, "pop": 10.0}]},
+    density={"values": [10.0, 30.0]}, plugin_version="v9.9.9")
+check("html: escaped title + all sections",
+      "Test &lt;Plan&gt;" in html_doc
+      and "Accessibility - 15-Minute City" in html_doc
+      and "Land-Use Balance vs Standards" in html_doc
+      and "Facility Adequacy" in html_doc
+      and "<h2>Density</h2>" in html_doc)
+check("html: charts inline (3+ svg) and self-contained",
+      html_doc.count("<svg") >= 3 and "http" not in html_doc.split("xmlns")[0]
+      and "v9.9.9" in html_doc)
+check("html: badges for statuses",
+      "Overloaded" in html_doc and "Deficit" in html_doc)
+
+check("svg map empty for no points", report.svg_point_map([], []) == "")
+svg_map = report.svg_point_map([(0, 0), (10, 10)], [0.0, 100.0])
+check("svg map: 2 circles, red and green",
+      svg_map.count("<circle") == 2 and "#d64541" in svg_map and "#27ae60" in svg_map)
+check("svg map thins to max_points",
+      report.svg_point_map([(i, i) for i in range(50)], [50.0] * 50,
+                           max_points=10).count("<circle") == 10)
+check("balance bars skip no-standard rows",
+      report.svg_balance_bars(bal_rows).count("<text x=\"0\"") == 2)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

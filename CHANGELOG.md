@@ -3,6 +3,31 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.3.0] - 2026-06-11
+
+Performance Dashboard release: live score cards + one-click HTML report —
+18 algorithms total.
+
+### Added
+- **Plan Dashboard dock** (PlanX menu → Plan Dashboard): live score cards
+  over the PlanX output layers — Plan Performance Index, accessibility
+  score, standards compliance, covered-population share and density. The
+  output layers of Multi-Amenity Access Score, Land-Use Balance, Facility
+  Adequacy and Density Grid are auto-detected in the project by their field
+  signatures; "Save HTML Report…" exports the report and opens it in the
+  browser.
+- **Plan Performance Report (HTML)** algorithm (new "Reporting and
+  Dashboard" group): builds the same single-file report headless / in the
+  model designer — score cards, score histogram, SVG score map (red→green),
+  provided-vs-required balance bars, facility utilization table and density
+  summary. Everything is inline CSS/SVG drawn by the embedded engine: a
+  shareable one-file report with no external assets or services.
+- `engine/report.py`: summaries, score cards, colour ramp and the full
+  HTML/SVG renderer (pure stdlib — not even NumPy — unit-tested anywhere).
+- Tests: engine suite 77 → 98 checks; e2e harness 70 → 80 assertions, all
+  verified on QGIS 3.44 LTR and QGIS 4.0.2; new headless dashboard-dock
+  check (auto-detection + cards) on both.
+
 ## [2.2.0] - 2026-06-11
 
 Plan Standards & QA release: three new tools in a new group — 17 algorithms
