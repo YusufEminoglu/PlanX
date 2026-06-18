@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Eminoğlu"
+    given-names: "Yusuf"
+    email: "yusuf.eminoglu@deu.edu.tr"
+    orcid: "https://orcid.org/0009-0005-6000-2934"
+title: "PlanX"
+version: "2.5.0"
+# doi: "" # Zenodo DOI numarası alındıktan sonra buraya eklenebilir
+date-released: "2026-06-18"
+url: "https://github.com/YusufEminoglu/PlanX"
+abstract: "Embedded urban analytics engine: space syntax (segment angular analysis), network centrality, urban morphology, OD matrices, service areas, 15-minute-city accessibility, microclimate (shadow casting, sun hours, clear-sky solar irradiation, sky view factor, frontal area, heat island risk), plan standards QA (per-capita land-use balance, facility adequacy, density grids), facility-location optimization (maximal coverage, p-median) and a plan performance dashboard with a one-click HTML report - all computed natively inside QGIS, no external plugins or services."
