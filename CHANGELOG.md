@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.5.1] - 2026-06-18
+
+- docs: add CITATION.cff for Zenodo DOI integration
+
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
