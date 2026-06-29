@@ -1,11 +1,51 @@
 # Changelog
 
+All notable changes to PlanX are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [2.6.0] - 2026-06-29
+
+Equity & Allocation release: two new tools — 24 algorithms total.
+
+### Added
+- **Accessibility Equity (Gini / Theil)** (new "Equity" group): measures
+  how *fairly* a value is distributed across the population — the
+  spatial-equity / environmental-justice view the level-of-access tools
+  do not give. Feed it any per-unit value (an Access Score, a travel
+  time, a distance to the nearest facility). Population-weighted
+  indices: **Gini** coefficient, **Theil's T** additively decomposed
+  into **between-group** and **within-group** inequality (give a group
+  field — district, income class, tenure — and the between share is the
+  environmental-justice headline), **P90/P10** ratio, coefficient of
+  variation and an **access-poverty share** (population beyond a
+  threshold). Outputs the input units enriched with their weighted
+  percentile rank, deviation from the mean and a poverty flag, plus a
+  summary table — one row for the study area and one per group.
+- **Capacitated Allocation (Nearest with Capacity)** (Optimization
+  group): allocates demand to fixed facilities while **respecting
+  capacity** — the realistic companion to Facility Adequacy (which
+  assigns everyone to the nearest facility and only flags the overload
+  afterwards). Each demand point is sent in full to the nearest facility
+  with room and **spills** to the next-nearest when its nearest is full;
+  points that fit nowhere in reach are left **uncovered**. Outputs the
+  demand (assigned facility, network cost, status Assigned / Spilled /
+  Uncovered, nearest facility) and the facilities (assigned load,
+  remaining capacity, utilization, status Full / Has space / Unused).
+- `engine/equity.py` (Gini, Theil T and decomposition, weighted
+  quantiles, percentile ratio/rank, CV, poverty shares) and
+  `engine/optimize.capacitated_assign` — pure NumPy, unit-tested; two
+  new group-coloured tool icons.
+
+### Tests
+- Engine suite 131 → 156 checks (incl. the weighted Gini against the
+  O(n²) mean-difference definition and the Theil between+within
+  identity); e2e harness 109 → 126 assertions with hand-computed equity
+  indices and a capacity-denial/spill scenario — verified on QGIS 3.44
+  LTR and QGIS 4.0.2.
+
 ## [2.5.1] - 2026-06-18
 
 - docs: add CITATION.cff for Zenodo DOI integration
-
-All notable changes to PlanX are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [2.5.0] - 2026-06-11
 

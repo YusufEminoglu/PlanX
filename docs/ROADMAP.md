@@ -67,6 +67,8 @@ planx/
 | Plan Standards (v2.2) | Density Grid | area-share dasymetric disaggregation, density/ha |
 | Reporting (v2.3) | Plan Performance Report (HTML) | one-file scorecard report: inline-SVG charts, balance bars, score map |
 | Optimization (v2.4) | Facility Location Optimizer | greedy maximal coverage (Church & ReVelle) / p-median (Teitz-Bart), candidate screening |
+| Optimization (v2.6) | Capacitated Allocation | nearest facility with free capacity, spill when full, uncovered when none in reach |
+| Equity (v2.6) | Accessibility Equity | population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
 
 ## Release roadmap
 
@@ -99,13 +101,28 @@ planx/
   group-coloured icon for every algorithm (toolbox + Studio dock).
   Engine fix: shadow sweep capped at the raster diagonal (low-sun crash).
 
-### Future ideas (post-2.5, unscheduled)
+- **v2.6 — Equity & Allocation:** SHIPPED 2026-06-29 — **Accessibility
+  Equity** (new "Equity" group): population-weighted Gini, Theil's T with
+  an additive between/within-group decomposition (the environmental-justice
+  view), P90/P10, coefficient of variation and an access-poverty share, on
+  any per-unit value (access score, travel time, distance); per-unit
+  percentile rank / deviation / poverty flag plus a per-study-area and
+  per-group summary table. **Capacitated Allocation** (Optimization group):
+  sends each demand point in full to the nearest facility with free
+  capacity, spilling to the next when full and leaving the rest uncovered —
+  the realistic companion to Facility Adequacy. New pure-NumPy
+  `engine/equity.py` and `engine/optimize.capacitated_assign`; 156 unit +
+  126 e2e checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
-- Capacitated location-allocation (respect facility capacities while
-  siting).
+### Future ideas (post-2.6, unscheduled)
+
+- Capacitated facility *siting* (choose where to build while respecting
+  capacities — siting + the capacitated allocation now shipped, together).
 - Land-use allocation optimizer (multi-objective parcel assignment).
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
 - Annual/monthly solar aggregation (multi-day irradiation sweeps).
+- More equity lenses (Atkinson index, concentration/Lorenz export,
+  demographic cross-tabs).
 
 ## Quality gates (every release)
 

@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-two Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-four Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -31,9 +31,10 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Sky View Factor**, frontal-area wind-roughness grids, and a vector **Heat Island Risk Grid** from the layers every plan already has.
 - **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
 - **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
-- **Facility-location optimization** — site new schools/clinics/parks among your candidates with the classic location-allocation models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected — no external solver.
+- **Location-allocation optimization** — site new schools/clinics/parks among your candidates with the classic models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected; plus **Capacitated Allocation** that sends demand to the nearest facility *with free capacity*, spilling to the next when full — no external solver.
+- **Accessibility equity** — measure how *fairly* access is shared, not just how much there is: population-weighted **Gini**, a **Theil index** split into between- and within-group inequality (the environmental-justice number), **P90/P10**, coefficient of variation and an **access-poverty share**, on any value (access score, travel time, distance).
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
-- **Verified math** — 131 engine unit checks against hand-computed values + 109 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Verified math** — 156 engine unit checks against hand-computed values + 126 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -79,6 +80,8 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Plan Standards & QA | Density Grid | Area-share value disaggregation to a grid, density per hectare |
 | Reporting & Dashboard | Plan Performance Report (HTML) | One-file scorecard report: charts, balance bars, score map — inline SVG |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
+| Optimization | Capacitated Allocation | Nearest facility with free capacity, spill when full, uncovered when none in reach |
+| Equity | Accessibility Equity | Population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

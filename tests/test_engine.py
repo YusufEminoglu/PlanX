@@ -16,7 +16,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, centrality, graphs, morphology, optimize, paths, report, solar, standards, syntax,
+    HAS_SCIPY, centrality, equity, graphs, morphology, optimize, paths, report,
+    solar, standards, syntax,
 )
 
 CHECKS = []
@@ -552,6 +553,73 @@ r_arr = solar.heat_risk_index(np.array([0.8, 0.8]), np.array([0.0, 0.5]),
 check("heat risk: green cover lowers the score", r_arr[1] < r_arr[0])
 check("heat risk: height capped at h_ref",
       close(float(solar.heat_risk_index(1.0, 0.0, 0.0, 60.0)), 100.0))
+
+# --------------------------------------------------------------------------- #
+# 13. Distributional equity (v2.6)
+# --------------------------------------------------------------------------- #
+check("gini [1,2,3,4] == 0.25", close(equity.gini([1, 2, 3, 4]), 0.25))
+check("gini all-equal == 0", close(equity.gini([5, 5, 5, 5]), 0.0))
+check("gini [20,20,80,80] == 0.3", close(equity.gini([20, 20, 80, 80]), 0.3))
+check("gini weighted == unweighted when weights equal",
+      close(equity.gini([20, 20, 80, 80]),
+            equity.gini([20, 20, 80, 80], [3, 3, 3, 3])))
+# weighted Gini must equal the O(n^2) mean-difference definition exactly
+rng_eq = np.random.default_rng(7)
+xx = rng_eq.uniform(0.0, 100.0, 40)
+ww = rng_eq.uniform(1.0, 50.0, 40)
+mu_w = (ww * xx).sum() / ww.sum()
+md = (ww[:, None] * ww[None, :] * np.abs(xx[:, None] - xx[None, :])).sum() / ww.sum() ** 2
+check("weighted gini == mean-difference / (2*mu)",
+      close(equity.gini(xx, ww), md / (2.0 * mu_w), 1e-9))
+check("theil all-equal == 0", close(equity.theil_t([4, 4, 4]), 0.0))
+check("theil [0,2] == ln 2", close(equity.theil_t([0, 2]), math.log(2.0)))
+# Theil additive decomposition: T = T_between + T_within
+g_lab = np.array(["N", "N", "S", "S"])
+t_tot, t_btw, t_wth, per_g = equity.theil_decomposition(
+    [20, 20, 80, 80], [100, 100, 100, 100], g_lab)
+check("theil decomposition adds up (T = between + within)",
+      close(t_tot, t_btw + t_wth, 1e-9))
+check("theil fully between when groups are homogeneous",
+      close(t_wth, 0.0) and t_btw > 0.0)
+check("theil per-group means 20 and 80",
+      close(per_g["N"]["mean"], 20.0) and close(per_g["S"]["mean"], 80.0))
+check("weighted median of [20,20,80,80] in range",
+      20.0 <= equity.weighted_quantile([20, 20, 80, 80], 0.5) <= 80.0)
+check("p90/p10 of [20,20,80,80] == 4",
+      close(equity.percentile_ratio([20, 20, 80, 80]), 4.0))
+pr = equity.percentile_rank([20, 20, 80, 80])
+check("percentile rank mid-rank for ties (lows 0.25, highs 0.75)",
+      close(float(pr[0]), 0.25) and close(float(pr[2]), 0.75))
+check("cv all-equal == 0", close(equity.coefficient_of_variation([7, 7, 7]), 0.0))
+check("share_below 50 of [20,20,80,80] == 0.5",
+      close(equity.share_below([20, 20, 80, 80], 50.0), 0.5))
+check("share_above 50 of [20,20,80,80] == 0.5",
+      close(equity.share_above([20, 20, 80, 80], 50.0), 0.5))
+check("equity handles empty weights gracefully",
+      close(equity.gini([1, 2, 3], [0, 0, 0]), 0.0))
+
+# --------------------------------------------------------------------------- #
+# 14. Capacitated allocation (v2.6)
+# --------------------------------------------------------------------------- #
+D_cap = np.array([[1.0, 2.0, 3.0], [5.0, 6.0, 7.0]])
+rc = optimize.capacitated_assign(D_cap, [10, 10, 10], [15, 100])
+check("capacitated: p0->F0, p1/p2 spill to F1 (F0 full)",
+      rc["assign"].tolist() == [0, 1, 1])
+check("capacitated: spill flags [F,T,T]",
+      rc["spilled"].tolist() == [False, True, True])
+check("capacitated: nearest is F0 for all", rc["nearest"].tolist() == [0, 0, 0])
+check("capacitated: loads [10, 20]",
+      close(float(rc["load"][0]), 10.0) and close(float(rc["load"][1]), 20.0))
+check("capacitated: remaining [5, 80]",
+      close(float(rc["remaining"][0]), 5.0) and close(float(rc["remaining"][1]), 80.0))
+rc2 = optimize.capacitated_assign(D_cap, [10, 10, 10], [15, 100], max_cost=4.0)
+check("capacitated max_cost: only p0 served (F1 out of reach)",
+      rc2["assign"].tolist() == [0, -1, -1])
+check("capacitated max_cost: p1/p2 still report nearest F0",
+      rc2["nearest"].tolist() == [0, 0, 0])
+rc3 = optimize.capacitated_assign(D_cap, [10, 10, 10], [0, 0])
+check("capacitated: zero capacity -> all uncovered",
+      rc3["assign"].tolist() == [-1, -1, -1])
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

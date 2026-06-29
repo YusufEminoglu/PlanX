@@ -157,3 +157,84 @@ def assign_to_nearest(D, solution):
     assign[bad] = -1
     cost = np.where(bad, -1.0, cost)
     return assign, cost
+
+
+def capacitated_assign(D, w, cap, max_cost=None):
+    """Greedy nearest-with-capacity allocation (whole demand points).
+
+    Parameters
+    ----------
+    D : (F, N) array
+        Cost from each of ``F`` facilities to each of ``N`` demand points
+        (``inf`` where unreachable).
+    w : (N,) array
+        Demand (population) per point; assigned in full to one facility.
+    cap : (F,) array
+        Facility capacities, in the same units as ``w``.
+    max_cost : float or None
+        Catchment limit; pairs costing more are not eligible.
+
+    Each demand point is placed in full at the *nearest* facility that
+    still has room for its whole population; if that facility is already
+    full it spills to the next-nearest one with room. A point that fits
+    nowhere within reach is left uncovered. The cheapest eligible pairs
+    are filled first - a fast, explainable greedy heuristic, not a global
+    optimum (it does not split a point or solve min-cost flow). Whole-point
+    assignment can strand capacity smaller than a single point's demand.
+
+    Returns dict:
+      ``assign``    (N,) facility index per point, ``-1`` = uncovered
+      ``cost``      (N,) cost to the assigned facility, ``-1.0`` = uncovered
+      ``spilled``   (N,) bool: assigned to a farther facility than the
+                    nearest reachable one (its nearest was full)
+      ``nearest``   (N,) nearest reachable facility (ignoring capacity), -1
+      ``load``      (F,) assigned population per facility
+      ``remaining`` (F,) leftover capacity per facility
+    """
+    D = np.asarray(D, dtype=float)
+    w = np.asarray(w, dtype=float)
+    cap = np.asarray(cap, dtype=float)
+    if D.ndim != 2:
+        raise ValueError("D must be 2-D (facilities x demand).")
+    n_fac, n_dem = D.shape
+    if w.shape[0] != n_dem:
+        raise ValueError("len(w) must match the demand columns of D.")
+    if cap.shape[0] != n_fac:
+        raise ValueError("len(cap) must match the facility rows of D.")
+
+    eligible = np.isfinite(D)
+    if max_cost is not None:
+        eligible &= D <= float(max_cost)
+
+    # nearest reachable facility per demand point (ignores capacity)
+    masked = np.where(eligible, D, INF)
+    nearest = np.argmin(masked, axis=0).astype(np.int64)
+    nearest[~np.isfinite(masked.min(axis=0))] = -1
+
+    assign = np.full(n_dem, -1, dtype=np.int64)
+    cost = np.full(n_dem, -1.0)
+    remaining = cap.astype(float).copy()
+
+    fac_idx, dem_idx = np.nonzero(eligible)
+    costs = D[fac_idx, dem_idx]
+    # cheapest pairs first; deterministic tie-break by demand then facility
+    for k in np.lexsort((fac_idx, dem_idx, costs)):
+        i = int(dem_idx[k])
+        if assign[i] != -1:
+            continue
+        f = int(fac_idx[k])
+        if remaining[f] + 1e-9 >= w[i]:
+            assign[i] = f
+            cost[i] = float(costs[k])
+            remaining[f] -= w[i]
+
+    spilled = (assign != -1) & (assign != nearest)
+    load = cap.astype(float) - remaining
+    return {
+        "assign": assign,
+        "cost": cost,
+        "spilled": spilled,
+        "nearest": nearest,
+        "load": load,
+        "remaining": remaining,
+    }

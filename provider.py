@@ -29,6 +29,8 @@ from .algorithms.alg_facility_adequacy import FacilityAdequacyAlgorithm
 from .algorithms.alg_density_grid import DensityGridAlgorithm
 from .algorithms.alg_performance_report import PlanPerformanceReportAlgorithm
 from .algorithms.alg_facility_location import FacilityLocationAlgorithm
+from .algorithms.alg_capacitated_allocation import CapacitatedAllocationAlgorithm
+from .algorithms.alg_access_equity import AccessEquityAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -79,3 +81,6 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(PlanPerformanceReportAlgorithm())
         # 8 | Optimization
         self.addAlgorithm(FacilityLocationAlgorithm())
+        self.addAlgorithm(CapacitatedAllocationAlgorithm())
+        # 9 | Equity
+        self.addAlgorithm(AccessEquityAlgorithm())
