@@ -32,10 +32,10 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
 - **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
 - **Location-allocation optimization** — site new schools/clinics/parks among your candidates with the classic models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected; plus **Capacitated Allocation** that sends demand to the nearest facility *with free capacity*, spilling to the next when full — no external solver.
-- **Land-use allocation** — assign a land use to every parcel to **maximize total suitability** while meeting a target area for each use (the spatial-allocation problem of plan-making): feed one suitability field per use (e.g. from Suitability Lab) and per-use area targets, lock already-zoned parcels if you like, and get a styled land-use map plus a target-vs-allocated summary — solved with a greedy + swap heuristic, no solver.
+- **Multi-objective land-use allocation** — assign a land use to every parcel to **maximize suitability** while meeting a target area for each use (the spatial-allocation problem of plan-making): feed one suitability field per use (e.g. from Suitability Lab) and per-use area targets. Add a **compactness** weight so each use forms contiguous zones, and **adjacency rules** (`residential|industry=-2`) to keep incompatible uses apart, and get a styled land-use map plus a target-vs-allocated summary — greedy + capacity-respecting swap heuristic, no solver.
 - **Accessibility equity** — measure how *fairly* access is shared, not just how much there is: population-weighted **Gini**, a **Theil index** split into between- and within-group inequality (the environmental-justice number), **P90/P10**, coefficient of variation and an **access-poverty share**, on any value (access score, travel time, distance).
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
-- **Verified math** — 168 engine unit checks against hand-computed values + 137 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Verified math** — 175 engine unit checks against hand-computed values + 141 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -82,7 +82,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Reporting & Dashboard | Plan Performance Report (HTML) | One-file scorecard report: charts, balance bars, score map — inline SVG |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Allocation | Nearest facility with free capacity, spill when full, uncovered when none in reach |
-| Optimization | Land-Use Allocation Optimizer | Assign parcels to uses maximising suitability under per-use area targets (greedy + swaps) |
+| Optimization | Land-Use Allocation Optimizer | Assign parcels to uses maximising suitability + compactness + adjacency under per-use area targets |
 | Equity | Accessibility Equity | Population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).

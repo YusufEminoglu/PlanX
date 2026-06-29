@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
-"""Land-use allocation: assign parcels to land uses to maximise suitability.
+"""Land-use allocation: assign parcels to land uses to maximise an objective.
 
-Pure NumPy. A capacitated assignment / generalized-assignment heuristic:
-given per-parcel-per-use suitability scores, parcel areas and a target area
+Pure NumPy. A capacitated assignment / generalized-assignment heuristic.
+Given per-parcel-per-use suitability scores, parcel areas and a target area
 to fill for each use, assign each parcel (whole) to at most one use so that
-the area allocated to a use does not exceed its target and the total
-area-weighted suitability is maximised. Parcels not needed to meet the
-targets are left unassigned; uses that cannot be filled report a shortfall.
+the area allocated to a use does not exceed its target and an objective is
+maximised:
+
+    F = w_suit * sum_p area_p * suit[p, use_p]
+        + sum_{(p, q) adjacent} L_pq * C[use_p, use_q]
+
+The first term is per-parcel **suitability**; the optional second term is a
+**spatial interaction** over adjacent parcels (``L_pq`` = shared boundary
+length): the diagonal of the compatibility matrix ``C`` rewards same-use
+neighbours (**compactness**) and the off-diagonal rewards (+) or penalises
+(-) specific use pairs being adjacent (**adjacency**). With no edges / a
+zero ``C`` the spatial term vanishes and only suitability matters.
 
 Method: greedy construction (best per-unit suitability first) + a local
 search of single-parcel reassignments and capacity-respecting pairwise
-swaps - fast and explainable, not a global optimum (the problem is
-NP-hard). ``locked`` parcels are fixed to a use up front and consume that
-use's target area. Suitability is treated as a non-negative good
-(negatives are clipped to zero).
+swaps, scoring the full objective - fast and explainable, not a global
+optimum (the problem is NP-hard). ``locked`` parcels are fixed to a use up
+front and consume that use's target. Suitability is treated as a
+non-negative good (negatives are clipped to zero).
 """
 from __future__ import annotations
 
@@ -47,37 +56,44 @@ def parse_targets(text):
     return targets
 
 
-def _objective(suit, area, assign):
+def _spatial_sum(p, u, assign, adj, compat):
+    """Sum over p's neighbours of ``L * compat[u, use(neighbour)]``."""
+    if compat is None or u < 0:
+        return 0.0
     total = 0.0
-    for p, u in enumerate(assign):
-        if u >= 0:
-            total += area[p] * suit[p, u]
-    return float(total)
+    for q, length in adj[p]:
+        uq = assign[q]
+        if uq >= 0:
+            total += length * compat[u, uq]
+    return total
 
 
-def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
-                      swap_limit=1200):
-    """Assign parcels to uses to maximise area-weighted suitability.
+def _swap_spatial_delta(p, q, up, uq, assign, adj, compat):
+    """Change in the spatial term when p (use up) and q (use uq) swap uses.
 
-    Parameters
-    ----------
-    suit : (P, U) array - per-unit suitability of each parcel for each use.
-    area : (P,) array - parcel areas (consumed from a use's target budget).
-    targets : (U,) array - area budget (capacity) per use.
-    locked : (P,) int array or None - parcels fixed to a use index up front
-        (``-1`` = free).
-    max_iter : int - outer local-search iterations.
-    swap_limit : int - skip the O(P^2) pairwise-swap pass when there are
-        more free parcels than this (reassignment still runs).
-
-    Returns dict:
-      ``assign``     (P,) use index per parcel, ``-1`` = unassigned
-      ``objective``  total area-weighted suitability (including locked)
-      ``allocated``  (U,) area assigned to each use
-      ``n_parcels``  (U,) parcels assigned to each use
-      ``swaps``      improving swaps applied
-      ``reassigned`` improving reassignments applied
+    For a symmetric ``compat`` the mutual p-q edge is unchanged, so it is
+    excluded; every other neighbour switches interaction partner.
     """
+    if compat is None:
+        return 0.0
+    delta = 0.0
+    for r, length in adj[p]:
+        if r == q:
+            continue
+        ur = assign[r]
+        if ur >= 0:
+            delta += length * (compat[uq, ur] - compat[up, ur])
+    for r, length in adj[q]:
+        if r == p:
+            continue
+        ur = assign[r]
+        if ur >= 0:
+            delta += length * (compat[up, ur] - compat[uq, ur])
+    return delta
+
+
+def _allocate_core(suit, area, targets, locked, w_suit, adj, compat,
+                   max_iter, swap_limit):
     suit = np.clip(np.asarray(suit, dtype=float), 0.0, None)
     area = np.asarray(area, dtype=float)
     targets = np.asarray(targets, dtype=float)
@@ -88,6 +104,10 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
         raise ValueError("len(area) must match the parcel rows of suit.")
     if targets.shape[0] != n_use:
         raise ValueError("len(targets) must match the use columns of suit.")
+    if adj is None:
+        adj = [()] * n_parc
+    if compat is not None:
+        compat = np.asarray(compat, dtype=float)
 
     assign = np.full(n_parc, -1, dtype=np.int64)
     remaining = targets.astype(float).copy()
@@ -103,7 +123,7 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
 
     free = np.where(~locked_mask)[0]
 
-    # ---- greedy construction over free parcels, best suitability first ----
+    # ---- greedy construction (separable suitability term), best first ----
     if len(free):
         pairs_p = np.repeat(free, n_use)
         pairs_u = np.tile(np.arange(n_use), len(free))
@@ -116,7 +136,7 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
                 assign[p] = u
                 remaining[u] -= area[p]
 
-    # ---- local search: reassignment + capacity-respecting pairwise swaps ----
+    # ---- local search on the FULL objective ----
     swaps = reassigned = 0
     do_swaps = len(free) <= int(swap_limit)
     for _ in range(int(max_iter)):
@@ -124,7 +144,8 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
         for p in free:
             p = int(p)
             cur = int(assign[p])
-            cur_s = suit[p, cur] if cur >= 0 else 0.0
+            cur_suit = suit[p, cur] if cur >= 0 else 0.0
+            cur_spatial = _spatial_sum(p, cur, assign, adj, compat)
             best_u, best_gain = cur, 1e-12
             for u in range(n_use):
                 if u == cur:
@@ -132,7 +153,8 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
                 room = remaining[u] + (area[p] if cur == u else 0.0)
                 if room + 1e-9 < area[p]:
                     continue
-                gain = area[p] * (suit[p, u] - cur_s)
+                gain = (w_suit * area[p] * (suit[p, u] - cur_suit)
+                        + _spatial_sum(p, u, assign, adj, compat) - cur_spatial)
                 if gain > best_gain:
                     best_gain, best_u = gain, u
             if best_u != cur:
@@ -155,8 +177,9 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
                     if (remaining[uq] + area[q] + 1e-9 < area[p]
                             or remaining[up] + area[p] + 1e-9 < area[q]):
                         continue
-                    gain = (area[p] * (suit[p, uq] - suit[p, up])
-                            + area[q] * (suit[q, up] - suit[q, uq]))
+                    gain = w_suit * (area[p] * (suit[p, uq] - suit[p, up])
+                                     + area[q] * (suit[q, up] - suit[q, uq]))
+                    gain += _swap_spatial_delta(p, q, up, uq, assign, adj, compat)
                     if gain > 1e-12:
                         remaining[up] += area[p] - area[q]
                         remaining[uq] += area[q] - area[p]
@@ -167,6 +190,22 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
         if not improved:
             break
 
+    # ---- scores ----
+    suit_score = 0.0
+    for p in range(n_parc):
+        u = int(assign[p])
+        if u >= 0:
+            suit_score += area[p] * suit[p, u]
+    spatial_score = 0.0
+    if compat is not None:
+        for p in range(n_parc):
+            up = int(assign[p])
+            if up < 0:
+                continue
+            for q, length in adj[p]:
+                if q > p and assign[q] >= 0:
+                    spatial_score += length * compat[up, assign[q]]
+
     allocated = np.zeros(n_use)
     counts = np.zeros(n_use, dtype=np.int64)
     for p in range(n_parc):
@@ -176,9 +215,52 @@ def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
             counts[u] += 1
     return {
         "assign": assign,
-        "objective": _objective(suit, area, assign),
+        "objective": float(w_suit * suit_score + spatial_score),
+        "suit_score": float(suit_score),
+        "spatial_score": float(spatial_score),
         "allocated": allocated,
         "n_parcels": counts,
         "swaps": swaps,
         "reassigned": reassigned,
     }
+
+
+def allocate_land_use(suit, area, targets, locked=None, max_iter=50,
+                      swap_limit=1200):
+    """Assign parcels to uses to maximise area-weighted suitability only.
+
+    The single-objective case (no spatial term). See module docstring and
+    :func:`allocate_multi`. Returns dict: ``assign`` (use index per parcel,
+    ``-1`` = unassigned), ``objective``/``suit_score`` (area-weighted
+    suitability), ``allocated`` and ``n_parcels`` per use, ``swaps`` and
+    ``reassigned`` counts.
+    """
+    return _allocate_core(suit, area, targets, locked, 1.0, None, None,
+                          max_iter, swap_limit)
+
+
+def allocate_multi(suit, area, targets, edges, compat, locked=None,
+                   w_suit=1.0, max_iter=50, swap_limit=1200):
+    """Multi-objective allocation: suitability + a spatial interaction term.
+
+    Adds to the area-weighted suitability the term
+    ``sum over adjacent (p, q) of L_pq * compat[use_p, use_q]``. ``edges``
+    is an iterable of ``(p, q, shared_boundary_length)`` (each undirected
+    pair once) and ``compat`` is a symmetric (U, U) matrix - its diagonal
+    rewards same-use neighbours (compactness), off-diagonal entries reward
+    (+) or penalise (-) specific use pairs being adjacent. ``w_suit``
+    weights suitability against the spatial term. With no edges / a zero
+    ``compat`` this equals :func:`allocate_land_use`. The returned dict adds
+    ``spatial_score`` (the spatial term) to the keys above.
+    """
+    suit = np.asarray(suit, dtype=float)
+    n_parc, n_use = suit.shape
+    adj = [[] for _ in range(n_parc)]
+    for i, j, length in edges:
+        i, j, length = int(i), int(j), float(length)
+        adj[i].append((j, length))
+        adj[j].append((i, length))
+    if compat is None:
+        compat = np.zeros((n_use, n_use))
+    return _allocate_core(suit, area, targets, locked, float(w_suit), adj,
+                          compat, max_iter, swap_limit)

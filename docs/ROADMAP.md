@@ -69,7 +69,7 @@ planx/
 | Optimization (v2.4) | Facility Location Optimizer | greedy maximal coverage (Church & ReVelle) / p-median (Teitz-Bart), candidate screening |
 | Optimization (v2.6) | Capacitated Allocation | nearest facility with free capacity, spill when full, uncovered when none in reach |
 | Equity (v2.6) | Accessibility Equity | population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
-| Optimization (v2.7) | Land-Use Allocation Optimizer | assign parcels to uses maximising area-weighted suitability under per-use area targets (greedy + capacity-respecting swaps) |
+| Optimization (v2.7–2.8) | Land-Use Allocation Optimizer | assign parcels to uses maximising suitability + compactness + adjacency under per-use area targets (greedy + capacity-respecting swaps) |
 
 ## Release roadmap
 
@@ -124,12 +124,25 @@ planx/
   summary. Pure-NumPy `engine/allocate.py`; 168 unit + 137 e2e checks on
   QGIS 3.44 LTR and QGIS 4.0.2.
 
-### Future ideas (post-2.7, unscheduled)
+- **v2.8 — Multi-objective land-use allocation:** SHIPPED 2026-06-29 — the
+  Land-Use Allocation Optimizer gains spatial objectives beyond
+  suitability: a **compactness** weight (reward same-use shared boundary →
+  contiguous zones) and free-text **adjacency rules**
+  (`residential|industry=-2`) that reward/penalise use pairs being
+  neighbours, plus an advanced suitability weight to balance them. Objective
+  `w_suit·Σ(area·suit) + Σ_adjacent L·C[use,use]` over the parcel adjacency
+  graph (shared-boundary lengths via a spatial index); greedy + local
+  search (reassignment + capacity-respecting swaps) on the full objective.
+  New `engine/allocate.allocate_multi` (shared core with the 2.7
+  single-objective function); 175 unit + 141 e2e checks on QGIS 3.44 LTR
+  and QGIS 4.0.2. Pure-suitability runs are unchanged.
+
+### Future ideas (post-2.8, unscheduled)
 
 - Capacitated facility *siting* (choose where to build while respecting
   capacities — siting + the capacitated allocation now shipped, together).
-- Multi-objective land-use allocation (compactness / adjacency / cost
-  alongside suitability; Pareto trade-off between targets and suitability).
+- Land-use allocation: hard contiguity constraints and a Pareto front
+  (suitability vs compactness) export rather than a single weighted run.
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
 - Annual/monthly solar aggregation (multi-day irradiation sweeps).
 - More equity lenses (Atkinson index, concentration/Lorenz export,

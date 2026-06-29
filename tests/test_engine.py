@@ -657,6 +657,41 @@ res_n = allocate.allocate_land_use(np.array([[-5.0]]), np.array([10.0]), [10.0])
 check("allocate clips negative suitability to 0", close(res_n["objective"], 0.0))
 
 # --------------------------------------------------------------------------- #
+# 16. Multi-objective land-use allocation (v2.8)
+# --------------------------------------------------------------------------- #
+# two adjacent parcels (shared edge L=10); each slightly prefers a different
+# use by suitability, but compactness can make them cluster.
+suit_m = np.array([[10.0, 9.0], [9.0, 10.0]])
+area_m = np.array([1.0, 1.0])
+edges_m = [(0, 1, 10.0)]
+res_m0 = allocate.allocate_multi(suit_m, area_m, [2.0, 2.0], edges_m, np.zeros((2, 2)))
+check("multi no-spatial == pure suitability split [0,1]",
+      res_m0["assign"].tolist() == [0, 1]
+      and res_m0["assign"].tolist()
+      == allocate.allocate_land_use(suit_m, area_m, [2.0, 2.0])["assign"].tolist())
+check("multi no-spatial: spatial_score 0", close(res_m0["spatial_score"], 0.0))
+res_mc = allocate.allocate_multi(suit_m, area_m, [2.0, 2.0], edges_m,
+                                 np.array([[5.0, 0.0], [0.0, 5.0]]))
+check("multi compactness: adjacent parcels cluster into one use",
+      res_mc["assign"][0] == res_mc["assign"][1])
+check("multi compactness: objective 69 (suit 19 + spatial 50)",
+      close(res_mc["objective"], 69.0) and close(res_mc["spatial_score"], 50.0))
+# three parcels in a row; use 1 fits once. An adjacency penalty between the
+# two uses should push use 1 to an END (one border) not the MIDDLE (two).
+suit_r = np.array([[5.0, 5.0], [5.0, 6.0], [5.0, 5.0]])
+area_r = np.array([1.0, 1.0, 1.0])
+edges_r = [(0, 1, 10.0), (1, 2, 10.0)]
+res_r0 = allocate.allocate_multi(suit_r, area_r, [2.0, 1.0], edges_r, np.zeros((2, 2)))
+check("multi no rule: use 1 sits in the middle (suitability greedy)",
+      res_r0["assign"].tolist() == [0, 1, 0])
+res_r = allocate.allocate_multi(suit_r, area_r, [2.0, 1.0], edges_r,
+                                np.array([[0.0, -1.0], [-1.0, 0.0]]))
+check("multi adjacency penalty: use 1 pushed to an end, not the middle",
+      res_r["assign"][1] == 0 and list(res_r["assign"]).count(1) == 1)
+check("multi adjacency: objective 5 (suit 15 - one penalised 10 m border)",
+      close(res_r["objective"], 5.0))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

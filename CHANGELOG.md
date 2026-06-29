@@ -3,6 +3,41 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.8.0] - 2026-06-29
+
+Multi-objective land-use allocation: compactness & adjacency.
+
+### Added
+- The **Land-Use Allocation Optimizer is now multi-objective** — beyond
+  per-parcel suitability it can shape the *spatial pattern* of the plan,
+  maximizing `w_suit · Σ(area · suitability) + Σ_adjacent L · C[use, use]`
+  over the parcel adjacency graph (`L` = shared boundary length):
+  - **Compactness weight**: rewards same-use parcels that share a
+    boundary, so each land use forms compact contiguous zones instead of
+    scattering (reward per map unit of shared boundary; `0` = off).
+  - **Adjacency rules**: free text `residential|industry=-2,
+    residential|green=1` rewards (+) or penalises (-) specific use pairs
+    being neighbours, per unit of shared boundary — keep incompatible uses
+    apart and compatible ones together.
+  - **Suitability weight** (advanced) balances suitability against the
+    spatial terms.
+  Parcel adjacency and shared-boundary lengths are computed with a spatial
+  index; the run reports the spatial score and the share of shared
+  boundary that is between same-use parcels (a compactness indicator).
+  With compactness `0` and no rules the result is **identical** to the
+  pure-suitability allocation of 2.7.0.
+- `engine/allocate.allocate_multi` and a shared `_allocate_core`: the
+  spatial term is a symmetric use-compatibility matrix over the adjacency
+  graph; greedy construction + reassignment + capacity-respecting pairwise
+  swaps now optimise the full objective (pure NumPy, unit-tested).
+
+### Tests
+- Engine suite 168 → 175 checks (compactness clustering and an adjacency
+  penalty that relocates a repelled use, with hand-computed objectives);
+  e2e harness 137 → 141 assertions (a 2×2 checkerboard that stays
+  fragmented without compactness and forms blocks with it / a repel rule)
+  — verified on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.7.0] - 2026-06-29
 
 Land-Use Allocation Optimizer — 25 algorithms total.
