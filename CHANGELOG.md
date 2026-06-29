@@ -3,6 +3,38 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.7.0] - 2026-06-29
+
+Land-Use Allocation Optimizer — 25 algorithms total.
+
+### Added
+- **Land-Use Allocation Optimizer** (Optimization group): assigns a land
+  use to each parcel to **maximize total suitability** while meeting a
+  **target area** for each use — the spatial-allocation problem at the
+  heart of plan-making, solved natively with no external solver. You
+  supply, on the parcel layer, one **suitability field per land use**
+  (0–1 or 0–100 — e.g. straight from Suitability Lab) and a target area
+  per use; each parcel is assigned in full to at most one use so the area
+  given to a use stays within its target and the **area-weighted
+  suitability** is as high as possible. Parcels not needed to meet the
+  targets are left **unassigned**; a use that cannot be filled reports a
+  **shortfall**. An optional **lock field** fixes already-zoned parcels to
+  a use (consuming that use's target). Method: greedy construction (best
+  suitability first) plus a local search of single-parcel reassignments
+  and **capacity-respecting pairwise swaps** — a fast heuristic, not a
+  guaranteed global optimum. Outputs the parcels with their assigned use,
+  its suitability, the parcel area and a locked flag (style by
+  `alloc_use` for a land-use map), and a per-use summary table (target vs
+  allocated area, shortfall, parcel count and mean suitability achieved).
+- `engine/allocate.py` (`parse_targets`, `allocate_land_use`) — pure
+  NumPy, unit-tested; new group-coloured tool icon.
+
+### Tests
+- Engine suite 156 → 168 checks (incl. a greedy-trap case the swap phase
+  must escape to reach the optimum); e2e harness 126 → 137 assertions with
+  a hand-computed allocation and a locked-parcel scenario — verified on
+  QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.6.0] - 2026-06-29
 
 Equity & Allocation release: two new tools — 24 algorithms total.

@@ -16,8 +16,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, centrality, equity, graphs, morphology, optimize, paths, report,
-    solar, standards, syntax,
+    HAS_SCIPY, allocate, centrality, equity, graphs, morphology, optimize,
+    paths, report, solar, standards, syntax,
 )
 
 CHECKS = []
@@ -620,6 +620,41 @@ check("capacitated max_cost: p1/p2 still report nearest F0",
 rc3 = optimize.capacitated_assign(D_cap, [10, 10, 10], [0, 0])
 check("capacitated: zero capacity -> all uncovered",
       rc3["assign"].tolist() == [-1, -1, -1])
+
+# --------------------------------------------------------------------------- #
+# 15. Land-use allocation (v2.7)
+# --------------------------------------------------------------------------- #
+check("parse_targets basic",
+      allocate.parse_targets("A=10, b=20.5") == [("a", 10.0), ("b", 20.5)])
+suit_a = np.array([[9.0, 1.0], [8.0, 2.0], [2.0, 8.0], [1.0, 9.0]])
+area_a = np.array([100.0, 100.0, 100.0, 100.0])
+res_a = allocate.allocate_land_use(suit_a, area_a, [200.0, 100.0])
+# best 2 for use 0 = parcels 0,1; best 1 for use 1 = parcel 3; parcel 2 left over
+check("allocate basic: assign [0,0,-1,1]", res_a["assign"].tolist() == [0, 0, -1, 1])
+check("allocate basic: objective 2600", close(res_a["objective"], 2600.0))
+check("allocate basic: allocated [200,100]",
+      close(float(res_a["allocated"][0]), 200.0)
+      and close(float(res_a["allocated"][1]), 100.0))
+check("allocate basic: counts [2,1]", res_a["n_parcels"].tolist() == [2, 1])
+# greedy trap: reassignment alone is stuck (no room), a SWAP reaches optimum
+suit_t = np.array([[10.0, 8.0], [9.0, 1.0]])
+res_t = allocate.allocate_land_use(suit_t, np.array([10.0, 10.0]), [10.0, 10.0])
+check("allocate swap-trap: optimal assign [1,0]", res_t["assign"].tolist() == [1, 0])
+check("allocate swap-trap: objective 170", close(res_t["objective"], 170.0))
+check("allocate swap-trap: a swap was applied", res_t["swaps"] >= 1)
+# locked parcel is fixed and consumes its use's target
+res_l = allocate.allocate_land_use(suit_a, area_a, [200.0, 100.0],
+                                   locked=np.array([-1, -1, 1, -1]))
+check("allocate locked: p2 fixed to use 1, p0/p1 -> use 0, p3 left over",
+      res_l["assign"].tolist() == [0, 0, 1, -1])
+check("allocate locked: objective 2500", close(res_l["objective"], 2500.0))
+# shortfall: a target larger than the available area soaks every parcel
+res_s = allocate.allocate_land_use(suit_a, area_a, [1000.0, 0.0])
+check("allocate shortfall: use 0 takes all 400 (< 1000 target)",
+      close(float(res_s["allocated"][0]), 400.0) and (res_s["assign"] >= 0).all())
+# non-negative good: negative suitability is clipped to 0
+res_n = allocate.allocate_land_use(np.array([[-5.0]]), np.array([10.0]), [10.0])
+check("allocate clips negative suitability to 0", close(res_n["objective"], 0.0))
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

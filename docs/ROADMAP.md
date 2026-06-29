@@ -69,6 +69,7 @@ planx/
 | Optimization (v2.4) | Facility Location Optimizer | greedy maximal coverage (Church & ReVelle) / p-median (Teitz-Bart), candidate screening |
 | Optimization (v2.6) | Capacitated Allocation | nearest facility with free capacity, spill when full, uncovered when none in reach |
 | Equity (v2.6) | Accessibility Equity | population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
+| Optimization (v2.7) | Land-Use Allocation Optimizer | assign parcels to uses maximising area-weighted suitability under per-use area targets (greedy + capacity-respecting swaps) |
 
 ## Release roadmap
 
@@ -114,11 +115,21 @@ planx/
   `engine/equity.py` and `engine/optimize.capacitated_assign`; 156 unit +
   126 e2e checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
-### Future ideas (post-2.6, unscheduled)
+- **v2.7 — Land-Use Allocation Optimizer:** SHIPPED 2026-06-29 — new
+  Optimization tool that assigns a land use to each parcel to maximise
+  total area-weighted suitability while meeting a target area for each use
+  (capacitated generalized-assignment heuristic: greedy construction +
+  reassignment + capacity-respecting pairwise swaps), with an optional
+  lock field for already-zoned parcels and a per-use target-vs-allocated
+  summary. Pure-NumPy `engine/allocate.py`; 168 unit + 137 e2e checks on
+  QGIS 3.44 LTR and QGIS 4.0.2.
+
+### Future ideas (post-2.7, unscheduled)
 
 - Capacitated facility *siting* (choose where to build while respecting
   capacities — siting + the capacitated allocation now shipped, together).
-- Land-use allocation optimizer (multi-objective parcel assignment).
+- Multi-objective land-use allocation (compactness / adjacency / cost
+  alongside suitability; Pareto trade-off between targets and suitability).
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
 - Annual/monthly solar aggregation (multi-day irradiation sweeps).
 - More equity lenses (Atkinson index, concentration/Lorenz export,
