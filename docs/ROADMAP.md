@@ -61,6 +61,7 @@ planx/
 | Microclimate (v2.1) | Frontal Area Index | λf/λp roughness grid, footprint-share distribution |
 | Microclimate (v2.5) | Sun Hours | whole-day shadow sweep -> direct-sun hours per cell |
 | Microclimate (v2.5) | Solar Irradiation | ASHRAE clear-sky beam (shadow-aware) + SVF-weighted diffuse, kWh/m2/day |
+| Microclimate (v2.9) | Annual Solar Potential | year-long clear-sky kWh/m2/yr from twelve representative average-day sweeps (Klein 1977; Duffie & Beckman), optional 12-band monthly raster |
 | Microclimate (v2.5) | Heat Island Risk Grid | built/green/water/height composite, fixed-scale 0-100 risk |
 | Plan Standards (v2.2) | Land-Use Balance | per-capita areas vs configurable standards, surplus/deficit |
 | Plan Standards (v2.2) | Facility Adequacy | capacity + catchment distance, utilization & coverage |
@@ -137,14 +138,27 @@ planx/
   single-objective function); 175 unit + 141 e2e checks on QGIS 3.44 LTR
   and QGIS 4.0.2. Pure-suitability runs are unchanged.
 
-### Future ideas (post-2.8, unscheduled)
+- **v2.9 — Annual Solar Potential:** SHIPPED 2026-06-29 — a new Microclimate
+  tool that sums clear-sky global solar irradiation over a whole year
+  (kWh/m2/yr) for rooftop-PV screening, annual solar access and year-round
+  heat exposure. Rather than sweeping all 365 days, one representative
+  average day per month (Klein 1977; Duffie & Beckman) is computed with the
+  same shadow-aware beam + SVF-weighted diffuse kernel as the single-day
+  Solar Irradiation tool, scaled by the days in that month and summed —
+  twelve day-sweeps stand in for the year. Outputs the annual raster and an
+  optional 12-band monthly raster (named bands); the log reports the
+  flat-ground annual reference, scene statistics and the peak month. New
+  pure-NumPy `engine/solar.annual_irradiation` (reuses the daily kernel) and
+  a multi-band GeoTIFF writer; 191 unit + 150 e2e checks on QGIS 3.44 LTR
+  and QGIS 4.0.2.
+
+### Future ideas (post-2.9, unscheduled)
 
 - Capacitated facility *siting* (choose where to build while respecting
   capacities — siting + the capacitated allocation now shipped, together).
 - Land-use allocation: hard contiguity constraints and a Pareto front
   (suitability vs compactness) export rather than a single weighted run.
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
-- Annual/monthly solar aggregation (multi-day irradiation sweeps).
 - More equity lenses (Atkinson index, concentration/Lorenz export,
   demographic cross-tabs).
 

@@ -23,6 +23,7 @@ from .algorithms.alg_sky_view_factor import SkyViewFactorAlgorithm
 from .algorithms.alg_frontal_area import FrontalAreaIndexAlgorithm
 from .algorithms.alg_sun_hours import SunHoursAlgorithm
 from .algorithms.alg_solar_irradiation import SolarIrradiationAlgorithm
+from .algorithms.alg_annual_solar import AnnualSolarAlgorithm
 from .algorithms.alg_heat_risk import HeatRiskGridAlgorithm
 from .algorithms.alg_landuse_balance import LandUseBalanceAlgorithm
 from .algorithms.alg_facility_adequacy import FacilityAdequacyAlgorithm
@@ -73,6 +74,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(FrontalAreaIndexAlgorithm())
         self.addAlgorithm(SunHoursAlgorithm())
         self.addAlgorithm(SolarIrradiationAlgorithm())
+        self.addAlgorithm(AnnualSolarAlgorithm())
         self.addAlgorithm(HeatRiskGridAlgorithm())
         # 6 | Plan Standards and QA
         self.addAlgorithm(LandUseBalanceAlgorithm())

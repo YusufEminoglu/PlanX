@@ -3,6 +3,35 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.9.0] - 2026-06-29
+
+Annual Solar Potential: year-long clear-sky irradiation (26 algorithms).
+
+### Added
+- **Annual Solar Potential (DSM)** (Microclimate group) — clear-sky global
+  solar irradiation **summed over a whole year** (kWh/m²/yr): rooftop-PV
+  screening, annual solar access and year-round heat exposure, with no
+  external solver or atmospheric dataset.
+  - Instead of sweeping all 365 days, one representative **average day per
+    month** (Klein 1977; Duffie & Beckman, *Solar Engineering of Thermal
+    Processes*) is computed with the same shadow-aware beam +
+    sky-view-weighted diffuse model as the single-day Solar Irradiation
+    tool, scaled by the number of days in that month and summed. Twelve
+    day-sweeps stand in for the year — accurate for screening, far faster
+    than a full daily run.
+  - Outputs the **annual irradiation raster**; optionally a **12-band
+    monthly raster** (one named band per month) for seasonal analysis. The
+    log reports the unobstructed flat-ground annual reference, scene
+    statistics and the **peak month**.
+- `engine/solar.annual_irradiation` — pure-NumPy aggregation that reuses the
+  daily irradiation kernel; `_raster.write_raster_multiband` for the monthly
+  output; a new group-coloured tool icon.
+
+### Testing
+- Engine unit checks grown to **191**; end-to-end assertions to **150** on
+  QGIS 3.44 LTR and QGIS 4.0.2. The monthly bands are asserted to sum back
+  to the annual raster.
+
 ## [2.8.0] - 2026-06-29
 
 Multi-objective land-use allocation: compactness & adjacency.

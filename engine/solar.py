@@ -15,6 +15,8 @@ Pure NumPy, no qgis imports:
 * :func:`clear_sky_irradiance` - ASHRAE-style clear-sky beam + diffuse.
 * :func:`daily_irradiation` - clear-sky global irradiation per cell over one
   day: shadow-aware beam + SVF-weighted isotropic diffuse.
+* :func:`annual_irradiation` - clear-sky irradiation summed over a year from
+  twelve representative average-day sweeps (Klein 1977; Duffie & Beckman).
 * :func:`heat_risk_index` - normalized 0-100 urban heat island risk from
   built/green/water fractions and building height.
 """
@@ -290,6 +292,89 @@ def daily_irradiation(dsm, pixel_size, year, month, day, utc_offset,
             progress((i + 1) / n_steps)
     wh[np.isnan(dsm)] = np.nan
     return wh / 1000.0, flat_wh / 1000.0
+
+
+# --------------------------------------------------------------------------- #
+# Annual aggregation: monthly representative days summed to a year
+# --------------------------------------------------------------------------- #
+MONTH_NAMES = ("January", "February", "March", "April", "May", "June",
+               "July", "August", "September", "October", "November",
+               "December")
+
+# Recommended average day of each month (Klein 1977; Duffie & Beckman,
+# "Solar Engineering of Thermal Processes", Table 1.6.1): the day-of-month
+# whose solar declination is closest to the monthly mean, so a single sweep
+# of it stands in for the month's mean daily irradiation.
+_AVG_MONTH_DAY = (17, 16, 16, 15, 15, 11, 17, 16, 15, 15, 14, 10)
+
+
+def _days_in_month(year, month):
+    days = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    if month == 2 and year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
+        return 29
+    return days[month - 1]
+
+
+def annual_irradiation(dsm, pixel_size, year, utc_offset, lat_deg, lon_deg,
+                       interval_min=60.0, svf=None, months=None,
+                       max_search=None, keep_monthly=True,
+                       progress=None, cancel=None):
+    """Clear-sky global solar irradiation summed over a year (kWh/m2/yr).
+
+    For each month one representative "average day" (Klein 1977; Duffie &
+    Beckman) is swept with :func:`daily_irradiation` and scaled by the number
+    of days in that month; the monthly totals are summed to the annual map.
+    This is the standard monthly-average method: 12 day-sweeps stand in for
+    365, keeping a year-long clear-sky screening tractable.
+
+    Returns a dict with:
+      * ``annual``       - kWh/m2/yr per cell (NaN where the DSM is NaN);
+      * ``months``       - the month numbers actually swept (1-12);
+      * ``month_mean``   - mean monthly total over valid cells, per month;
+      * ``flat_monthly`` - unobstructed flat-ground monthly total, per month;
+      * ``flat_annual``  - their sum (flat-ground annual reference);
+      * ``monthly``      - list of per-month kWh/m2 maps (``None`` if
+        ``keep_monthly`` is False - the means are still returned).
+    """
+    dsm = np.asarray(dsm, dtype=np.float64)
+    if months is None:
+        months = list(range(1, 13))
+    valid = ~np.isnan(dsm)
+    has_valid = bool(valid.any())
+    annual = np.zeros(dsm.shape, dtype=np.float64)
+    monthly = [] if keep_monthly else None
+    month_mean, flat_monthly, swept = [], [], []
+    n = max(1, len(months))
+    for idx, m in enumerate(months):
+        if cancel is not None and cancel():
+            break
+        rep_day = _AVG_MONTH_DAY[m - 1]
+        ndays = _days_in_month(year, m)
+
+        def sub(frac, _i=idx, _n=n):
+            if progress is not None:
+                progress((_i + frac) / _n)
+
+        day_kwh, flat_day = daily_irradiation(
+            dsm, pixel_size, year, m, rep_day, utc_offset, lat_deg, lon_deg,
+            interval_min=interval_min, svf=svf, max_search=max_search,
+            progress=sub, cancel=cancel)
+        month_kwh = day_kwh * ndays                     # NaN cells stay NaN
+        annual += np.where(valid, month_kwh, 0.0)
+        flat_monthly.append(flat_day * ndays)
+        month_mean.append(float(month_kwh[valid].mean()) if has_valid else 0.0)
+        swept.append(m)
+        if keep_monthly:
+            monthly.append(month_kwh)
+    annual[~valid] = np.nan
+    return {
+        "annual": annual,
+        "months": swept,
+        "month_mean": month_mean,
+        "flat_monthly": flat_monthly,
+        "flat_annual": float(sum(flat_monthly)),
+        "monthly": monthly,
+    }
 
 
 # --------------------------------------------------------------------------- #

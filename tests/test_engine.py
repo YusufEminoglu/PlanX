@@ -692,6 +692,66 @@ check("multi adjacency: objective 5 (suit 15 - one penalised 10 m border)",
       close(res_r["objective"], 5.0))
 
 # --------------------------------------------------------------------------- #
+# 17. Annual solar potential (v2.9)
+# --------------------------------------------------------------------------- #
+ann = solar.annual_irradiation(flat10, 1.0, 2026, 0.0, 38.0, 27.0,
+                               interval_min=60.0)
+check("annual: 12 months swept", ann["months"] == list(range(1, 13)))
+check("annual: 12 monthly maps + 12 means",
+      len(ann["monthly"]) == 12 and len(ann["month_mean"]) == 12)
+check("annual flat: every cell == flat-ground annual reference",
+      np.allclose(ann["annual"], ann["flat_annual"]))
+check("annual == sum of the 12 monthly maps",
+      np.allclose(ann["annual"], sum(ann["monthly"])))
+check("annual flat == sum of the 12 flat-month totals",
+      close(ann["flat_annual"], sum(ann["flat_monthly"]), 1e-6))
+check("annual flat at 38N is physically plausible (kWh/m2/yr)",
+      800.0 < ann["flat_annual"] < 4000.0)
+check("annual: June outshines December at 38N",
+      ann["month_mean"][5] > ann["month_mean"][11] > 0.0)
+# keep_monthly=False drops the arrays but still returns the means
+ann_nm = solar.annual_irradiation(flat10, 1.0, 2026, 0.0, 38.0, 27.0,
+                                  interval_min=60.0, keep_monthly=False)
+check("annual keep_monthly=False: maps dropped, means kept, totals match",
+      ann_nm["monthly"] is None and len(ann_nm["month_mean"]) == 12
+      and close(ann_nm["flat_annual"], ann["flat_annual"], 1e-9))
+# a single-month subset equals that month's contribution
+ann_jun = solar.annual_irradiation(flat10, 1.0, 2026, 0.0, 38.0, 27.0,
+                                   interval_min=60.0, months=[6])
+check("annual months=[6]: only June swept",
+      ann_jun["months"] == [6] and len(ann_jun["monthly"]) == 1)
+check("annual months=[6] == June slice of the full run",
+      close(ann_jun["flat_annual"], ann["flat_monthly"][5], 1e-6)
+      and np.allclose(ann_jun["annual"], ann["monthly"][5]))
+# a half-open sky cuts the diffuse share of the annual total
+ann_svf = solar.annual_irradiation(flat10, 1.0, 2026, 0.0, 38.0, 27.0,
+                                   interval_min=60.0, svf=np.full((10, 10), 0.5))
+check("annual: SVF 0.5 lowers the scene total vs full sky",
+      float(ann_svf["annual"].mean()) < float(ann["annual"].mean()))
+# shadowing: at 40N the noon sun is due south, so the tower's shadow falls on
+# its NORTH side (smaller rows) - those cells lose annual sun vs the far field.
+ann_t = solar.annual_irradiation(tower_dsm, 1.0, 2026, 0.0, 40.0, 0.0,
+                                 interval_min=60.0)
+check("annual: shaded cell north of tower < open far field",
+      ann_t["annual"][14, 15] < ann_t["annual"][2, 2])
+check("annual: tower top reaches the scene maximum",
+      close(float(ann_t["annual"][15, 15]),
+            float(np.nanmax(ann_t["annual"])), 1e-6))
+# NaN DSM cells stay NaN while valid cells are computed
+dsm_nan = np.array([[0.0, 0.0, np.nan], [0.0, 5.0, 0.0], [0.0, 0.0, 0.0]])
+ann_nan = solar.annual_irradiation(dsm_nan, 1.0, 2026, 0.0, 38.0, 27.0,
+                                   interval_min=120.0)["annual"]
+check("annual: NaN DSM cell stays NaN, valid cells finite & positive",
+      np.isnan(ann_nan[0, 2]) and np.isfinite(ann_nan[1, 1])
+      and ann_nan[1, 1] > 0.0)
+# days-in-month respects leap years
+check("days in month: 2024 Feb == 29 (leap), 2026 Feb == 28",
+      solar._days_in_month(2024, 2) == 29 and solar._days_in_month(2026, 2) == 28)
+check("days in month: Apr 30, Jul 31, 2000 Feb 29, 1900 Feb 28",
+      solar._days_in_month(2026, 4) == 30 and solar._days_in_month(2026, 7) == 31
+      and solar._days_in_month(2000, 2) == 29 and solar._days_in_month(1900, 2) == 28)
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

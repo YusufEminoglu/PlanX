@@ -51,6 +51,28 @@ def write_raster(path, arr, gt, proj, nodata, dtype=gdal.GDT_Float32):
     return path
 
 
+def write_raster_multiband(path, arrays, gt, proj, nodata, band_names=None,
+                           dtype=gdal.GDT_Float32):
+    """Write a list of equally shaped 2D arrays as the bands of one GeoTIFF."""
+    if not arrays:
+        raise QgsProcessingException("No bands to write.")
+    h, w = arrays[0].shape
+    drv = gdal.GetDriverByName("GTiff")
+    out = drv.Create(path, w, h, len(arrays), dtype, options=["COMPRESS=LZW"])
+    out.SetGeoTransform(gt)
+    if proj:
+        out.SetProjection(proj)
+    for i, arr in enumerate(arrays):
+        band = out.GetRasterBand(i + 1)
+        band.SetNoDataValue(nodata)
+        if band_names is not None and i < len(band_names):
+            band.SetDescription(str(band_names[i]))
+        band.WriteArray(arr)
+        band.FlushCache()
+    out = None
+    return path
+
+
 def raster_center_lonlat(layer):
     """Raster extent center as WGS84 (lon, lat)."""
     from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject

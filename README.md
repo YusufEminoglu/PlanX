@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-five Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-six Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -28,7 +28,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Real network accessibility** — OD cost matrices with detour ratios, multi-facility **service-area isochrones**, nearest-facility allocation with load summaries.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
-- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Sky View Factor**, frontal-area wind-roughness grids, and a vector **Heat Island Risk Grid** from the layers every plan already has.
+- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Annual Solar Potential** (year-long clear-sky irradiation from twelve representative-day sweeps, kWh/m²/yr, with an optional monthly raster), **Sky View Factor**, frontal-area wind-roughness grids, and a vector **Heat Island Risk Grid** from the layers every plan already has.
 - **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
 - **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
 - **Location-allocation optimization** — site new schools/clinics/parks among your candidates with the classic models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected; plus **Capacitated Allocation** that sends demand to the nearest facility *with free capacity*, spilling to the next when full — no external solver.
@@ -73,6 +73,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Microclimate | Shadow Casting (DSM) | Building/terrain shadows for any date & time, embedded sun position |
 | Microclimate | Sun Hours (DSM) | Hours of direct sun per cell over one day — right-to-light & sun audits |
 | Microclimate | Solar Irradiation (DSM) | Clear-sky daily kWh/m²: shadow-aware beam + SVF-weighted diffuse |
+| Microclimate | Annual Solar Potential (DSM) | Year-long clear-sky kWh/m²/yr from twelve representative-day sweeps, optional monthly raster — rooftop-PV & solar-access screening |
 | Microclimate | Sky View Factor (DSM) | Visible-sky fraction per cell — heat island & canyon studies |
 | Microclimate | Frontal Area Index | λf / λp wind-roughness grid (Grimmond & Oke) |
 | Microclimate | Heat Island Risk Grid | Fixed-scale 0–100 UHI screening from buildings, green & water polygons |
