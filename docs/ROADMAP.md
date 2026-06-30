@@ -71,6 +71,7 @@ planx/
 | Optimization (v2.6) | Capacitated Allocation | nearest facility with free capacity, spill when full, uncovered when none in reach |
 | Equity (v2.6) | Accessibility Equity | population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
 | Optimization (v2.7–2.8) | Land-Use Allocation Optimizer | assign parcels to uses maximising suitability + compactness + adjacency under per-use area targets (greedy + capacity-respecting swaps) |
+| Optimization (v2.10) | Land-Use Pareto Front | sweep compactness weights → non-dominated suitability-vs-compactness trade-off + knee + chosen parcel plan |
 
 ## Release roadmap
 
@@ -152,12 +153,27 @@ planx/
   a multi-band GeoTIFF writer; 191 unit + 150 e2e checks on QGIS 3.44 LTR
   and QGIS 4.0.2.
 
-### Future ideas (post-2.9, unscheduled)
+- **v2.10 — Land-Use Pareto Front:** SHIPPED 2026-06-30 — a new Optimization
+  tool that maps the suitability vs compactness TRADE-OFF instead of one
+  weighted run. It solves the Land-Use Allocation Optimizer across a sweep of
+  compactness weights (auto-scaled to the data, or capped by an upper weight)
+  and records two higher-is-better scores per result — area-weighted
+  suitability and the shared boundary between adjacent same-use parcels
+  (compactness) — then reports the non-dominated set (the Pareto front) and
+  its knee (furthest from the chord joining the front's extremes, the
+  best-balanced point). Outputs a front table to plot (both scores raw and
+  normalised, on-front / knee / selected flags) and the parcel map of one
+  chosen solution (knee by default, or the max-suitability / max-compactness
+  end). New pure-NumPy `engine/allocate.pareto_front` + `pareto_mask` + knee
+  detector reusing the multi-objective core; 202 unit + 158 e2e checks on
+  QGIS 3.44 LTR and QGIS 4.0.2.
+
+### Future ideas (post-2.10, unscheduled)
 
 - Capacitated facility *siting* (choose where to build while respecting
   capacities — siting + the capacitated allocation now shipped, together).
-- Land-use allocation: hard contiguity constraints and a Pareto front
-  (suitability vs compactness) export rather than a single weighted run.
+- Land-use allocation: hard contiguity constraints (a single connected zone
+  per use) beyond the soft compactness reward.
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
 - More equity lenses (Atkinson index, concentration/Lorenz export,
   demographic cross-tabs).

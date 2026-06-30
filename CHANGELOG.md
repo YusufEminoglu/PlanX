@@ -3,6 +3,36 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.10.0] - 2026-06-30
+
+Land-Use Pareto Front: the suitability vs compactness trade-off (27 algorithms).
+
+### Added
+- **Land-Use Pareto Front** (Optimization group) — maps the **trade-off**
+  between per-parcel suitability and compact zoning instead of committing to
+  a single weighted run. There is rarely one best plan: clustering a use into
+  compact zones usually costs some suitability, and vice versa.
+  - Solves the Land-Use Allocation Optimizer across a **sweep of compactness
+    weights** (auto-scaled to the data, or capped by an upper weight) and
+    records two higher-is-better scores per result: area-weighted
+    **suitability** and the shared boundary between adjacent same-use parcels
+    (**compactness**).
+  - Reports the **non-dominated set** (the Pareto front) and its **knee** —
+    the point furthest from the chord joining the front's extremes, i.e. the
+    best-balanced compromise.
+  - Outputs a **front table** (one row per weight: both scores raw and 0–1
+    normalised, plus on-front / knee / selected flags) to plot, and the
+    **parcel map** of one chosen solution — the knee by default, or the
+    maximum-suitability or maximum-compactness end.
+- `engine/allocate.pareto_front`, `pareto_mask` and a knee detector — pure
+  NumPy, reusing the existing multi-objective allocation core
+  (`allocate_multi`); a new group-coloured tool icon.
+
+### Testing
+- Engine unit checks grown to **202**; end-to-end assertions to **158** on
+  QGIS 3.44 LTR and QGIS 4.0.2. The high-weight runs are asserted to reach the
+  blocked (compact) allocation and the front extremes to be non-dominated.
+
 ## [2.9.0] - 2026-06-29
 
 Annual Solar Potential: year-long clear-sky irradiation (26 algorithms).

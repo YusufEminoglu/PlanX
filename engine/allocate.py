@@ -264,3 +264,123 @@ def allocate_multi(suit, area, targets, edges, compat, locked=None,
         compat = np.zeros((n_use, n_use))
     return _allocate_core(suit, area, targets, locked, float(w_suit), adj,
                           compat, max_iter, swap_limit)
+
+
+# --------------------------------------------------------------------------- #
+# Pareto front: suitability vs compactness trade-off over a weight sweep
+# --------------------------------------------------------------------------- #
+def _same_use_boundary(assign, edges):
+    """Total shared-boundary length between adjacent parcels of the SAME use.
+
+    This is the **compactness** metric, computed directly from an assignment
+    and so independent of any optimisation weight.
+    """
+    total = 0.0
+    for i, j, length in edges:
+        ui = int(assign[i])
+        if ui >= 0 and ui == int(assign[j]):
+            total += float(length)
+    return total
+
+
+def pareto_mask(obj1, obj2, tol=1e-9):
+    """Boolean mask of the non-dominated points when MAXIMISING both objectives.
+
+    Point ``i`` is dominated when some ``j`` is at least as good on both
+    objectives and strictly better on one. Identical points are both kept.
+    """
+    a = np.asarray(obj1, dtype=float)
+    b = np.asarray(obj2, dtype=float)
+    n = a.shape[0]
+    nd = np.ones(n, dtype=bool)
+    for i in range(n):
+        for j in range(n):
+            if j == i:
+                continue
+            if (a[j] >= a[i] - tol and b[j] >= b[i] - tol
+                    and (a[j] > a[i] + tol or b[j] > b[i] + tol)):
+                nd[i] = False
+                break
+    return nd
+
+
+def _knee_index(obj1, obj2, front_mask):
+    """Index (into the full arrays) of the knee of the Pareto front.
+
+    The knee is the front point furthest from the chord joining the two
+    extreme front points, after scaling each objective to [0, 1]. Returns
+    ``-1`` when the front has fewer than three distinct points.
+    """
+    idx = np.where(front_mask)[0]
+    if idx.shape[0] < 3:
+        return -1
+    a = np.asarray(obj1, dtype=float)[idx]
+    b = np.asarray(obj2, dtype=float)[idx]
+
+    def _norm(x):
+        lo, hi = float(x.min()), float(x.max())
+        return (x - lo) / (hi - lo) if hi > lo else np.zeros_like(x)
+
+    an, bn = _norm(a), _norm(b)
+    order = np.argsort(an)
+    an, bn, idx = an[order], bn[order], idx[order]
+    dx, dy = an[-1] - an[0], bn[-1] - bn[0]
+    denom = float(np.hypot(dx, dy))
+    if denom < 1e-12:
+        return -1
+    dist = np.abs(dy * (an - an[0]) - dx * (bn - bn[0])) / denom
+    return int(idx[int(np.argmax(dist))])
+
+
+def pareto_front(suit, area, targets, edges, weights, locked=None, w_suit=1.0,
+                 max_iter=50, swap_limit=1200):
+    """Trace the suitability vs compactness trade-off across compactness weights.
+
+    For each ``w`` in ``weights`` the allocation is solved with a pure
+    compactness reward matrix ``compat = w * I`` (diagonal ``w``, no adjacency
+    off-diagonal), reusing :func:`allocate_multi`. Two objectives, both to be
+    MAXIMISED, are recorded per run: ``suit`` (area-weighted suitability) and
+    ``compact`` (shared boundary between adjacent same-use parcels). The
+    non-dominated subset is the Pareto front; the ``knee`` is its
+    best-balanced point.
+
+    Returns a dict with arrays aligned to ``weights``: ``weights``, ``suit``,
+    ``compact``, ``suit_norm``/``compact_norm`` (0-1 across all runs),
+    ``swaps``, ``reassigned``, ``on_front`` (bool), ``knee`` (index or -1) and
+    ``assign`` (list of the per-parcel assignment array of each run).
+    """
+    suit_arr = np.asarray(suit, dtype=float)
+    n_use = suit_arr.shape[1]
+    edges = [(int(i), int(j), float(length)) for i, j, length in edges]
+    weights = [float(w) for w in weights]
+    suit_vals, comp_vals, swaps, reass, assigns = [], [], [], [], []
+    for w in weights:
+        compat = np.eye(n_use) * w
+        res = allocate_multi(suit_arr, area, targets, edges, compat,
+                             locked=locked, w_suit=w_suit, max_iter=max_iter,
+                             swap_limit=swap_limit)
+        assigns.append(res["assign"])
+        suit_vals.append(res["suit_score"])
+        comp_vals.append(_same_use_boundary(res["assign"], edges))
+        swaps.append(res["swaps"])
+        reass.append(res["reassigned"])
+    suit_vals = np.asarray(suit_vals, dtype=float)
+    comp_vals = np.asarray(comp_vals, dtype=float)
+    front = pareto_mask(suit_vals, comp_vals)
+
+    def _norm(x):
+        lo, hi = float(x.min()), float(x.max())
+        return (x - lo) / (hi - lo) if hi > lo else np.zeros_like(x)
+
+    return {
+        "weights": np.asarray(weights, dtype=float),
+        "suit": suit_vals,
+        "compact": comp_vals,
+        "suit_norm": _norm(suit_vals),
+        "compact_norm": _norm(comp_vals),
+        "swaps": np.asarray(swaps, dtype=np.int64),
+        "reassigned": np.asarray(reass, dtype=np.int64),
+        "on_front": front,
+        "knee": _knee_index(suit_vals, comp_vals, front),
+        "assign": assigns,
+    }

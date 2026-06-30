@@ -752,6 +752,47 @@ check("days in month: Apr 30, Jul 31, 2000 Feb 29, 1900 Feb 28",
       and solar._days_in_month(2000, 2) == 29 and solar._days_in_month(1900, 2) == 28)
 
 # --------------------------------------------------------------------------- #
+# 18. Land-use Pareto front (v2.10)
+# --------------------------------------------------------------------------- #
+# pure-objective helpers on hand-built arrays (both objectives maximised)
+pm = allocate.pareto_mask([40.0, 25.0, 20.0, 38.0], [0.0, 1.0, 2.0, 1.0])
+check("pareto_mask: (25,1) is dominated by (38,1); the other three survive",
+      pm.tolist() == [True, False, True, True])
+pm2 = allocate.pareto_mask([40.0, 38.0, 20.0], [0.0, 1.0, 2.0])
+check("pareto_mask: a concave trade-off keeps all three points",
+      pm2.tolist() == [True, True, True])
+check("knee: the bulging middle point (38,1) is the knee",
+      allocate._knee_index([40.0, 38.0, 20.0], [0.0, 1.0, 2.0], pm2) == 1)
+check("knee: a two-point front has no knee (-1)",
+      allocate._knee_index([40.0, 20.0], [0.0, 2.0],
+                           np.array([True, True])) == -1)
+check("same-use boundary: blocked A,A,B,B counts both inner edges, interleave 0",
+      close(allocate._same_use_boundary(
+            [0, 0, 1, 1], [(0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0)]), 2.0)
+      and close(allocate._same_use_boundary(
+            [0, 1, 0, 1], [(0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0)]), 0.0))
+
+# a 4-parcel line: pure suitability wants the interleaved A,B,A,B (suit 40,
+# compactness 0); compactness wants the blocked A,A,B,B (suit 20, compactness
+# 2) - a genuine trade-off the sweep must trace.
+psuit = np.array([[10.0, 0.0], [0.0, 10.0], [10.0, 0.0], [0.0, 10.0]])
+pedges = [(0, 1, 1.0), (1, 2, 1.0), (2, 3, 1.0)]
+pf = allocate.pareto_front(psuit, [1.0, 1.0, 1.0, 1.0], [2.0, 2.0], pedges,
+                           weights=[0.0, 5.0, 12.0, 20.0])
+check("pareto front: zero weight gives the max-suitability interleaving (40, 0)",
+      close(pf["suit"][0], 40.0) and close(pf["compact"][0], 0.0))
+check("pareto front: a high weight trades suitability for compactness (20, 2)",
+      close(pf["suit"][-1], 20.0) and close(pf["compact"][-1], 2.0))
+check("pareto front: suitability never beats the unconstrained best (40)",
+      float(pf["suit"].max()) <= 40.0 + 1e-9)
+check("pareto front: both extremes lie on the non-dominated front",
+      bool(pf["on_front"][0]) and bool(pf["on_front"][-1]))
+check("pareto front: one assignment per weight, all 4 parcels long",
+      len(pf["assign"]) == 4 and all(len(a) == 4 for a in pf["assign"]))
+check("pareto front: the high-weight run is the blocked (compact) allocation",
+      close(allocate._same_use_boundary(pf["assign"][-1], pedges), 2.0))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:
