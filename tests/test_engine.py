@@ -793,6 +793,48 @@ check("pareto front: the high-weight run is the blocked (compact) allocation",
       close(allocate._same_use_boundary(pf["assign"][-1], pedges), 2.0))
 
 # --------------------------------------------------------------------------- #
+# 19. Atkinson index & Lorenz / concentration curves (v2.11)
+# --------------------------------------------------------------------------- #
+check("atkinson: perfect equality is 0 at any aversion",
+      close(equity.atkinson_index([5, 5, 5, 5], epsilon=1.0), 0.0)
+      and close(equity.atkinson_index([5, 5, 5, 5], epsilon=2.0), 0.0))
+check("atkinson: zero aversion (epsilon 0) is always 0",
+      close(equity.atkinson_index([1, 2, 3, 4], epsilon=0.0), 0.0))
+check("atkinson: epsilon=1 is the geometric-mean gap (1-sqrt(2)/1.5)",
+      close(equity.atkinson_index([1, 2], epsilon=1.0), 1 - (2 ** 0.5) / 1.5, 1e-6))
+check("atkinson: epsilon=2 is the harmonic-mean gap (1-(4/3)/1.5)",
+      close(equity.atkinson_index([1, 2], epsilon=2.0), 1 - (4 / 3) / 1.5, 1e-6))
+check("atkinson: more aversion never lowers the index",
+      equity.atkinson_index([1, 2], epsilon=2.0)
+      > equity.atkinson_index([1, 2], epsilon=1.0) > 0.0)
+check("atkinson: a zero value collapses the index to 1 when epsilon>=1",
+      close(equity.atkinson_index([0, 1, 2], epsilon=1.0), 1.0)
+      and close(equity.atkinson_index([0, 1, 2], epsilon=1.5), 1.0))
+check("atkinson: a zero value is finite when epsilon<1",
+      0.0 < equity.atkinson_index([0, 1, 2], epsilon=0.5) < 1.0)
+
+pop_eq, val_eq = equity.lorenz_points([4, 4, 4, 4])
+check("lorenz: equality lies on the diagonal (gini 0)",
+      close(equity.gini_from_lorenz(pop_eq, val_eq), 0.0))
+pp, ll = equity.lorenz_points([1, 2, 3, 4])
+check("lorenz: curve runs from (0,0) to (1,1)",
+      close(pp[0], 0.0) and close(ll[0], 0.0)
+      and close(pp[-1], 1.0) and close(ll[-1], 1.0))
+check("lorenz: an unequal curve sags below the line of equality",
+      bool(np.all(ll <= pp + 1e-12)) and bool(np.all(np.diff(ll) >= -1e-12)))
+check("lorenz: trapezoidal gini == the mean-difference gini (0.25)",
+      close(equity.gini_from_lorenz(pp, ll), 0.25, 1e-9)
+      and close(equity.gini_from_lorenz(pp, ll), equity.gini([1, 2, 3, 4]), 1e-9))
+check("concentration: ordered by its own value, equals the Gini",
+      close(equity.concentration_index([1, 2, 3, 4], rank=[1, 2, 3, 4]),
+            equity.gini([1, 2, 3, 4]), 1e-9))
+check("concentration: value falling with rank gives a negative index",
+      equity.concentration_index([4, 3, 2, 1], rank=[1, 2, 3, 4]) < 0.0)
+check("lorenz: population weights shift the curve (gini stays in [0,1))",
+      0.0 <= equity.gini_from_lorenz(
+          *equity.lorenz_points([1, 2, 3, 4], w=[10, 1, 1, 1])) < 1.0)
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

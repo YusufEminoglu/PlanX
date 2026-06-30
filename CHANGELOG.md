@@ -3,6 +3,36 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.11.0] - 2026-06-30
+
+Inequality Curves: Lorenz / concentration curves and the Atkinson index
+(28 algorithms).
+
+### Added
+- **Inequality Curves (Lorenz & Atkinson)** (Equity group) — the
+  distributional view of any per-unit good (access score, green space per
+  capita, income…), with an exportable curve to chart and a measure that lets
+  you set how much you weight the worst-off.
+  - Outputs the **Lorenz curve** as a table — cumulative population share vs
+    cumulative value share, bowing below the 45° line of equality — and the
+    **Gini** coefficient (twice the area between them).
+  - Reports the **Atkinson index** at low/medium/high inequality aversion
+    (ε = 0.5, 1, 2) and at your own ε: higher ε weights the lower tail more,
+    so the index reads as the share of total value society would trade to
+    equalise the distribution.
+  - A **rank field** (deprivation, income…) switches it to a **concentration
+    curve and index**, revealing whether the value concentrates on the
+    advantaged or disadvantaged end (negative when it falls as rank rises).
+- `engine/equity.atkinson_index`, `lorenz_points`, `gini_from_lorenz` and
+  `concentration_index` — pure NumPy, population-weighted; a new
+  group-coloured tool icon.
+
+### Testing
+- Engine unit checks grown to **216**; end-to-end assertions to **166** on
+  QGIS 3.44 LTR and QGIS 4.0.2. The trapezoidal Gini is asserted equal to the
+  mean-difference Gini, and Atkinson against hand-computed geometric/harmonic
+  means.
+
 ## [2.10.0] - 2026-06-30
 
 Land-Use Pareto Front: the suitability vs compactness trade-off (27 algorithms).

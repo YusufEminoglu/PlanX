@@ -182,6 +182,95 @@ def theil_decomposition(x, w, groups):
     return float(t_total), float(t_between), float(t_within), per_group
 
 
+def atkinson_index(x, w=None, epsilon=1.0):
+    """Population-weighted Atkinson inequality index (0 = equality, ->1).
+
+    ``epsilon`` >= 0 is the inequality-aversion parameter: 0 gives no
+    aversion (A = 0), larger values weight the lower tail more heavily. The
+    index is ``1 - EDE / mean``, where the equally-distributed-equivalent
+    level ``EDE`` is the power mean of order ``1 - epsilon`` of the values
+    (the weighted geometric mean when ``epsilon == 1``). Values are treated
+    as a non-negative good (negatives clipped to 0); if any unit has a zero
+    value and ``epsilon >= 1`` the index is 1 (the geometric mean collapses).
+    """
+    x, w = _clean(x, w)
+    x = np.clip(x, 0.0, None)
+    eps = float(epsilon)
+    if eps < 0:
+        raise ValueError("epsilon must be >= 0")
+    total = w.sum()
+    if total <= 0:
+        return 0.0
+    mu = (w * x).sum() / total
+    if mu <= 0:
+        return 0.0
+    has_zero = bool(np.any((x <= 0) & (w > 0)))
+    if abs(eps - 1.0) < 1e-12:
+        if has_zero:
+            return 1.0
+        ede = float(np.exp((w * np.log(x)).sum() / total))
+    else:
+        if eps > 1.0 and has_zero:
+            return 1.0
+        p = 1.0 - eps
+        m = (w * np.power(x, p)).sum() / total
+        ede = float(np.power(m, 1.0 / p))
+    return float(min(1.0, max(0.0, 1.0 - ede / mu)))
+
+
+def lorenz_points(x, w=None, rank=None):
+    """Cumulative population/value shares of the Lorenz (or concentration) curve.
+
+    Units are ordered ascending by their value (the Lorenz curve) or, when
+    ``rank`` is given, by that ranking variable (a concentration curve of the
+    value with respect to ``rank``). Returns ``(pop_share, value_share)``,
+    each length ``n + 1`` and starting at the ``(0, 0)`` origin: ``pop_share``
+    is the cumulative population share, ``value_share`` the cumulative share
+    of the total value. Both end at 1. Values are clipped to non-negative.
+    """
+    x, w = _clean(x, w)
+    x = np.clip(x, 0.0, None)
+    key = x if rank is None else np.asarray(rank, dtype=float).ravel()
+    if key.shape != x.shape:
+        raise ValueError("rank and values must have the same length")
+    order = np.argsort(key, kind="mergesort")
+    xs, ws = x[order], w[order]
+    n = len(xs)
+    pop = np.zeros(n + 1)
+    val = np.zeros(n + 1)
+    total_w = ws.sum()
+    total_v = (ws * xs).sum()
+    if total_w > 0:
+        pop[1:] = np.cumsum(ws) / total_w
+    if total_v > 0:
+        val[1:] = np.cumsum(ws * xs) / total_v
+    return pop, val
+
+
+def gini_from_lorenz(pop_share, value_share):
+    """Gini (or concentration) index as twice the area between the curve and
+    the line of equality, via the trapezoidal rule on the cumulative shares.
+
+    Equals :func:`gini` when the shares come from a value-ordered
+    :func:`lorenz_points`; with a ``rank``-ordered curve it is the
+    concentration index (which may be negative if the value falls with rank).
+    """
+    p = np.asarray(pop_share, dtype=float)
+    lz = np.asarray(value_share, dtype=float)
+    return float(1.0 - np.sum((p[1:] - p[:-1]) * (lz[1:] + lz[:-1])))
+
+
+def concentration_index(x, rank, w=None):
+    """Concentration index of ``x`` when units are ordered by ``rank``.
+
+    Like the Gini but the ordering is external: e.g. how concentrated an
+    access score is across units ranked by deprivation. In [-1, 1]; positive
+    means the value accrues to the high-rank end.
+    """
+    pop, val = lorenz_points(x, w, rank=rank)
+    return gini_from_lorenz(pop, val)
+
+
 def share_below(x, threshold, w=None, strict=True):
     """Population share with value below (``strict``) or at/below ``threshold``."""
     x, w = _clean(x, w)

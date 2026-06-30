@@ -34,6 +34,7 @@ from .algorithms.alg_capacitated_allocation import CapacitatedAllocationAlgorith
 from .algorithms.alg_land_allocation import LandUseAllocationAlgorithm
 from .algorithms.alg_pareto_allocation import ParetoAllocationAlgorithm
 from .algorithms.alg_access_equity import AccessEquityAlgorithm
+from .algorithms.alg_inequality_curves import InequalityCurvesAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -90,3 +91,4 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(ParetoAllocationAlgorithm())
         # 9 | Equity
         self.addAlgorithm(AccessEquityAlgorithm())
+        self.addAlgorithm(InequalityCurvesAlgorithm())

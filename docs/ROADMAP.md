@@ -70,6 +70,7 @@ planx/
 | Optimization (v2.4) | Facility Location Optimizer | greedy maximal coverage (Church & ReVelle) / p-median (Teitz-Bart), candidate screening |
 | Optimization (v2.6) | Capacitated Allocation | nearest facility with free capacity, spill when full, uncovered when none in reach |
 | Equity (v2.6) | Accessibility Equity | population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
+| Equity (v2.11) | Inequality Curves (Lorenz & Atkinson) | exportable Lorenz/concentration curve + Gini + Atkinson index at a chosen inequality aversion |
 | Optimization (v2.7–2.8) | Land-Use Allocation Optimizer | assign parcels to uses maximising suitability + compactness + adjacency under per-use area targets (greedy + capacity-respecting swaps) |
 | Optimization (v2.10) | Land-Use Pareto Front | sweep compactness weights → non-dominated suitability-vs-compactness trade-off + knee + chosen parcel plan |
 
@@ -168,15 +169,25 @@ planx/
   detector reusing the multi-objective core; 202 unit + 158 e2e checks on
   QGIS 3.44 LTR and QGIS 4.0.2.
 
-### Future ideas (post-2.10, unscheduled)
+- **v2.11 — Inequality Curves (Lorenz & Atkinson):** SHIPPED 2026-06-30 — a
+  new Equity tool for the distributional view of any per-unit good. Outputs
+  the Lorenz curve as a table (cumulative population vs value share) with the
+  Gini, and the Atkinson index at low/medium/high inequality aversion
+  (ε = 0.5, 1, 2) plus the user's ε — higher ε weights the lower tail more. A
+  rank field switches it to a concentration curve and index (whether the
+  value leans to the advantaged or disadvantaged end). New pure-NumPy
+  `engine/equity.atkinson_index` / `lorenz_points` / `gini_from_lorenz` /
+  `concentration_index`; 216 unit + 166 e2e checks on QGIS 3.44 LTR and
+  QGIS 4.0.2.
+
+### Future ideas (post-2.11, unscheduled)
 
 - Capacitated facility *siting* (choose where to build while respecting
   capacities — siting + the capacitated allocation now shipped, together).
 - Land-use allocation: hard contiguity constraints (a single connected zone
   per use) beyond the soft compactness reward.
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
-- More equity lenses (Atkinson index, concentration/Lorenz export,
-  demographic cross-tabs).
+- Demographic equity cross-tabs (value distribution by population subgroup).
 
 ## Quality gates (every release)
 

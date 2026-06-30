@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-seven Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives twenty-eight Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -33,7 +33,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
 - **Location-allocation optimization** — site new schools/clinics/parks among your candidates with the classic models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected; plus **Capacitated Allocation** that sends demand to the nearest facility *with free capacity*, spilling to the next when full; and land-use allocation — assign parcels to uses to maximise suitability under per-use area targets, with optional **compactness/adjacency** objectives and a **Pareto-front** sweep that maps the suitability-versus-compactness trade-off and its knee — no external solver.
 - **Multi-objective land-use allocation** — assign a land use to every parcel to **maximize suitability** while meeting a target area for each use (the spatial-allocation problem of plan-making): feed one suitability field per use (e.g. from Suitability Lab) and per-use area targets. Add a **compactness** weight so each use forms contiguous zones, and **adjacency rules** (`residential|industry=-2`) to keep incompatible uses apart, and get a styled land-use map plus a target-vs-allocated summary — greedy + capacity-respecting swap heuristic, no solver.
-- **Accessibility equity** — measure how *fairly* access is shared, not just how much there is: population-weighted **Gini**, a **Theil index** split into between- and within-group inequality (the environmental-justice number), **P90/P10**, coefficient of variation and an **access-poverty share**, on any value (access score, travel time, distance).
+- **Accessibility equity** — measure how *fairly* access is shared, not just how much there is: population-weighted **Gini**, a **Theil index** split into between- and within-group inequality (the environmental-justice number), **P90/P10**, coefficient of variation and an **access-poverty share**, on any value (access score, travel time, distance); plus **Inequality Curves** — an exportable **Lorenz / concentration curve** and the **Atkinson index** at your chosen inequality aversion.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
 - **Verified math** — 175 engine unit checks against hand-computed values + 141 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
@@ -86,6 +86,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Optimization | Land-Use Allocation Optimizer | Assign parcels to uses maximising suitability + compactness + adjacency under per-use area targets |
 | Optimization | Land-Use Pareto Front | Sweep compactness weights → the non-dominated suitability-vs-compactness trade-off, its knee, and the chosen plan |
 | Equity | Accessibility Equity | Population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
+| Equity | Inequality Curves (Lorenz & Atkinson) | Exportable Lorenz/concentration curve + Gini + Atkinson index at chosen inequality aversion |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
