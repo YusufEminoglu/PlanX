@@ -3,6 +3,25 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.13.0] - 2026-07-08
+
+Equity Cross-Tabs & Scenario Compare: who holds the low values, and which
+plan alternative wins (31 algorithms).
+
+### Added
+- **Demographic Equity Cross-Tabs** (Equity group) — cross-tabulates any per-unit value by population subgroup.
+  - Population-weighted quantile classes (quintiles by default) or fixed breaks.
+  - Representation ratio per group × class cell (1 = proportional; over-representation in the lowest class flags a disadvantaged group).
+  - Per-group population/value shares, weighted mean/P10/median/P90, internal Gini, and the Duncan & Duncan dissimilarity index vs the rest.
+  - Optional second group field crosses two demographics; the input comes back annotated with its value class and cell representation ratio for mapping.
+- **Scenario Compare (A/B)** (Reporting group) — the A/B view of the Plan Dashboard.
+  - The dashboard dock gains **Save A / Save B** scenario snapshots (score metrics to JSON next to the project) and an in-dock comparison panel with direction-aware winners and coloured deltas.
+  - Headless too: `planx:scenariocompare` diffs two snapshot JSON files into a comparison table and an optional one-file HTML comparison report.
+- Engine: pure-NumPy `equity.crosstab` / `equity.value_classes`; new pure-stdlib `engine/scenario.py` (snapshot / compare / verdict, direction registry); `report.compare_section` / `build_compare_html`; two new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **250**; end-to-end assertions to **188** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.12.0] - 2026-07-08
 
 Siting & Contiguity: Capacitated Facility Siting and Contiguous Land-Use Allocation (29 algorithms).

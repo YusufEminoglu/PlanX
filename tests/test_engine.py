@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from planx.engine import (  # noqa: E402
     HAS_SCIPY, allocate, centrality, equity, graphs, morphology, optimize,
-    paths, report, solar, standards, syntax,
+    paths, report, scenario, solar, standards, syntax,
 )
 
 CHECKS = []
@@ -909,6 +909,114 @@ check("hard allocation yields connected Use 1", hard_connected_1)
 check("hard allocation area target 0 met", close(res_hard["allocated"][0], 20.0))
 check("hard allocation area target 1 met", close(res_hard["allocated"][1], 140.0))
 
+
+# --------------------------------------------------------------------------- #
+# 22. Equity cross-tabs (Phase B1)
+# --------------------------------------------------------------------------- #
+# Values 1,2,3,4; group A holds the two lowest, group B the two highest.
+xt = equity.crosstab([1.0, 2.0, 3.0, 4.0], [0, 0, 1, 1], n_classes=2)
+check("crosstab: halves edge at the weighted median 2.5",
+      len(xt["edges"]) == 1 and close(xt["edges"][0], 2.5))
+check("crosstab: classes are [0,0,1,1]",
+      xt["class_of"].tolist() == [0, 0, 1, 1])
+check("crosstab: cells put all of A low / all of B high",
+      xt["cells"].tolist() == [[2.0, 0.0], [0.0, 2.0]])
+check("crosstab: A is 2x over-represented in the low class",
+      close(xt["rep_ratio"][0, 0], 2.0) and close(xt["rep_ratio"][0, 1], 0.0))
+check("crosstab: complete separation -> dissimilarity 1 for both",
+      close(xt["dissimilarity"][0], 1.0) and close(xt["dissimilarity"][1], 1.0))
+check("crosstab: value shares 0.3 (A) / 0.7 (B)",
+      close(xt["value_share"][0], 3.0 / 10.0)
+      and close(xt["value_share"][1], 7.0 / 10.0))
+check("crosstab: per-group gini matches equity.gini",
+      close(xt["gini"][0], equity.gini([1.0, 2.0]))
+      and close(xt["gini"][1], equity.gini([3.0, 4.0])))
+check("crosstab: per-group means 1.5 / 3.5",
+      close(xt["mean"][0], 1.5) and close(xt["mean"][1], 3.5))
+
+# Identical distributions -> dissimilarity 0, rep ratios 1.
+xt_same = equity.crosstab([1.0, 4.0, 1.0, 4.0], [0, 0, 1, 1], n_classes=2)
+check("crosstab: identical group distributions -> dissimilarity 0",
+      close(xt_same["dissimilarity"][0], 0.0)
+      and close(xt_same["dissimilarity"][1], 0.0))
+check("crosstab: identical distributions -> all rep ratios 1",
+      np.allclose(xt_same["rep_ratio"], 1.0))
+
+# Custom breaks + population weights: one heavy low-value unit dominates.
+xt_brk = equity.crosstab([10.0, 90.0], [0, 1], w=[9.0, 1.0], breaks=[50.0])
+check("crosstab: custom break keeps 2 classes",
+      xt_brk["cells"].shape == (2, 2))
+check("crosstab: weighted pop shares 0.9 / 0.1",
+      close(xt_brk["pop_share"][0], 0.9) and close(xt_brk["pop_share"][1], 0.1))
+check("crosstab: weighted value share of the heavy group 0.5",
+      close(xt_brk["value_share"][0], 0.5))
+
+# --------------------------------------------------------------------------- #
+# 23. Scenario snapshots + comparison (Phase B2)
+# --------------------------------------------------------------------------- #
+m_a = scenario.metrics_from_summaries(
+    access={"n": 4, "mean": 60.0, "median": 62.0, "share_full": 25.0,
+            "share_low": 50.0},
+    balance={"compliance_pct": 66.0, "n_deficit": 1, "n_with_standard": 3},
+    adequacy={"covered_share": 80.0, "covered_pop": 80.0, "total_pop": 100.0,
+              "n_facilities": 2, "n_overloaded": 1, "n_unused": 0,
+              "mean_utilization": 0.9},
+    overall=70.0)
+check("scenario: summaries flatten to metric keys",
+      close(m_a["access_mean"], 60.0)
+      and close(m_a["standards_compliance_pct"], 66.0)
+      and close(m_a["covered_share"], 80.0)
+      and close(m_a["plan_performance_index"], 70.0))
+check("scenario: missing density -> no density metrics",
+      "density_mean" not in m_a)
+
+m_b = dict(m_a)
+m_b["access_mean"] = 75.0          # higher is better -> B wins
+m_b["access_share_low"] = 20.0     # lower is better -> B wins
+m_b["standards_deficits"] = 2.0    # lower is better -> A wins
+snap_a = scenario.snapshot("Plan A", m_a, generated="t0")
+snap_b = scenario.snapshot("Plan B", m_b, generated="t1")
+round_trip = scenario.from_json(scenario.to_json(snap_a))
+check("scenario: JSON round-trip keeps name and metrics",
+      round_trip["name"] == "Plan A"
+      and close(round_trip["metrics"]["access_mean"], 60.0))
+
+rows = scenario.compare(snap_a, snap_b)
+by_key = {r["key"]: r for r in rows}
+check("scenario: higher-better improvement credited to B",
+      by_key["access_mean"]["better"] == "B"
+      and close(by_key["access_mean"]["delta"], 15.0)
+      and close(by_key["access_mean"]["delta_pct"], 25.0))
+check("scenario: lower-better improvement credited to B",
+      by_key["access_share_low"]["better"] == "B"
+      and close(by_key["access_share_low"]["delta"], -30.0))
+check("scenario: lower-better worsening credited to A",
+      by_key["standards_deficits"]["better"] == "A")
+check("scenario: unchanged metric is a tie",
+      by_key["covered_share"]["better"] == "tie")
+check("scenario: neutral direction stays n/a",
+      by_key["total_pop"]["better"] == "n/a")
+
+only_a = scenario.snapshot("A", {"access_mean": 10.0})
+only_b = scenario.snapshot("B", {"origins": 5.0})
+part = {r["key"]: r for r in scenario.compare(only_a, only_b)}
+check("scenario: one-sided metrics have no delta and stay n/a",
+      part["access_mean"]["delta"] is None
+      and part["access_mean"]["better"] == "n/a"
+      and part["origins"]["a"] is None)
+
+verdict = scenario.score_line(rows, "Plan A", "Plan B")
+check("scenario: verdict counts B 2 wins / A 1 win",
+      "Plan B" in verdict and "wins 2" in verdict and "wins 1" in verdict)
+
+cmp_html = report.build_compare_html("Cmp", rows, "Plan A", "Plan B",
+                                     verdict=verdict)
+check("report: compare page carries both scenario names and the table",
+      "Plan A" in cmp_html and "Plan B" in cmp_html
+      and "Scenario Comparison" in cmp_html
+      and "Accessibility score (mean)" in cmp_html)
+check("report: compare page marks the B improvement green",
+      "#27ae60" in cmp_html)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 
-from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QComboBox,
@@ -30,6 +30,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.core import QgsProject, QgsVectorLayer
 
 from .engine import report as rpt
+from .engine import scenario as scn
 
 PLUGIN_DIR = os.path.dirname(__file__)
 
@@ -137,10 +138,41 @@ class PlanXDashboardDock(QDockWidget):
         btn_row.addWidget(report_btn)
         outer.addLayout(btn_row)
 
+        scn_row = QHBoxLayout()
+        scn_row.addWidget(QLabel("Scenario:"))
+        self.snap_a_btn = QPushButton("Save A")
+        self.snap_a_btn.setToolTip("Snapshot the current score cards as "
+                                   "scenario A (JSON next to the project)")
+        self.snap_a_btn.clicked.connect(lambda: self.save_snapshot("a"))
+        scn_row.addWidget(self.snap_a_btn)
+        self.snap_b_btn = QPushButton("Save B")
+        self.snap_b_btn.setToolTip("Snapshot the current score cards as "
+                                   "scenario B (JSON next to the project)")
+        self.snap_b_btn.clicked.connect(lambda: self.save_snapshot("b"))
+        scn_row.addWidget(self.snap_b_btn)
+        self.compare_btn = QPushButton("Compare A/B")
+        self.compare_btn.setToolTip("Diff the two saved snapshots metric by "
+                                    "metric (also available headless as the "
+                                    "planx:scenariocompare algorithm)")
+        self.compare_btn.clicked.connect(self.compare_snapshots)
+        scn_row.addWidget(self.compare_btn)
+        outer.addLayout(scn_row)
+
         self.cards_host = QWidget()
-        self.cards_grid = QGridLayout(self.cards_host)
-        self.cards_grid.setContentsMargins(0, 6, 0, 0)
+        cards_col = QVBoxLayout(self.cards_host)
+        cards_col.setContentsMargins(0, 6, 0, 0)
+        cards_col.setSpacing(6)
+        grid_host = QWidget()
+        self.cards_grid = QGridLayout(grid_host)
+        self.cards_grid.setContentsMargins(0, 0, 0, 0)
         self.cards_grid.setSpacing(6)
+        cards_col.addWidget(grid_host)
+        self.compare_label = QLabel("")
+        self.compare_label.setWordWrap(True)
+        self.compare_label.setTextFormat(Qt.TextFormat.RichText)
+        self.compare_label.setVisible(False)
+        cards_col.addWidget(self.compare_label)
+        cards_col.addStretch(1)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -297,6 +329,109 @@ class PlanXDashboardDock(QDockWidget):
         for w in (label, value, sub):
             lay.addWidget(w)
         return frame
+
+    # ------------------------------------------------------------------ #
+    def _snapshot_dir(self) -> str:
+        home = QgsProject.instance().homePath()
+        if home and os.path.isdir(home):
+            return home
+        import tempfile
+        return tempfile.gettempdir()
+
+    def snapshot_path(self, side: str) -> str:
+        return os.path.join(self._snapshot_dir(),
+                            f"planx_scenario_{side.lower()}.json")
+
+    def _current_metrics(self):
+        access, balance, adequacy, density = self._collect()
+        a_sum = rpt.access_summary(access["scores"]) if access else None
+        b_sum = rpt.balance_summary(balance) if balance is not None else None
+        q_sum = (rpt.adequacy_summary(adequacy["facilities"], adequacy["demand"])
+                 if adequacy else None)
+        d_sum = rpt.density_summary(density["values"]) if density else None
+        overall = rpt.overall_score(a_sum, b_sum, q_sum)
+        return scn.metrics_from_summaries(a_sum, b_sum, q_sum, d_sum, overall)
+
+    def save_snapshot(self, side: str):
+        try:
+            metrics = self._current_metrics()
+        except Exception as exc:
+            self.iface.messageBar().pushWarning(
+                "PlanX", f"Could not read layers: {exc}")
+            return
+        if not metrics:
+            self.iface.messageBar().pushWarning(
+                "PlanX", "Nothing to snapshot - select at least one PlanX "
+                "output layer first.")
+            return
+        name = (self.title_edit.text() or "Urban Plan") + f" {side.upper()}"
+        snap = scn.snapshot(name, metrics)
+        path = self.snapshot_path(side)
+        try:
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(scn.to_json(snap))
+        except OSError as exc:
+            self.iface.messageBar().pushWarning(
+                "PlanX", f"Could not write the snapshot: {exc}")
+            return
+        self.iface.messageBar().pushSuccess(
+            "PlanX", f"Scenario {side.upper()} saved ({len(metrics)} "
+            f"metrics): {path}")
+
+    def compare_snapshots(self):
+        snaps = []
+        for side in ("a", "b"):
+            path = self.snapshot_path(side)
+            if not os.path.exists(path):
+                self.iface.messageBar().pushWarning(
+                    "PlanX", f"No scenario {side.upper()} snapshot yet - "
+                    f"run the tools for that alternative and press "
+                    f"'Save {side.upper()}' first.")
+                return
+            try:
+                with open(path, "r", encoding="utf-8") as fh:
+                    snaps.append(scn.from_json(fh.read()))
+            except (OSError, ValueError) as exc:
+                self.iface.messageBar().pushWarning(
+                    "PlanX", f"Could not read scenario {side.upper()}: {exc}")
+                return
+        snap_a, snap_b = snaps
+        rows = scn.compare(snap_a, snap_b)
+        self.compare_label.setText(self._compare_html(
+            rows, snap_a["name"], snap_b["name"]))
+        self.compare_label.setVisible(True)
+
+    @staticmethod
+    def _compare_html(rows, name_a: str, name_b: str) -> str:
+        from html import escape
+        good, bad, grey = (rpt.TONE_COLORS["good"], rpt.TONE_COLORS["bad"],
+                           "#90a4ae")
+        out = ["<b>Scenario comparison</b><br/>",
+               f"<i>{escape(scn.score_line(rows, name_a, name_b))}</i>",
+               "<table cellpadding='3' width='100%'>",
+               f"<tr><th align='left'>Metric</th>"
+               f"<th align='right'>{escape(name_a)}</th>"
+               f"<th align='right'>{escape(name_b)}</th>"
+               f"<th align='right'>&Delta;</th></tr>"]
+        for r in rows:
+            delta = r["delta"]
+            if delta is None or r["better"] in ("tie", "n/a"):
+                color, arrow = grey, ""
+            else:
+                color = good if r["better"] == "B" else bad
+                arrow = "&#9650;" if delta > 0 else "&#9660;"
+
+            def fmt(v):
+                return "-" if v is None else f"{v:,.1f}"
+
+            dtxt = "-" if delta is None else f"{arrow} {delta:+,.1f}"
+            out.append(
+                f"<tr><td>{escape(r['label'])}</td>"
+                f"<td align='right'>{fmt(r['a'])}</td>"
+                f"<td align='right'>{fmt(r['b'])}</td>"
+                f"<td align='right' style='color:{color}'>{dtxt}</td></tr>")
+        out.append("</table>")
+        return "".join(out)
 
     # ------------------------------------------------------------------ #
     def save_report(self):

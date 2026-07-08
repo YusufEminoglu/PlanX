@@ -36,6 +36,8 @@ from .algorithms.alg_pareto_allocation import ParetoAllocationAlgorithm
 from .algorithms.alg_access_equity import AccessEquityAlgorithm
 from .algorithms.alg_inequality_curves import InequalityCurvesAlgorithm
 from .algorithms.alg_capacitated_siting import CapacitatedSitingAlgorithm
+from .algorithms.alg_equity_crosstab import EquityCrosstabAlgorithm
+from .algorithms.alg_scenario_compare import ScenarioCompareAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -85,6 +87,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(DensityGridAlgorithm())
         # 7 | Reporting and Dashboard
         self.addAlgorithm(PlanPerformanceReportAlgorithm())
+        self.addAlgorithm(ScenarioCompareAlgorithm())
         # 8 | Optimization
         self.addAlgorithm(FacilityLocationAlgorithm())
         self.addAlgorithm(CapacitatedAllocationAlgorithm())
@@ -94,3 +97,4 @@ class PlanXProvider(QgsProcessingProvider):
         # 9 | Equity
         self.addAlgorithm(AccessEquityAlgorithm())
         self.addAlgorithm(InequalityCurvesAlgorithm())
+        self.addAlgorithm(EquityCrosstabAlgorithm())

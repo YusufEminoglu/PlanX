@@ -271,6 +271,124 @@ def concentration_index(x, rank, w=None):
     return gini_from_lorenz(pop, val)
 
 
+def value_classes(x, w=None, n_classes=5, breaks=None):
+    """Assign each unit to a value class (0 = lowest ... Q-1 = highest).
+
+    By default the classes are population-weighted quantile bins (equal
+    population per class): the inner edges are the weighted quantiles at
+    ``k / n_classes``. Pass explicit ascending inner ``breaks`` instead to
+    class by fixed values (``len(breaks) + 1`` classes). Returns
+    ``(class_of, edges)`` where ``class_of`` is an int array and ``edges``
+    the inner cut values actually used (a unit falls in class ``k`` when
+    ``edges[k-1] < x <= edges[k]``, open-ended at both extremes).
+    """
+    x, w = _clean(x, w)
+    if breaks is not None:
+        edges = np.asarray(sorted(float(b) for b in breaks), dtype=float)
+    else:
+        q = int(n_classes)
+        if q < 2:
+            raise ValueError("n_classes must be >= 2")
+        probs = np.arange(1, q) / q
+        edges = np.asarray(weighted_quantile(x, probs, w), dtype=float)
+    class_of = np.searchsorted(edges, x, side="left")
+    return class_of.astype(np.int64), edges
+
+
+def crosstab(x, g, w=None, n_classes=5, breaks=None):
+    """Weighted cross-tabulation of a per-unit value by population group.
+
+    ``x`` is the per-unit value (treated as-is, no clipping except inside
+    the per-group Gini), ``g`` an integer group code ``0..G-1`` per unit and
+    ``w`` the population weight. The value axis is cut into classes via
+    :func:`value_classes` (weighted quantiles by default, or fixed
+    ``breaks``). Returns a dict:
+
+    - ``edges``            inner class edges used, ``class_of`` per-unit class
+    - ``cells``            (G, Q) weighted population per group x class
+    - ``rep_ratio``        (G, Q) representation ratio - the group's share of
+      the class population divided by its share of the total population
+      (1 = proportional, >1 over-represented; NaN when the class or the
+      group is empty)
+    - ``pop``, ``pop_share``, ``value_share`` (G,) per-group population,
+      its share, and the group's share of the total value
+    - ``mean``, ``p10``, ``median``, ``p90``, ``vmin``, ``vmax``, ``gini``
+      (G,) weighted per-group statistics
+    - ``dissimilarity``    (G,) Duncan & Duncan dissimilarity index of the
+      group against the rest of the population over the value classes
+      (0 = identical distribution, 1 = complete separation)
+    """
+    x, w = _clean(x, w)
+    g = np.asarray(g, dtype=np.int64).ravel()
+    if g.shape != x.shape:
+        raise ValueError("groups and values must have the same length")
+    if g.size and g.min() < 0:
+        raise ValueError("group codes must be non-negative")
+    n_groups = int(g.max()) + 1 if g.size else 0
+    class_of, edges = value_classes(x, w, n_classes=n_classes, breaks=breaks)
+    q = len(edges) + 1
+
+    cells = np.zeros((n_groups, q))
+    np.add.at(cells, (g, class_of), w)
+    col_pop = cells.sum(axis=0)
+    pop = cells.sum(axis=1)
+    total = pop.sum()
+
+    total_value = (w * x).sum()
+    value_share = np.zeros(n_groups)
+    mean = np.zeros(n_groups)
+    p10 = np.zeros(n_groups)
+    median = np.zeros(n_groups)
+    p90 = np.zeros(n_groups)
+    vmin = np.zeros(n_groups)
+    vmax = np.zeros(n_groups)
+    gini_g = np.zeros(n_groups)
+    dissim = np.zeros(n_groups)
+    for gi in range(n_groups):
+        m = g == gi
+        wg, xg = w[m], x[m]
+        wsum = wg.sum()
+        if wsum <= 0:
+            continue
+        mean[gi] = (wg * xg).sum() / wsum
+        p10[gi], median[gi], p90[gi] = weighted_quantile(xg, [0.1, 0.5, 0.9], wg)
+        pos = xg[wg > 0]
+        vmin[gi] = pos.min() if pos.size else 0.0
+        vmax[gi] = pos.max() if pos.size else 0.0
+        gini_g[gi] = gini(xg, wg)
+        if total_value > 0:
+            value_share[gi] = (wg * xg).sum() / total_value
+        rest_pop = total - wsum
+        if rest_pop > 0:
+            own = cells[gi] / wsum
+            rest = (col_pop - cells[gi]) / rest_pop
+            dissim[gi] = 0.5 * float(np.abs(own - rest).sum())
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        class_share = cells / col_pop[None, :]
+        overall_share = pop / total if total > 0 else np.zeros(n_groups)
+        rep_ratio = class_share / overall_share[:, None]
+    rep_ratio[~np.isfinite(rep_ratio)] = np.nan
+
+    return {
+        "edges": edges,
+        "class_of": class_of,
+        "cells": cells,
+        "rep_ratio": rep_ratio,
+        "pop": pop,
+        "pop_share": overall_share,
+        "value_share": value_share,
+        "mean": mean,
+        "p10": p10,
+        "median": median,
+        "p90": p90,
+        "vmin": vmin,
+        "vmax": vmax,
+        "gini": gini_g,
+        "dissimilarity": dissim,
+    }
+
+
 def share_below(x, threshold, w=None, strict=True):
     """Population share with value below (``strict``) or at/below ``threshold``."""
     x, w = _clean(x, w)

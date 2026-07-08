@@ -75,6 +75,8 @@ planx/
 | Optimization (v2.10) | Land-Use Pareto Front | sweep compactness weights → non-dominated suitability-vs-compactness trade-off + knee + chosen parcel plan |
 | Optimization (v2.12) | Capacitated Facility Siting | greedy construction + capacity-aware Teitz-Bart swap improvement |
 | Optimization (v2.12) | Land-Use Allocation Optimizer | gains a Hard Contiguity mode (single connected zone per use via region-growing + boundary swaps) |
+| Equity (v2.13) | Demographic Equity Cross-Tabs | value classes x subgroup representation ratios, per-group stats + Duncan dissimilarity |
+| Reporting (v2.13) | Scenario Compare (A/B) | metric-by-metric diff of two plan snapshots, direction-aware winners, dock buttons + HTML report |
 
 ## Release roadmap
 
@@ -190,10 +192,27 @@ planx/
   `engine/allocate.allocate_contiguous`; 225 unit + 174 e2e checks on
   QGIS 3.44 LTR and QGIS 4.0.2.
 
-### Future ideas (post-2.12, unscheduled)
+- **v2.13 — Equity Cross-Tabs & Scenario Compare:** SHIPPED 2026-07-08 —
+  **Demographic Equity Cross-Tabs** (Equity): any per-unit value cut into
+  population-weighted quantile classes (or fixed breaks), a representation
+  ratio per group x class cell, per-group weighted stats + internal Gini and
+  the Duncan & Duncan dissimilarity index vs the rest; optional second group
+  field crosses two demographics. **Scenario Compare A/B** (Reporting): the
+  Plan Dashboard saves scenario snapshots (Save A / Save B -> JSON next to
+  the project) and diffs them in-dock with direction-aware winners; the same
+  comparison runs headless as `planx:scenariocompare` (table + optional
+  one-file HTML report). New pure-NumPy `equity.crosstab`/`value_classes`,
+  pure-stdlib `engine/scenario.py`, `report.compare_section`/
+  `build_compare_html`; 250 unit + 188 e2e checks on QGIS 3.44 LTR and
+  QGIS 4.0.2.
 
-- Scenario comparison in the dashboard (A/B plan score cards side by side).
-- Demographic equity cross-tabs (value distribution by population subgroup).
+### Next: the v3 series
+
+The queued Future ideas are all shipped. Development continues along
+`docs/ENHANCEMENT_PLAN_v3.md` (phases C-I): scenario snapshot algorithm +
+Walkability group (v3.0), GTFS transit (v3.1), visibility/isovists (v3.2),
+population & housing (v3.3), noise + green infrastructure (v3.4), urban
+growth simulation (v3.5) and the batch Plan Auditor (v3.6).
 
 ## Quality gates (every release)
 
