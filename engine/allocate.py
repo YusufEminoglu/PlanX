@@ -384,3 +384,244 @@ def pareto_front(suit, area, targets, edges, weights, locked=None, w_suit=1.0,
         "knee": _knee_index(suit_vals, comp_vals, front),
         "assign": assigns,
     }
+
+
+def check_connectivity(use_id, temp_assign, adj):
+    """Check if the parcels assigned to use_id form a single connected component."""
+    nodes = np.where(temp_assign == use_id)[0]
+    if len(nodes) <= 1:
+        return True
+    start = nodes[0]
+    visited = {start}
+    queue = [start]
+    nodes_set = set(nodes)
+    head = 0
+    while head < len(queue):
+        curr = queue[head]
+        head += 1
+        for neighbor, _ in adj[curr]:
+            if neighbor in nodes_set and neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+    return len(visited) == len(nodes)
+
+
+def allocate_contiguous(suit, area, targets, edges, compat=None, locked=None,
+                        w_suit=1.0, max_iter=50, swap_limit=1200, log_warning_fn=None):
+    """Land-use allocation with hard contiguity constraints.
+
+    Each use forms a single connected component over the parcel adjacency graph.
+    Uses region-growing construction, then boundary-swap local search.
+    """
+    suit = np.clip(np.asarray(suit, dtype=float), 0.0, None)
+    area = np.asarray(area, dtype=float)
+    targets = np.asarray(targets, dtype=float)
+    if suit.ndim != 2:
+        raise ValueError("suit must be 2-D (parcels x uses).")
+    n_parc, n_use = suit.shape
+    if area.shape[0] != n_parc:
+        raise ValueError("len(area) must match the parcel rows of suit.")
+    if targets.shape[0] != n_use:
+        raise ValueError("len(targets) must match the use columns of suit.")
+
+    adj = [[] for _ in range(n_parc)]
+    for i, j, length in edges:
+        i, j, length = int(i), int(j), float(length)
+        adj[i].append((j, length))
+        adj[j].append((i, length))
+
+    if compat is None:
+        compat = np.eye(n_use)
+    else:
+        compat = np.asarray(compat, dtype=float)
+
+    assign = np.full(n_parc, -1, dtype=np.int64)
+    remaining = targets.astype(float).copy()
+    locked_mask = np.zeros(n_parc, dtype=bool)
+    if locked is not None:
+        locked = np.asarray(locked, dtype=np.int64)
+        for p in range(n_parc):
+            u = int(locked[p])
+            if 0 <= u < n_use:
+                assign[p] = u
+                remaining[u] -= area[p]
+                locked_mask[p] = True
+
+    # 1. Seeding phase: seed each use at its highest-suitability parcel (or user lock)
+    for u in range(n_use):
+        has_locked = False
+        if locked is not None:
+            if np.any((locked == u) & locked_mask):
+                has_locked = True
+
+        if not has_locked:
+            free_indices = np.where(assign == -1)[0]
+            if len(free_indices) > 0:
+                best_p = free_indices[np.argmax(suit[free_indices, u])]
+                assign[best_p] = u
+                remaining[u] -= area[best_p]
+
+    # 2. Growth phase: repeatedly add the best-scoring frontier parcel for each active use
+    while True:
+        added = False
+        for u in range(n_use):
+            if remaining[u] <= 1e-9:
+                continue
+
+            best_p = -1
+            best_score = -float("inf")
+
+            unassigned = np.where(assign == -1)[0]
+            for p in unassigned:
+                p = int(p)
+                is_adj = False
+                comp_gain = 0.0
+                for q, length in adj[p]:
+                    if assign[q] == u:
+                        is_adj = True
+                        comp_gain += length
+
+                if is_adj:
+                    score = w_suit * area[p] * suit[p, u] + comp_gain
+                    if score > best_score:
+                        best_score = score
+                        best_p = p
+
+            if best_p != -1:
+                assign[best_p] = u
+                remaining[u] -= area[best_p]
+                added = True
+
+        if not added:
+            break
+
+    # Check if targets are infeasible under contiguity
+    infeasible = False
+    for u in range(n_use):
+        if remaining[u] > 1e-9:
+            has_frontier = False
+            for p in np.where(assign == -1)[0]:
+                if any(assign[q] == u for q, _ in adj[p]):
+                    has_frontier = True
+                    break
+            if not has_frontier:
+                infeasible = True
+                break
+
+    if infeasible:
+        msg = "Targets are infeasible under contiguity constraints. Falling back to soft behavior."
+        if log_warning_fn:
+            log_warning_fn(msg)
+        else:
+            import warnings
+            warnings.warn(msg, UserWarning)
+        return allocate_multi(suit, area, targets, edges, compat, locked=locked,
+                              w_suit=w_suit, max_iter=max_iter, swap_limit=swap_limit)
+
+    # 3. Local search: connectivity-preserving boundary swaps and reassignments
+    swaps = reassigned = 0
+    free = np.where(~locked_mask)[0]
+    do_swaps = len(free) <= int(swap_limit)
+
+    for _ in range(int(max_iter)):
+        improved = False
+        for p in free:
+            p = int(p)
+            cur = int(assign[p])
+            cur_suit = suit[p, cur] if cur >= 0 else 0.0
+            cur_spatial = _spatial_sum(p, cur, assign, adj, compat)
+            best_u, best_gain = cur, 1e-12
+            for u in range(n_use):
+                if u == cur:
+                    continue
+                room = remaining[u] + (area[p] if cur == u else 0.0)
+                if room + 1e-9 < area[p]:
+                    continue
+
+                temp_assign = assign.copy()
+                temp_assign[p] = u
+                if cur >= 0 and not check_connectivity(cur, temp_assign, adj):
+                    continue
+                if u >= 0 and not check_connectivity(u, temp_assign, adj):
+                    continue
+
+                gain = (w_suit * area[p] * (suit[p, u] - cur_suit)
+                        + _spatial_sum(p, u, assign, adj, compat) - cur_spatial)
+                if gain > best_gain:
+                    best_gain, best_u = gain, u
+            if best_u != cur:
+                if cur >= 0:
+                    remaining[cur] += area[p]
+                remaining[best_u] -= area[p]
+                assign[p] = best_u
+                reassigned += 1
+                improved = True
+
+        if do_swaps:
+            placed = [int(p) for p in free if assign[p] >= 0]
+            for a_i in range(len(placed)):
+                p = placed[a_i]
+                up = int(assign[p])
+                for b_i in range(a_i + 1, len(placed)):
+                    q = placed[b_i]
+                    uq = int(assign[q])
+                    if up == uq:
+                        continue
+                    if (remaining[uq] + area[q] + 1e-9 < area[p]
+                            or remaining[up] + area[p] + 1e-9 < area[q]):
+                        continue
+
+                    temp_assign = assign.copy()
+                    temp_assign[p] = uq
+                    temp_assign[q] = up
+                    if not check_connectivity(up, temp_assign, adj):
+                        continue
+                    if not check_connectivity(uq, temp_assign, adj):
+                        continue
+
+                    gain = w_suit * (area[p] * (suit[p, uq] - suit[p, up])
+                                     + area[q] * (suit[q, up] - suit[q, uq]))
+                    gain += _swap_spatial_delta(p, q, up, uq, assign, adj, compat)
+                    if gain > 1e-12:
+                        remaining[up] += area[p] - area[q]
+                        remaining[uq] += area[q] - area[p]
+                        assign[p], assign[q] = uq, up
+                        up = uq
+                        swaps += 1
+                        improved = True
+        if not improved:
+            break
+
+    suit_score = 0.0
+    for p in range(n_parc):
+        u = int(assign[p])
+        if u >= 0:
+            suit_score += area[p] * suit[p, u]
+    spatial_score = 0.0
+    if compat is not None:
+        for p in range(n_parc):
+            up = int(assign[p])
+            if up < 0:
+                continue
+            for q, length in adj[p]:
+                if q > p and assign[q] >= 0:
+                    spatial_score += length * compat[up, assign[q]]
+
+    allocated = np.zeros(n_use)
+    counts = np.zeros(n_use, dtype=np.int64)
+    for p in range(n_parc):
+        u = int(assign[p])
+        if u >= 0:
+            allocated[u] += area[p]
+            counts[u] += 1
+
+    return {
+        "assign": assign,
+        "objective": float(w_suit * suit_score + spatial_score),
+        "suit_score": float(suit_score),
+        "spatial_score": float(spatial_score),
+        "allocated": allocated,
+        "n_parcels": counts,
+        "swaps": swaps,
+        "reassigned": reassigned,
+    }

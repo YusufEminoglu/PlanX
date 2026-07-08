@@ -238,3 +238,137 @@ def capacitated_assign(D, w, cap, max_cost=None):
         "load": load,
         "remaining": remaining,
     }
+
+
+def capacitated_siting(dist, demand_w, capacities, p, existing_idx=(), max_cost=None, max_iter=100):
+    """Capacitated Facility Siting via Greedy Construction + Teitz-Bart swap improvement.
+
+    Parameters
+    ----------
+    dist : (C, N) array
+        Cost/distance matrix from candidates (C) to demand points (N).
+    demand_w : (N,) array
+        Demand weight per point.
+    capacities : (C,) array
+        Capacity per candidate site.
+    p : int
+        Number of new facilities to select/open.
+    existing_idx : iterable of int
+        Indices of existing facilities (fixed-open).
+    max_cost : float or None
+        Maximum distance/cost catchment limit.
+    max_iter : int
+        Maximum iterations for Teitz-Bart swap phase.
+
+    Returns
+    -------
+    dict:
+        "selected": list of selected candidate indices
+        "load": (C,) array of assigned demand per site
+        "utilization": (C,) array of load/capacity ratio per site
+        "assign": (N,) array of assigned facility index per demand point (-1 if uncovered)
+        "uncovered": (N,) boolean mask of uncovered demand points
+        "obj_history": list of (served_demand, total_cost) tuples
+    """
+    dist = np.asarray(dist, dtype=float)
+    demand_w = np.asarray(demand_w, dtype=float)
+    capacities = np.asarray(capacities, dtype=float)
+    n_sites, n_demand = dist.shape
+
+    fixed = [int(i) for i in existing_idx]
+    fixed_set = set(fixed)
+    free = [i for i in range(n_sites) if i not in fixed_set]
+    p = min(int(p), len(free))
+
+    def evaluate(open_sites):
+        if not open_sites:
+            return (
+                0.0,
+                0.0,
+                np.full(n_demand, -1, dtype=np.int64),
+                np.full(n_demand, -1.0),
+                np.zeros(n_sites),
+                np.zeros(n_sites),
+            )
+        open_list = list(open_sites)
+        D_sub = dist[open_list, :]
+        cap_sub = capacities[open_list]
+        res = capacitated_assign(D_sub, demand_w, cap_sub, max_cost=max_cost)
+
+        assign_sub = res["assign"]
+        assign_full = np.where(assign_sub != -1, np.array(open_list)[assign_sub], -1)
+
+        served = assign_full != -1
+        served_demand = float(demand_w[served].sum())
+        total_cost = float((res["cost"] * demand_w)[served].sum())
+
+        load_full = np.zeros(n_sites)
+        util_full = np.zeros(n_sites)
+        load_full[open_list] = res["load"]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            util_full[open_list] = np.where(
+                cap_sub > 0,
+                res["load"] / cap_sub,
+                np.where(res["load"] == 0, 0.0, 9999.0)
+            )
+        return served_demand, total_cost, assign_full, res["cost"], load_full, util_full
+
+    selected = []
+    # Evaluate starting point (only fixed/existing facilities)
+    sd, tc, _, _, _, _ = evaluate(fixed)
+    obj_history = [(sd, tc)]
+
+    # 1. Greedy construction
+    for _ in range(p):
+        best_candidate = -1
+        best_obj = (-1.0, float("inf"))  # Maximize served_demand, minimize cost
+        for c in free:
+            if c in selected:
+                continue
+            trial_open = fixed + selected + [c]
+            tsd, ttc, _, _, _, _ = evaluate(trial_open)
+            if (tsd > best_obj[0] + 1e-9) or (abs(tsd - best_obj[0]) <= 1e-9 and ttc < best_obj[1] - 1e-9):
+                best_obj = (tsd, ttc)
+                best_candidate = c
+        if best_candidate == -1:
+            break
+        selected.append(best_candidate)
+        obj_history.append(best_obj)
+
+    # 2. Teitz-Bart swap improvement
+    cur_sd, cur_tc = obj_history[-1] if obj_history else (sd, tc)
+    improved = True
+    it = 0
+    while improved and it < int(max_iter) and selected:
+        improved = False
+        it += 1
+        for si in range(len(selected)):
+            best_c = None
+            best_sd, best_tc = cur_sd, cur_tc
+            for c in free:
+                if c in selected:
+                    continue
+                trial = selected[:si] + [c] + selected[si + 1:]
+                tsd, ttc, _, _, _, _ = evaluate(fixed + trial)
+                if (tsd > best_sd + 1e-9) or (abs(tsd - best_sd) <= 1e-9 and ttc < best_tc - 1e-9):
+                    best_sd, best_tc = tsd, ttc
+                    best_c = c
+            if best_c is not None:
+                selected[si] = best_c
+                cur_sd, cur_tc = best_sd, best_tc
+                obj_history.append((cur_sd, cur_tc))
+                improved = True
+
+    # Final evaluation
+    final_sd, final_tc, assign, cost_arr, load, util = evaluate(fixed + selected)
+    uncovered = (assign == -1)
+
+    return {
+        "selected": selected,
+        "load": load,
+        "utilization": util,
+        "assign": assign,
+        "cost": cost_arr,
+        "uncovered": uncovered,
+        "obj_history": obj_history,
+    }

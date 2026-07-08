@@ -73,6 +73,8 @@ planx/
 | Equity (v2.11) | Inequality Curves (Lorenz & Atkinson) | exportable Lorenz/concentration curve + Gini + Atkinson index at a chosen inequality aversion |
 | Optimization (v2.7–2.8) | Land-Use Allocation Optimizer | assign parcels to uses maximising suitability + compactness + adjacency under per-use area targets (greedy + capacity-respecting swaps) |
 | Optimization (v2.10) | Land-Use Pareto Front | sweep compactness weights → non-dominated suitability-vs-compactness trade-off + knee + chosen parcel plan |
+| Optimization (v2.12) | Capacitated Facility Siting | greedy construction + capacity-aware Teitz-Bart swap improvement |
+| Optimization (v2.12) | Land-Use Allocation Optimizer | gains a Hard Contiguity mode (single connected zone per use via region-growing + boundary swaps) |
 
 ## Release roadmap
 
@@ -180,12 +182,16 @@ planx/
   `concentration_index`; 216 unit + 166 e2e checks on QGIS 3.44 LTR and
   QGIS 4.0.2.
 
-### Future ideas (post-2.11, unscheduled)
+- **v2.12 — Siting & Contiguity:** SHIPPED 2026-07-08 — a new Capacitated
+  Facility Siting tool (greedy construction + capacity-aware Teitz-Bart swap)
+  in Optimization group, and a new Hard Contiguity mode (region growing +
+  connectivity-preserving boundary swaps) on the Land-Use Allocation algorithm.
+  New pure-NumPy `engine/optimize.capacitated_siting` and
+  `engine/allocate.allocate_contiguous`; 225 unit + 174 e2e checks on
+  QGIS 3.44 LTR and QGIS 4.0.2.
 
-- Capacitated facility *siting* (choose where to build while respecting
-  capacities — siting + the capacitated allocation now shipped, together).
-- Land-use allocation: hard contiguity constraints (a single connected zone
-  per use) beyond the soft compactness reward.
+### Future ideas (post-2.12, unscheduled)
+
 - Scenario comparison in the dashboard (A/B plan score cards side by side).
 - Demographic equity cross-tabs (value distribution by population subgroup).
 

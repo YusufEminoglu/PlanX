@@ -3,6 +3,25 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.12.0] - 2026-07-08
+
+Siting & Contiguity: Capacitated Facility Siting and Contiguous Land-Use Allocation (29 algorithms).
+
+### Added
+- **Capacitated Facility Siting** (Optimization group) — chooses where to build p new facilities respecting per-site capacity constraints and travel limits.
+  - First, a greedy construction phase selects sites that maximize newly served demand under a capacity-respecting allocation.
+  - Then, a Teitz-Bart vertex substitution phase optimizes the locations by swapping sites to maximize total served demand (with total travel cost as a tiebreaker).
+  - Existing facilities enter as fixed-open.
+  - Outputs selected sites (with rank, load, utilization, marginal demand gain), allocation lines (demand to site connection with cost), and uncovered demand.
+- **Contiguous Land-Use Allocation** (Optimization group) — optional Hard Contiguity mode on the Land-Use Allocation algorithm to assign parcels to uses forming a single connected component per use.
+  - Seed-based concurrent region-growing followed by boundary-swap local search preserving subgraph connectivity of affected uses.
+  - Default is Soft (existing behaviour unchanged).
+- `engine/optimize.capacitated_siting` and `engine/allocate.allocate_contiguous` — pure NumPy.
+- A new group-coloured tool icon for Capacitated Facility Siting.
+
+### Testing
+- Engine unit checks grown to **225**; end-to-end assertions to **174** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.11.0] - 2026-06-30
 
 Inequality Curves: Lorenz / concentration curves and the Atkinson index

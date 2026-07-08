@@ -11,6 +11,7 @@ from qgis.core import (
     QgsProcessing,
     QgsProcessingException,
     QgsProcessingParameterDefinition,
+    QgsProcessingParameterEnum,
     QgsProcessingParameterField,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
@@ -34,6 +35,7 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
     LOCK_FIELD = "LOCK_FIELD"
     W_COMPACT = "W_COMPACT"
     ADJACENCY = "ADJACENCY"
+    CONTIGUITY = "CONTIGUITY"
     W_SUITABILITY = "W_SUITABILITY"
     OUT_PARCELS = "OUT_PARCELS"
     OUT_SUMMARY = "OUT_SUMMARY"
@@ -111,6 +113,10 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
             self.ADJACENCY,
             self.tr("Adjacency rules (useA|useB=value, ...; + attract, - repel)"),
             "", optional=True))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.CONTIGUITY, self.tr("Contiguity mode"),
+            ["Soft (compactness weight)", "Hard (single connected zone per use)"],
+            defaultValue=0))
         w_suit = QgsProcessingParameterNumber(
             self.W_SUITABILITY,
             self.tr("Suitability weight (relative to the spatial terms)"),
@@ -130,6 +136,7 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
         lock_field = self.parameterAsString(parameters, self.LOCK_FIELD, context)
         w_compact = self.parameterAsDouble(parameters, self.W_COMPACT, context)
         adjacency_text = self.parameterAsString(parameters, self.ADJACENCY, context)
+        contiguity = self.parameterAsEnum(parameters, self.CONTIGUITY, context)
         w_suit = self.parameterAsDouble(parameters, self.W_SUITABILITY, context)
         self.require_projected(source, "Parcels")
         if not suit_fields:
@@ -189,10 +196,10 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
                 feedback.pushWarning(self.tr(
                     f"Adjacency rule '{token}' names an unknown use - ignored."))
                 continue
-            compat[ai, bi] = value
             compat[bi, ai] = value
+            compat[ai, bi] = value
             has_rules = True
-        spatial_active = w_compact != 0 or has_rules
+        spatial_active = w_compact != 0 or has_rules or contiguity == 1
 
         fields = source.fields()
         suit_idx = [fields.lookupField(fn) for fn in use_names]
@@ -275,7 +282,10 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
         feedback.pushInfo(self.tr(
             f"Allocating {len(feats)} parcels to {n_use} use(s)"
             f"{' with spatial objectives' if spatial_active else ''}..."))
-        if spatial_active:
+        if contiguity == 1:
+            res = allocate.allocate_contiguous(suit, area, tvec, edges, compat,
+                                               locked=lvec, w_suit=w_suit, log_warning_fn=feedback.pushWarning)
+        elif spatial_active:
             res = allocate.allocate_multi(suit, area, tvec, edges, compat,
                                           locked=lvec, w_suit=w_suit)
         else:

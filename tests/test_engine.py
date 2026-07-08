@@ -834,6 +834,82 @@ check("lorenz: population weights shift the curve (gini stays in [0,1))",
       0.0 <= equity.gini_from_lorenz(
           *equity.lorenz_points([1, 2, 3, 4], w=[10, 1, 1, 1])) < 1.0)
 
+
+# --------------------------------------------------------------------------- #
+# 20. Capacitated Facility Siting (Phase A1)
+# --------------------------------------------------------------------------- #
+# 6 nodes. Candidates: 0 (Site X), 1 (Site Y). Demand points at 2, 3, 4, 5.
+# w = [10, 10, 10, 10].
+# Site X is at dist 1 to all demand points.
+# Site Y is at dist 2 to all demand points.
+# Capacity of X = 20, Capacity of Y = 40.
+dist_siting = np.array([
+    [1.0, 1.0, 1.0, 1.0],  # Candidate 0 (Site X)
+    [2.0, 2.0, 2.0, 2.0]   # Candidate 1 (Site Y)
+])
+demand_w = np.array([10.0, 10.0, 10.0, 10.0])
+capacities = np.array([20.0, 40.0])
+
+res_siting = optimize.capacitated_siting(dist_siting, demand_w, capacities, p=1)
+check("capacitated siting: selected facility is Y (index 1)", res_siting["selected"] == [1])
+check("capacitated siting: served demand is 40", close(res_siting["obj_history"][-1][0], 40.0))
+check("capacitated siting: load of Y is 40", close(res_siting["load"][1], 40.0))
+check("capacitated siting: load of X is 0", close(res_siting["load"][0], 0.0))
+
+
+# --------------------------------------------------------------------------- #
+# 21. Hard contiguity (Phase A2)
+# --------------------------------------------------------------------------- #
+# 4x4 parcel grid, indices 0..15.
+# Suitability: Use 0 has high suitability at corners 0 and 15.
+# Use 1 has moderate suitability elsewhere.
+suit = np.zeros((16, 2))
+# Use 0 suitability
+suit[0, 0] = 10.0
+suit[15, 0] = 10.0
+# Use 1 suitability
+for p in range(16):
+    if p not in (0, 15):
+        suit[p, 1] = 5.0
+        suit[p, 0] = 1.0  # low suitability for Use 0
+    else:
+        suit[p, 1] = 1.0
+
+# Parcel areas: all 10.0
+area = np.full(16, 10.0)
+# Targets: Use 0 = 20.0 (2 parcels), Use 1 = 140.0 (14 parcels)
+targets = np.array([20.0, 140.0])
+
+# Edges for 4x4 grid
+edges = []
+for r in range(4):
+    for c in range(4):
+        p = r * 4 + c
+        if c < 3:
+            edges.append((p, p + 1, 1.0))
+        if r < 3:
+            edges.append((p, p + 4, 1.0))
+
+# Run standard non-contiguous allocation
+res_soft = allocate.allocate_land_use(suit, area, targets)
+adj = [[] for _ in range(16)]
+for i, j, length in edges:
+    adj[i].append((j, length))
+    adj[j].append((i, length))
+
+soft_connected = allocate.check_connectivity(0, res_soft["assign"], adj)
+check("soft allocation splits Use 0", not soft_connected)
+
+# Run contiguous allocation
+res_hard = allocate.allocate_contiguous(suit, area, targets, edges)
+hard_connected_0 = allocate.check_connectivity(0, res_hard["assign"], adj)
+hard_connected_1 = allocate.check_connectivity(1, res_hard["assign"], adj)
+check("hard allocation yields connected Use 0", hard_connected_0)
+check("hard allocation yields connected Use 1", hard_connected_1)
+check("hard allocation area target 0 met", close(res_hard["allocated"][0], 20.0))
+check("hard allocation area target 1 met", close(res_hard["allocated"][1], 140.0))
+
+
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
