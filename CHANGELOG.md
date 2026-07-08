@@ -3,6 +3,23 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.0.0] - 2026-07-09
+
+Scenarios & Walkability: the plan-evaluation loop closes and a tenth tool
+group opens (34 algorithms).
+
+### Added
+- **Scenario Snapshot** (Reporting group) — captures the plan score metrics of the current project into a snapshot JSON.
+  - PlanX output layers auto-detected by field signatures (access score, balance table, facility adequacy, demand coverage, density grid) or pinned explicitly.
+  - Model-designer friendly: run the tools for alternative A, snapshot, rerun for B, snapshot, feed both files to Scenario Compare (A/B).
+- **NEW GROUP: Walkability.**
+- **Walkability Audit** — scores every street segment 0–100 from the classic walkability-index ingredients (Frank et al. 2010): intersection density, land-use mix entropy, destination counts, block length, slope. Editable weights and breakpoints; sub-scores + raw ingredients on every segment; missing inputs renormalised away.
+- **Pedestrian Route Quality** — routes over quality-weighted streets (weight = length × (1 + penalty × (100 − score)/100)); reports detour ratio vs the plain shortest path, length-weighted mean walk score and the share of the route on low-scoring segments. Nearest-destination or all-pairs.
+- Engine: pure-NumPy `engine/walkability.py`; `paths.shortest_path_tree` / `reconstruct_path` (predecessor Dijkstra that names the parallel edge taken); shared collector `planx/collect.py` feeding both the dashboard dock and the snapshot algorithm; three new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **265**; end-to-end assertions to **205** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [2.13.0] - 2026-07-08
 
 Equity Cross-Tabs & Scenario Compare: who holds the low values, and which

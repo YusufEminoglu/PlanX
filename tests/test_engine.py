@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from planx.engine import (  # noqa: E402
     HAS_SCIPY, allocate, centrality, equity, graphs, morphology, optimize,
-    paths, report, scenario, solar, standards, syntax,
+    paths, report, scenario, solar, standards, syntax, walkability,
 )
 
 CHECKS = []
@@ -1017,6 +1017,76 @@ check("report: compare page carries both scenario names and the table",
       and "Accessibility score (mean)" in cmp_html)
 check("report: compare page marks the B improvement green",
       "#27ae60" in cmp_html)
+
+# --------------------------------------------------------------------------- #
+# 24. Shortest-path tree + route reconstruction (Phase C)
+# --------------------------------------------------------------------------- #
+# Path A(0,0) - B(1,0) - C(2,0): tree from A must find dist [0,1,2] and the
+# route A->C = both edges in order.
+tree_g = graphs.build_node_graph(path_lines)
+dist_t, pred_n, pred_e = paths.shortest_path_tree(
+    tree_g.indptr, tree_g.adj_node, tree_g.adj_edge, tree_g.adj_cost,
+    tree_g.num_nodes, 0)
+check("path tree: distances match Dijkstra", dist_t.tolist() == [0.0, 1.0, 2.0])
+nodes_t, edges_t = paths.reconstruct_path(pred_n, pred_e, 0, 2)
+check("path tree: route A->C is node 0-1-2 via edges 0,1",
+      nodes_t == [0, 1, 2] and edges_t == [0, 1])
+check("path tree: source route is trivial",
+      paths.reconstruct_path(pred_n, pred_e, 0, 0) == ([0], []))
+
+# Parallel edges: two polylines both joining A(0,0)-B(1,0); the straight one
+# (edge 0, len 1) wins on length, the detour (edge 1, len ~2.236) wins once
+# custom weights make edge 0 expensive.
+par_lines = [np.array([[0.0, 0.0], [1.0, 0.0]]),
+             np.array([[0.0, 0.0], [0.5, 1.0], [1.0, 0.0]])]
+par_g = graphs.build_node_graph(par_lines)
+d0, pn0, pe0 = paths.shortest_path_tree(
+    par_g.indptr, par_g.adj_node, par_g.adj_edge, par_g.adj_cost,
+    par_g.num_nodes, 0)
+check("parallel edges: straight edge chosen by length",
+      paths.reconstruct_path(pn0, pe0, 0, 1)[1] == [0])
+custom_edge_w = np.array([5.0, 0.5])
+w_adj = custom_edge_w[par_g.adj_edge]
+d1, pn1, pe1 = paths.shortest_path_tree(
+    par_g.indptr, par_g.adj_node, par_g.adj_edge, w_adj,
+    par_g.num_nodes, 0)
+check("parallel edges: custom weights flip the chosen edge",
+      paths.reconstruct_path(pn1, pe1, 0, 1)[1] == [1]
+      and close(d1[1], 0.5))
+
+# --------------------------------------------------------------------------- #
+# 25. Walkability scoring (Phase C)
+# --------------------------------------------------------------------------- #
+check("linear_score: increasing maps midpoint to 50",
+      close(float(walkability.linear_score([60.0], 0.0, 120.0)[0]), 50.0))
+check("linear_score: clamps above full",
+      close(float(walkability.linear_score([500.0], 0.0, 120.0)[0]), 100.0))
+check("linear_score: decreasing direction (block length)",
+      close(float(walkability.linear_score([80.0], 400.0, 80.0)[0]), 100.0)
+      and close(float(walkability.linear_score([400.0], 400.0, 80.0)[0]), 0.0)
+      and close(float(walkability.linear_score([240.0], 400.0, 80.0)[0]), 50.0))
+check("shannon_mix: two equal uses -> 1", close(walkability.shannon_mix([5, 5]), 1.0))
+check("shannon_mix: one use -> 0", close(walkability.shannon_mix([7.0]), 0.0))
+check("shannon_mix: 3:1 split -> 0.8113",
+      close(walkability.shannon_mix([3, 1]), 0.8112781245, 1e-9))
+
+ws_only = walkability.walk_scores([60.0, 120.0])
+check("walk_scores: single component -> total equals it",
+      close(float(ws_only["total"][0]), 50.0)
+      and close(float(ws_only["total"][1]), 100.0))
+ws_full = walkability.walk_scores(
+    [60.0], mix=[0.5], dest_count=[12.5], block_len=[240.0], slope_pct=[5.0])
+check("walk_scores: all components at their midpoint -> 50",
+      close(float(ws_full["total"][0]), 50.0))
+ws_w = walkability.walk_scores(
+    [120.0], mix=[0.0], weights={"intersections": 3.0, "mix": 1.0})
+check("walk_scores: custom weights (3:1 of 100 and 0 -> 75)",
+      close(float(ws_w["total"][0]), 75.0))
+try:
+    walkability.walk_scores([1.0], weights={"nope": 1.0})
+    check("walk_scores: unknown component raises", False)
+except ValueError:
+    check("walk_scores: unknown component raises", True)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

@@ -23,6 +23,16 @@ TONE_COLORS = {
     "info": "#13a0a0",
 }
 
+#: field signatures identifying the PlanX output layers (all lowercase) -
+#: shared by the Plan Dashboard dock and the Scenario Snapshot algorithm.
+SIGNATURES = {
+    "access": ("score", "n_reach"),
+    "balance": ("balance_m2", "m2_capita"),
+    "facilities": ("utilization", "assigned"),
+    "demand": ("covered", "net_cost"),
+    "density": ("dens_ha", "value"),
+}
+
 
 def ramp_color(t: float) -> str:
     """0.0 = bad red, 0.5 = amber, 1.0 = good green."""

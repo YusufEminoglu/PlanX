@@ -28,6 +28,7 @@ GROUP_STANDARDS = ("Plan Standards and QA", "standards")
 GROUP_REPORT = ("Reporting and Dashboard", "reporting")
 GROUP_OPTIMIZE = ("Optimization", "optimization")
 GROUP_EQUITY = ("Equity", "equity")
+GROUP_WALK = ("Walkability", "walkability")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

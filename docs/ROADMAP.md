@@ -77,6 +77,9 @@ planx/
 | Optimization (v2.12) | Land-Use Allocation Optimizer | gains a Hard Contiguity mode (single connected zone per use via region-growing + boundary swaps) |
 | Equity (v2.13) | Demographic Equity Cross-Tabs | value classes x subgroup representation ratios, per-group stats + Duncan dissimilarity |
 | Reporting (v2.13) | Scenario Compare (A/B) | metric-by-metric diff of two plan snapshots, direction-aware winners, dock buttons + HTML report |
+| Reporting (v3.0) | Scenario Snapshot | auto-detected PlanX outputs -> plan score metrics captured to snapshot JSON (batchable) |
+| Walkability (v3.0) | Walkability Audit | street-segment 0-100 walk scores: intersections, mix entropy, destinations, block length, slope |
+| Walkability (v3.0) | Pedestrian Route Quality | quality-weighted routing vs plain shortest: detour ratio, mean walk score, low-quality share |
 
 ## Release roadmap
 
@@ -206,11 +209,26 @@ planx/
   `build_compare_html`; 250 unit + 188 e2e checks on QGIS 3.44 LTR and
   QGIS 4.0.2.
 
+- **v3.0 — Scenarios & Walkability:** SHIPPED 2026-07-09 — **Scenario
+  Snapshot** (Reporting): the batchable front door to scenario comparison,
+  auto-detecting the PlanX output layers by field signature (shared
+  `planx/collect.py` now feeds both the dashboard dock and the algorithm)
+  and writing the score metrics to a snapshot JSON + metric table. **NEW
+  GROUP Walkability**: the **Walkability Audit** scores every street
+  segment 0-100 from intersection density, land-use mix entropy,
+  destination counts, block length and slope (pure-NumPy
+  `engine/walkability.py`, editable weights/breakpoints, sub-scores and raw
+  ingredients per segment); **Pedestrian Route Quality** routes over
+  quality-weighted streets via the new `paths.shortest_path_tree` /
+  `reconstruct_path` predecessor Dijkstra (which names the parallel edge
+  taken) and reports detour ratio, mean walk score and low-quality share
+  per origin-destination pair. 265 unit + 205 e2e checks on QGIS 3.44 LTR
+  and QGIS 4.0.2.
+
 ### Next: the v3 series
 
 The queued Future ideas are all shipped. Development continues along
-`docs/ENHANCEMENT_PLAN_v3.md` (phases C-I): scenario snapshot algorithm +
-Walkability group (v3.0), GTFS transit (v3.1), visibility/isovists (v3.2),
+`docs/ENHANCEMENT_PLAN_v3.md` (phases D-I): GTFS transit (v3.1), visibility/isovists (v3.2),
 population & housing (v3.3), noise + green infrastructure (v3.4), urban
 growth simulation (v3.5) and the batch Plan Auditor (v3.6).
 

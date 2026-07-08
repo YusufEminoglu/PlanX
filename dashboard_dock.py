@@ -54,14 +54,8 @@ QPushButton#planxReportBtn {
 QPushButton#planxReportBtn:hover { background-color: #0f8a8a; }
 """
 
-# field signatures of the PlanX output layers (all lowercase)
-_SIGNATURES = {
-    "access": ("score", "n_reach"),
-    "balance": ("balance_m2", "m2_capita"),
-    "facilities": ("utilization", "assigned"),
-    "demand": ("covered", "net_cost"),
-    "density": ("dens_ha", "value"),
-}
+from .collect import collect as _collect_layers  # noqa: E402
+from .collect import layer_rows, matches as _matches  # noqa: F401,E402
 
 _ROLES = (
     ("access", "Access scores"),
@@ -70,24 +64,6 @@ _ROLES = (
     ("demand", "Demand coverage"),
     ("density", "Density grid"),
 )
-
-
-def _field_names(layer) -> set:
-    return {f.name().lower() for f in layer.fields()}
-
-
-def _matches(layer, role: str) -> bool:
-    return set(_SIGNATURES[role]) <= _field_names(layer)
-
-
-def layer_rows(layer, names: dict) -> list:
-    """Read fields of a vector layer into plain dict rows (missing -> None)."""
-    idx = {key: layer.fields().lookupField(fname) for key, fname in names.items()}
-    rows = []
-    for f in layer.getFeatures():
-        attrs = f.attributes()
-        rows.append({key: (attrs[i] if i >= 0 else None) for key, i in idx.items()})
-    return rows
 
 
 class PlanXDashboardDock(QDockWidget):
@@ -223,63 +199,8 @@ class PlanXDashboardDock(QDockWidget):
     # ------------------------------------------------------------------ #
     def _collect(self):
         """Read the selected layers into the engine's plain-data inputs."""
-        access = balance = adequacy = density = None
-        lyr = self._layer("access")
-        if lyr is not None:
-            idx = lyr.fields().lookupField("score")
-            scores, points = [], []
-            for f in lyr.getFeatures():
-                try:
-                    scores.append(float(f.attributes()[idx]))
-                except (TypeError, ValueError):
-                    continue
-                g = f.geometry()
-                if g is not None and not g.isEmpty():
-                    p = g.pointOnSurface().asPoint()
-                    points.append((p.x(), p.y()))
-                else:
-                    points.append((0.0, 0.0))
-            if scores:
-                access = {"scores": scores, "points": points}
-        lyr = self._layer("balance")
-        if lyr is not None:
-            balance = layer_rows(lyr, {
-                "category": "category", "area_m2": "area_m2",
-                "m2_per_capita": "m2_capita", "required_m2": "required",
-                "balance_m2": "balance_m2", "status": "status"})
-            for r in balance:
-                for k in ("area_m2", "m2_per_capita", "required_m2", "balance_m2"):
-                    r[k] = float(r[k] or 0.0)
-                r["status"] = str(r["status"] or "")
-        lyr = self._layer("facilities")
-        if lyr is not None:
-            facilities = layer_rows(lyr, {
-                "facility": "facility", "capacity": "capacity",
-                "assigned": "assigned", "utilization": "utilization",
-                "status": "status"})
-            demand = []
-            dem = self._layer("demand")
-            if dem is not None:
-                names = {"covered": "covered"}
-                pop_fields = [f.name() for f in dem.fields()
-                              if f.name().lower().startswith("pop")
-                              and f.isNumeric()]
-                if pop_fields:
-                    names["pop"] = pop_fields[0]
-                demand = layer_rows(dem, names)
-            adequacy = {"facilities": facilities, "demand": demand}
-        lyr = self._layer("density")
-        if lyr is not None:
-            idx = lyr.fields().lookupField("dens_ha")
-            values = []
-            for f in lyr.getFeatures():
-                try:
-                    values.append(float(f.attributes()[idx]))
-                except (TypeError, ValueError):
-                    continue
-            if values:
-                density = {"values": values}
-        return access, balance, adequacy, density
+        return _collect_layers({role: self._layer(role)
+                                for role in self.combos})
 
     def _update_cards(self):
         while self.cards_grid.count():

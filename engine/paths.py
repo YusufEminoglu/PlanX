@@ -104,6 +104,63 @@ def multi_source(indptr, adj, weights, n, sources, cutoff=None):
     return dist, label
 
 
+def shortest_path_tree(indptr, adj_node, adj_edge, weights, n, source,
+                       cutoff=None):
+    """Dijkstra with predecessor tracking for route reconstruction.
+
+    Returns ``(dist, pred_node, pred_edge)``: for every node its cost from
+    ``source``, the previous node on the shortest path and the id of the
+    edge used to arrive (both -1 at the source and where unreachable).
+    Pure heapq on purpose - it must report *which* parallel edge was taken,
+    which the SciPy kernel cannot; distances are identical to
+    :func:`many_to_many`.
+    """
+    dist = np.full(n, INF)
+    pred_node = np.full(n, -1, dtype=np.int64)
+    pred_edge = np.full(n, -1, dtype=np.int64)
+    dist[source] = 0.0
+    heap = [(0.0, source)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > dist[u]:
+            continue
+        for k in range(indptr[u], indptr[u + 1]):
+            v = adj_node[k]
+            nd = d + weights[k]
+            if cutoff is not None and nd > cutoff:
+                continue
+            if nd < dist[v]:
+                dist[v] = nd
+                pred_node[v] = u
+                pred_edge[v] = adj_edge[k]
+                heapq.heappush(heap, (nd, v))
+    return dist, pred_node, pred_edge
+
+
+def reconstruct_path(pred_node, pred_edge, source, target):
+    """Walk the predecessor arrays back from ``target`` to ``source``.
+
+    Returns ``(nodes, edges)`` in travel order (nodes has one more entry
+    than edges); both empty when the target is unreachable.
+    """
+    if target == source:
+        return [int(source)], []
+    if pred_node[target] < 0:
+        return [], []
+    nodes = [int(target)]
+    edges = []
+    cur = int(target)
+    while cur != source:
+        edges.append(int(pred_edge[cur]))
+        cur = int(pred_node[cur])
+        nodes.append(cur)
+        if len(nodes) > len(pred_node):  # corrupt input guard
+            return [], []
+    nodes.reverse()
+    edges.reverse()
+    return nodes, edges
+
+
 def dijkstra_pruned(indptr, adj, w_cost, w_prune, n, source, radius):
     """Dijkstra minimizing ``w_cost`` while pruning expansion once the
     accumulated ``w_prune`` of the settled path exceeds ``radius``.
