@@ -56,6 +56,7 @@ from .algorithms.alg_green_connectivity import GreenConnectivityAlgorithm
 from .algorithms.alg_landcover_change import LandCoverChangeAlgorithm
 from .algorithms.alg_growth_sim import GrowthSimAlgorithm
 from .algorithms.alg_sprawl_metrics import SprawlMetricsAlgorithm
+from .algorithms.alg_plan_audit import PlanAuditAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -108,6 +109,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(PlanPerformanceReportAlgorithm())
         self.addAlgorithm(ScenarioCompareAlgorithm())
         self.addAlgorithm(ScenarioSnapshotAlgorithm())
+        self.addAlgorithm(PlanAuditAlgorithm())
         # 8 | Optimization
         self.addAlgorithm(FacilityLocationAlgorithm())
         self.addAlgorithm(CapacitatedAllocationAlgorithm())

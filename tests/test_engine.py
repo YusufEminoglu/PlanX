@@ -1477,6 +1477,24 @@ check("sprawl: edge length hand-count (2x3 block + 1x2 block)",
       close(sm["edge_length"], 10.0 + 6.0))
 
 # --------------------------------------------------------------------------- #
+# 32. Auditor metric registry (Phase I)
+# --------------------------------------------------------------------------- #
+check("registry: walkability mean is higher-better",
+      scenario.direction_of("walk_score_mean") == 1)
+check("registry: access Gini is lower-better",
+      scenario.direction_of("access_gini") == -1)
+aud_a = scenario.snapshot("A", {"access_gini": 0.30, "walk_low_share": 40.0})
+aud_b = scenario.snapshot("B", {"access_gini": 0.22, "walk_low_share": 45.0})
+aud = {r["key"]: r for r in scenario.compare(aud_a, aud_b)}
+check("registry: falling Gini credited to B",
+      aud["access_gini"]["better"] == "B")
+check("registry: rising low-walk share credited to A",
+      aud["walk_low_share"]["better"] == "A")
+check("registry: labels resolve for the auditor keys",
+      "Gini" in scenario.label_of("access_gini")
+      and "Walkability" in scenario.label_of("walk_score_mean"))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

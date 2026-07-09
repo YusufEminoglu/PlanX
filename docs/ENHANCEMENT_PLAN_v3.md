@@ -5,6 +5,8 @@
 > Written to be executed phase-by-phase by an AI coding agent. Each phase is
 > an independent, releasable version. **Do not start a phase before the
 > previous one's quality gates pass.**
+>
+> **STATUS 2026-07-09: ALL PHASES A-I SHIPPED** (v2.12, v2.13, v3.0-v3.6).
 
 ---
 

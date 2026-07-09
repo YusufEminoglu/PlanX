@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives forty-nine Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fifty Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -42,7 +42,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog) and **residential capacity** (FAR arithmetic per parcel, district roll-up) — projection feeds needs, capacity tests the zoning.
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
-- **Verified math** — 345 engine unit checks against hand-computed values + 266 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
+- **Verified math** — 350 engine unit checks against hand-computed values + 274 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -107,6 +108,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Urban Growth | Land-Cover Change Analysis | Transition matrix + per-class gains/losses/persistence in hectares |
 | Urban Growth | Urban Growth Simulation (CA) | Deterministic constrained cellular automaton → year-of-conversion raster |
 | Urban Growth | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest-patch share, edge density |
+| Reporting & Dashboard | Batch Plan Auditor | One run chains the standard battery into a scenario snapshot + HTML report |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Facility Siting | Choose where to build facilities under capacity constraints and travel limits |
 | Optimization | Capacitated Allocation | Nearest facility with free capacity, spill when full, uncovered when none in reach |

@@ -95,6 +95,7 @@ planx/
 | Urban Growth (v3.5) | Land-Cover Change Analysis | transition matrix + per-class gains/losses/persistence (ha) |
 | Urban Growth (v3.5) | Urban Growth Simulation (CA) | deterministic constrained CA -> year-of-conversion raster |
 | Urban Growth (v3.5) | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest share, edge density |
+| Reporting (v3.6) | Batch Plan Auditor | one run chains the battery -> scenario snapshot + HTML report |
 
 ## Release roadmap
 
@@ -297,12 +298,21 @@ planx/
   11.3.1 LCRPGR + patch structure). New pure-NumPy `engine/growth.py`.
   345 unit + 266 e2e checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
-### Next: the v3 series
+- **v3.6 — Batch Plan Auditor & suite polish:** SHIPPED 2026-07-09 — the
+  closing phase of the v3 plan: the **Batch Plan Auditor** chains the
+  standard battery (access, walkability, balance, adequacy, green access,
+  equity) from one set of plan layers into one scenario snapshot + the
+  HTML report; the dashboard gains a Plan Performance Index history
+  sparkline and an Audit button; the scenario registry knows the auditor
+  metrics' directions; `docs/METHODS.md` documents the method, formula
+  and source of every group. 350 unit + 274 e2e + 24 dashboard checks on
+  QGIS 3.44 LTR and QGIS 4.0.2.
 
-The queued Future ideas are all shipped. Development continues along
-`docs/ENHANCEMENT_PLAN_v3.md` (phases E-I): visibility/isovists (v3.2),
-population & housing (v3.3), noise + green infrastructure (v3.4), urban
-growth simulation (v3.5) and the batch Plan Auditor (v3.6).
+### The v3 series (complete)
+
+Every phase of `docs/ENHANCEMENT_PLAN_v3.md` has shipped: 28 -> 50
+algorithms and 9 -> 15 groups across seven releases (v2.12, v2.13,
+v3.0-v3.6). Future work starts a new plan.
 
 ## Quality gates (every release)
 

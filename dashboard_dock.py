@@ -132,7 +132,17 @@ class PlanXDashboardDock(QDockWidget):
                                     "planx:scenariocompare algorithm)")
         self.compare_btn.clicked.connect(self.compare_snapshots)
         scn_row.addWidget(self.compare_btn)
+        self.audit_btn = QPushButton("Audit...")
+        self.audit_btn.setToolTip("Open the Batch Plan Auditor - run the "
+                                  "whole PlanX battery and snapshot it")
+        self.audit_btn.clicked.connect(self.open_auditor)
+        scn_row.addWidget(self.audit_btn)
         outer.addLayout(scn_row)
+
+        self.history_label = QLabel("")
+        self.history_label.setWordWrap(True)
+        self.history_label.setVisible(False)
+        outer.addWidget(self.history_label)
 
         self.cards_host = QWidget()
         cards_col = QVBoxLayout(self.cards_host)
@@ -295,9 +305,61 @@ class PlanXDashboardDock(QDockWidget):
             self.iface.messageBar().pushWarning(
                 "PlanX", f"Could not write the snapshot: {exc}")
             return
+        self._append_history(name, metrics)
         self.iface.messageBar().pushSuccess(
             "PlanX", f"Scenario {side.upper()} saved ({len(metrics)} "
             f"metrics): {path}")
+
+    # ------------------------------------------------------------------ #
+    _SPARK = "▁▂▃▄▅▆▇█"
+
+    def history_path(self) -> str:
+        return os.path.join(self._snapshot_dir(), "planx_scenario_history.json")
+
+    def _append_history(self, name: str, metrics: dict):
+        import json
+        ppi = metrics.get("plan_performance_index")
+        if ppi is None:
+            return
+        entries = []
+        path = self.history_path()
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                entries = json.load(fh)
+        except (OSError, ValueError):
+            entries = []
+        if not isinstance(entries, list):
+            entries = []
+        entries.append({"name": name, "ppi": round(float(ppi), 2)})
+        entries = entries[-24:]
+        try:
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(entries, fh)
+        except OSError:
+            return
+        self._show_history(entries)
+
+    def _show_history(self, entries):
+        vals = [e.get("ppi") for e in entries
+                if isinstance(e, dict) and e.get("ppi") is not None][-8:]
+        if len(vals) < 2:
+            return
+        lo, hi = min(vals), max(vals)
+        span = (hi - lo) or 1.0
+        spark = "".join(
+            self._SPARK[min(7, int((v - lo) / span * 7.999))] for v in vals)
+        self.history_label.setText(
+            f"Index history: {spark}  ({vals[0]:g} → {vals[-1]:g} "
+            f"over {len(vals)} snapshots)")
+        self.history_label.setVisible(True)
+
+    def open_auditor(self):
+        try:
+            import processing
+            processing.execAlgorithmDialog("planx:planaudit", {})
+        except Exception as exc:
+            self.iface.messageBar().pushWarning(
+                "PlanX", f"Could not open the auditor: {exc}")
 
     def compare_snapshots(self):
         snaps = []

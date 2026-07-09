@@ -3,6 +3,19 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.6.0] - 2026-07-09
+
+The Batch Plan Auditor closes the loop (50 algorithms, 15 groups).
+
+### Added
+- **Batch Plan Auditor** (Reporting group) — the whole standard battery in one run: network + demand + amenities + land use + facilities + greens in, and it chains the 15-minute access score, walkability audit, land-use balance, facility adequacy, green-space access and access equity; every score lands in one scenario snapshot JSON (ready for Scenario Compare A/B) plus an optional one-file Plan Performance Report. Each part optional; fully headless and model-designer friendly.
+- **Plan Dashboard**: Plan Performance Index **history sparkline** (grows with every saved snapshot) and an **Audit…** button opening the Batch Plan Auditor.
+- Scenario metric registry gains the auditor keys (walkability mean, low-walk share, weakest green coverage, access Gini) — direction-aware in comparisons.
+- `docs/METHODS.md` — the method, formula and primary source of every tool group.
+
+### Testing
+- Engine unit checks grown to **350**; end-to-end assertions to **274**; dashboard harness to **24 checks** — on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.5.0] - 2026-07-09
 
 Urban Growth: change accounting, growth simulation and the sprawl scorecard (49 algorithms).
