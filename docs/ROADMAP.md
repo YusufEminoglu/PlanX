@@ -83,6 +83,9 @@ planx/
 | Transit (v3.1) | GTFS Import and Service Stats | validated feed import: stops + per-day route service summary |
 | Transit (v3.1) | Transit Frequency Map | departures/hour, headway and route counts per stop for a window |
 | Transit (v3.1) | Transit Travel-Time Access | walk+transit door-to-door vs walk-only (RAPTOR earliest arrival, transfers) |
+| Visibility (v3.2) | Viewshed (DSM) | radial LOS sweep, observer/target heights, visibility count raster |
+| Visibility (v3.2) | Isovist Field | Benedikt isovist measures on a grid: area, radials, circularity, occlusivity |
+| Visibility (v3.2) | Visual Exposure of Landmarks | inverse viewshed of the outline: per-cell visible-point count |
 
 ## Release roadmap
 
@@ -238,6 +241,17 @@ planx/
   walking all the way, per destination). New pure `engine/transit.py`
   (past-midnight times as plain seconds; FIFO trips per route documented)
   and `paths.multi_source_offset` for the egress leg. 287 unit + 221 e2e
+  checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
+- **v3.2 — Visibility:** SHIPPED 2026-07-09 — a Visibility group over the
+  DSM and the building fabric: **Viewshed (DSM)** (radial sight-line sweep
+  with a running horizon, observer/target heights, radius, count raster for
+  many observers), **Isovist Field** (Benedikt's area / radials /
+  circularity / occlusivity on a point grid between buildings - the VGA
+  companion) and **Visual Exposure of Landmarks** (outline samples swept as
+  inverse viewsheds -> per-cell visible-point counts; difference two DSMs
+  for impact studies). New pure-NumPy `engine/visibility.py`, rays capped
+  at the raster diagonal (the shadow-sweep lesson). 304 unit + 233 e2e
   checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
 ### Next: the v3 series

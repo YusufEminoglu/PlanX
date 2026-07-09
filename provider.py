@@ -44,6 +44,9 @@ from .algorithms.alg_route_quality import RouteQualityAlgorithm
 from .algorithms.alg_gtfs_import import GtfsImportAlgorithm
 from .algorithms.alg_transit_frequency import TransitFrequencyAlgorithm
 from .algorithms.alg_transit_access import TransitAccessAlgorithm
+from .algorithms.alg_viewshed import ViewshedAlgorithm
+from .algorithms.alg_isovist_field import IsovistFieldAlgorithm
+from .algorithms.alg_visual_exposure import VisualExposureAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -112,3 +115,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(GtfsImportAlgorithm())
         self.addAlgorithm(TransitFrequencyAlgorithm())
         self.addAlgorithm(TransitAccessAlgorithm())
+        # 12 | Visibility
+        self.addAlgorithm(ViewshedAlgorithm())
+        self.addAlgorithm(IsovistFieldAlgorithm())
+        self.addAlgorithm(VisualExposureAlgorithm())

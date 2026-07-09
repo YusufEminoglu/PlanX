@@ -1207,6 +1207,72 @@ check("gtfs: late start still catches the 09:25 branch to D",
       close(arr_late[3], 9 * 3600 + 2100))
 
 # --------------------------------------------------------------------------- #
+# 27. Visibility: viewshed + isovists (Phase E)
+# --------------------------------------------------------------------------- #
+from planx.engine import visibility  # noqa: E402
+
+# Flat 21x21 ground, observer in the middle: everything is visible.
+flat = np.zeros((21, 21))
+vs_flat = visibility.viewshed(flat, 1.0, (10, 10), observer_h=1.6,
+                              target_h=0.0, n_dirs=720)
+check("viewshed: flat ground fully visible", int(vs_flat.sum()) == 21 * 21)
+
+# A 10 m wall across column 12 hides the ground behind it (east of it).
+wall = np.zeros((21, 21))
+wall[:, 12] = 10.0
+vs_wall = visibility.viewshed(wall, 1.0, (10, 10), observer_h=1.6,
+                              target_h=0.0, n_dirs=1440)
+check("viewshed: cell before the wall visible", vs_wall[10, 11] == 1)
+check("viewshed: wall crest itself visible", vs_wall[10, 12] == 1)
+check("viewshed: ground right behind the wall hidden", vs_wall[10, 14] == 0)
+check("viewshed: far ground behind the wall hidden", vs_wall[10, 19] == 0)
+check("viewshed: west side unaffected", vs_wall[10, 2] == 1)
+
+# A tall enough target pokes above the horizon: at (10,14) the wall horizon
+# is (10-1.6)/2 = 4.2; a 20 m target gives (20-1.6)/4 = 4.6 > 4.2.
+vs_tall = visibility.viewshed(wall, 1.0, (10, 10), observer_h=1.6,
+                              target_h=20.0, n_dirs=1440)
+check("viewshed: a 20 m mast behind the wall is visible", vs_tall[10, 14] == 1)
+
+# Radius cap: nothing beyond 3 m from the observer.
+vs_rad = visibility.viewshed(flat, 1.0, (10, 10), radius=3.0, n_dirs=720)
+check("viewshed: radius caps the sweep",
+      vs_rad[10, 13] == 1 and vs_rad[10, 15] == 0)
+
+# Isovist in the open: a 10 m disc.
+open_mask = np.zeros((41, 41), dtype=bool)
+iso_open = visibility.isovist(open_mask, (20, 20), pixel=1.0, n_rays=360,
+                              max_dist=10.0)
+check("isovist: open disc area ~ pi r^2",
+      abs(iso_open["area"] - math.pi * 100.0) < math.pi * 100.0 * 0.01)
+check("isovist: open disc circularity ~ 1", iso_open["circularity"] > 0.99)
+check("isovist: open disc radials all at range",
+      close(iso_open["min_rad"], 10.0) and close(iso_open["max_rad"], 10.0))
+check("isovist: nothing occluded in the open", iso_open["occlusivity"] == 0.0)
+
+# A corridor: walls at rows 18 and 22 squeeze the isovist.
+corridor = np.zeros((41, 41), dtype=bool)
+corridor[18, :] = True
+corridor[22, :] = True
+iso_cor = visibility.isovist(corridor, (20, 20), pixel=1.0, n_rays=360,
+                             max_dist=15.0)
+check("isovist: corridor is far smaller than the open disc",
+      iso_cor["area"] < iso_open["area"] / 3.0,
+      )
+check("isovist: corridor mostly occluded", iso_cor["occlusivity"] > 0.8)
+check("isovist: corridor still reaches its full length sideways",
+      close(iso_cor["max_rad"], 15.0))
+
+iso_blocked = visibility.isovist(corridor, (18, 5), pixel=1.0, n_rays=90)
+check("isovist: origin on an obstacle collapses to zero",
+      iso_blocked["area"] == 0.0 and iso_blocked["occlusivity"] == 1.0)
+
+fld = visibility.isovist_field(corridor, [(20, 20), (5, 5)], pixel=1.0,
+                               n_rays=90, max_dist=15.0)
+check("isovist field: per-point arrays align",
+      len(fld["area"]) == 2 and fld["area"][1] > fld["area"][0])
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

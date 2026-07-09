@@ -3,6 +3,20 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.2.0] - 2026-07-09
+
+Visibility: viewsheds, isovists and landmark exposure (40 algorithms).
+
+### Added
+- **NEW GROUP: Visibility.**
+- **Viewshed (DSM)** — line-of-sight sweep from observer points: observer/target heights, view radius, direction count; visibility-count raster output. Radial sweep with a running horizon angle, rays capped at the raster diagonal.
+- **Isovist Field** — Benedikt's 2-D visibility measures sampled on a point grid between buildings: visible area/perimeter, min/max/mean radial, circularity, occlusivity. The VGA companion to the space-syntax tools.
+- **Visual Exposure of Landmarks** — the inverse viewshed: outline samples (optional extra height for spires), per-cell count of visible outline points; difference before/after DSMs for skyline & heritage impact.
+- Engine: pure-NumPy `engine/visibility.py`; three new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **304** (wall shadows, tall-target pokes, radius caps, corridor vs plaza isovists); end-to-end assertions to **233** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.1.0] - 2026-07-09
 
 Transit: GTFS feeds become first-class citizens (37 algorithms).
