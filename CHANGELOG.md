@@ -3,6 +3,19 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.4.0] - 2026-07-10
+
+Travel Demand: trip generation, gravity distribution, and mode split modeling (61 algorithms, 18 groups).
+
+### Added
+- **Trip Generation** (new Travel Demand group) - calculates zone production and attraction trip rates from population and jobs.
+- **Gravity Distribution** (Travel Demand group) - computes doubly constrained zone-to-zone flow balancing (Furness/IPF) with exponential or power deterrence over street network costs.
+- **Mode Split** (Travel Demand group) - splits OD flows into multiple mode shares and flows using a multinomial logit model.
+- Pure-NumPy `engine/demand.py` with trip generation, Furness gravity balancing, and logit mode split calculations.
+
+### Tested
+- 384 engine unit checks and 310 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4.
+
 ## [4.3.0] - 2026-07-10
 
 Hazard Screening: flow accumulation, HAND, and flood exposure mapping (58 algorithms, 17 groups).

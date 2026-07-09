@@ -65,6 +65,9 @@ from .algorithms.alg_air_screen import AirScreenAlgorithm
 from .algorithms.alg_flow_accumulation import FlowAccumulationAlgorithm
 from .algorithms.alg_hand_index import HandIndexAlgorithm
 from .algorithms.alg_flood_exposure import FloodExposureAlgorithm
+from .algorithms.alg_trip_generation import TripGenerationAlgorithm
+from .algorithms.alg_gravity_model import GravityModelAlgorithm
+from .algorithms.alg_mode_split import ModeSplitAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -160,3 +163,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(FlowAccumulationAlgorithm())
         self.addAlgorithm(HandIndexAlgorithm())
         self.addAlgorithm(FloodExposureAlgorithm())
+        # 18 | Travel Demand
+        self.addAlgorithm(TripGenerationAlgorithm())
+        self.addAlgorithm(GravityModelAlgorithm())
+        self.addAlgorithm(ModeSplitAlgorithm())

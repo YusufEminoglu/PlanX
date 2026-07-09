@@ -99,6 +99,12 @@ sides perpendicular to the receiver, a canyon factor `1 + min(2, H/W)` is applie
 Wang & Liu (2006) deterministic priority-flood depression filling using a priority queue. D8 flow direction: steepest-descent slope `(drop / distance)` to 8 neighbors with a fixed tie-break order. Flow accumulation: Kahn's topological sorting. Height Above Nearest Drainage (HAND): downstream elevation difference `dem[r, c] - dem[dr, dc]` relative to drainage cells (where flow accumulation >= threshold). Inundation mask: binary mask where `HAND <= depth`. Flood exposure: intersects inundation mask with building footprint centroids and population points to calculate exposed counts and percentage shares.
 
 
+## Travel Demand
+
+Linear trip generation: `P = pop * p_rate` and `A = jobs * a_rate`. Doubly constrained gravity distribution using Furness/IPF balancing with exponential `exp(-beta * cost)` or power `cost^-beta` deterrence functions over network costs computed via Dijkstra many-to-many shortest paths. Mode split: multinomial logit shares `P_k = exp(U_k) / sum(exp(U_m))` and split flows based on mode travel times, time coefficients (betas), and constants (ASCs).
+
+
+
 ## Plan Standards & QA
 
 Land-use balance against free-text per-capita standards (`green=10`),

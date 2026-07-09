@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, demo, equity, graphs, hydro, morphology, optimize,
+    HAS_SCIPY, air, allocate, centrality, cycling, demand, demo, equity, graphs, hydro, morphology, optimize,
     paths, report, scenario, solar, standards, syntax, walkability,
 )
 
@@ -1671,6 +1671,43 @@ check("hydro: exposure cross-tab equals hand counts",
       and close(exp_res["pct_bld"], 50.0)
       and exp_res["exposed_pop"] == 10.0 and exp_res["total_pop"] == 30.0
       and close(exp_res["pct_pop"], 100.0 / 3.0))
+
+# --------------------------------------------------------------------------- #
+# Travel Demand (v4.4)
+# --------------------------------------------------------------------------- #
+# Trip Generation
+P_gen, A_gen = demand.trip_generation(np.array([100.0, 200.0]), np.array([50.0, 150.0]), 1.5, 2.0)
+check("demand: trip generation productions", P_gen.tolist() == [150.0, 300.0])
+check("demand: trip generation attractions", A_gen.tolist() == [100.0, 300.0])
+
+# 2x2 Furness gravity model balance
+P_grav = np.array([100.0, 100.0])
+A_grav = np.array([100.0, 100.0])
+cost_grav = np.array([[10.0, 20.0], [20.0, 10.0]])
+T_grav, iters_grav, err_grav = demand.gravity(P_grav, A_grav, cost_grav, beta=0.1, kind="exp", max_iter=200, tol=1e-10)
+
+e = math.exp(1.0)
+expected_T = np.array([
+    [100.0 * e / (e + 1.0), 100.0 / (e + 1.0)],
+    [100.0 / (e + 1.0), 100.0 * e / (e + 1.0)]
+])
+check("demand: 2x2 Furness balances to known closed-form solution",
+      close(T_grav[0, 0], expected_T[0, 0]) and close(T_grav[0, 1], expected_T[0, 1])
+      and close(T_grav[1, 0], expected_T[1, 0]) and close(T_grav[1, 1], expected_T[1, 1]))
+
+check("demand: gravity totals conserved to 1e-9",
+      abs(T_grav.sum(axis=1) - P_grav).max() < 1e-9 and abs(T_grav.sum(axis=0) - A_grav).max() < 1e-9)
+
+# Beta = 0 gravity model
+T_beta0, _, _ = demand.gravity(np.array([100.0, 200.0]), np.array([150.0, 150.0]), cost_grav, beta=0.0)
+check("demand: beta=0 gives cost-independent proportionality",
+      T_beta0.tolist() == [[50.0, 50.0], [100.0, 100.0]])
+
+# Logit mode split
+times_split = [np.array([[15.0]]), np.array([[25.0]])]
+shares_split = demand.mode_split(times_split, betas=[-0.1, -0.1], asc=[0.0, 0.0])
+check("demand: logit shares for two modes with a 10-minute gap match the hand value",
+      close(shares_split[0][0, 0], e / (e + 1.0)) and close(shares_split[1][0, 0], 1.0 / (e + 1.0)))
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

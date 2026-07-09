@@ -104,6 +104,9 @@ planx/
 | Hazard (v4.3) | Flow Accumulation | Deterministic priority-flood filling, D8 steepest-descent direction, and topological flow accumulation rasters |
 | Hazard (v4.3) | HAND and Inundation | Height Above Nearest Drainage (HAND) raster and binary inundation mask for a given depth |
 | Hazard (v4.3) | Flood Exposure | Intersects inundation mask with buildings and population to output counts and shares, and annotates receiver features |
+| Demand (v4.4) | Trip Generation | Calculates production and attraction trip rates from population and jobs |
+| Demand (v4.4) | Gravity Distribution | Doubly constrained zone-to-zone flow balancing (Furness/IPF) with exponential or power deterrence |
+| Demand (v4.4) | Mode Split | Splits OD flows into multiple mode shares and flows using a multinomial logit model |
 
 ## Release roadmap
 
@@ -346,9 +349,15 @@ planx/
   **Flood Exposure** intersects the inundation mask with buildings and population to output counts and shares, and annotates receiver features. New pure-NumPy `engine/hydro.py`.
   378 unit + 300 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
+- **v4.4 - Travel Demand:** SHIPPED 2026-07-10 - **NEW GROUP Travel Demand**:
+  **Trip Generation** calculates zone Productions and Attractions from population and employment rates.
+  **Gravity Distribution** runs a doubly constrained Furness/IPF gravity model over zone totals and network travel costs with exponential or power deterrence.
+  **Mode Split** splits OD flows into multiple mode shares and flows using a multinomial logit model. New pure-NumPy `engine/demand.py`.
+  384 unit + 310 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ### The v4 series (in progress)
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-D have shipped: 50 -> 58 algorithms across 17 groups.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-E have shipped: 50 -> 61 algorithms across 18 groups.
 
 ## Quality gates (every release)
 
