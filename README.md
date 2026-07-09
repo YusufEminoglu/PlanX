@@ -28,7 +28,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Real network accessibility** — OD cost matrices with detour ratios, multi-facility **service-area isochrones**, nearest-facility allocation with load summaries.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
-- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Annual Solar Potential** (year-long clear-sky irradiation from twelve representative-day sweeps, kWh/m²/yr, with an optional monthly raster), **Sky View Factor**, frontal-area wind-roughness grids, and a vector **Heat Island Risk Grid** from the layers every plan already has.
+- **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Annual Solar Potential** (year-long clear-sky irradiation from twelve representative-day sweeps, kWh/m²/yr, with an optional monthly raster), **Sky View Factor**, frontal-area wind-roughness grids, a vector **Heat Island Risk Grid**, **Road Emissions** (daily segment emissions) and **Air Quality Screening** (dispersion index grid with canyon effect and exposure bands).
 - **Plan standards QA** — land-use balance against **configurable per-capita standards** (surplus/deficit per category), facility adequacy checking **capacity and distance together**, and dasymetric density grids.
 - **Plan dashboard & report** — live score cards over your analysis layers (**Plan Dashboard** dock) and a one-click, single-file **HTML Plan Performance Report** with inline SVG charts — shareable with stakeholders, no services involved.
 - **Location-allocation optimization** — site new schools/clinics/parks among your candidates with the classic models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected; plus **Capacitated Allocation** that sends demand to the nearest facility *with free capacity*, spilling to the next when full; and land-use allocation — assign parcels to uses to maximise suitability under per-use area targets, with optional **compactness/adjacency** objectives and a **Pareto-front** sweep that maps the suitability-versus-compactness trade-off and its knee — no external solver.
@@ -44,7 +44,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Cycling** — **Cycling Stress (LTS)** classifies street segments from speed, lanes, AADT and cycling infrastructure, then **Low-Stress Connectivity** maps the LTS-filtered cycling islands and destination-reach population.
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
-- **Verified math** — 367 engine unit checks against hand-computed values + 288 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Verified math** — 372 engine unit checks against hand-computed values + 294 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -105,6 +105,8 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Population & Housing | Housing Needs Assessment | Households + vacancy + losses + backlog → dwellings to deliver |
 | Population & Housing | Residential Capacity | Parcel FAR arithmetic → buildable floorspace and dwelling units, district roll-up |
 | Microclimate | Road Noise Screening | RLS-90-style emission + spreading + building screening → dB(A) grid, exposure bands |
+| Microclimate | Road Emissions | Calculate segment emissions (g/km/day) from traffic volume and an emission factor |
+| Microclimate | Air Quality Screening | Dispersion index grid, receiver index values and exposure bands with canyon effect |
 | Green Infrastructure | Green Space Access | Park hierarchy (size-within-distance ladder) on network distances, coverage per class |
 | Green Infrastructure | Urban Green Connectivity | Patch components, Probability-of-Connectivity index, per-patch dPC importance |
 | Cycling | Cycling Stress (LTS) | Segment LTS 1-4 from speed, lanes, AADT and cycling infrastructure, with editable thresholds |

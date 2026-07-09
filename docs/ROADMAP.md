@@ -99,6 +99,8 @@ planx/
 | Reporting (v4.0) | Generate Demo City | deterministic synthetic town generator (streets, buildings, land use, POIs, facilities, demand, green, DSM) |
 | Cycling (v4.1) | Cycling Stress (LTS) | simplified Mekuria/Furth-style LTS 1-4 from speed, lanes, AADT and infrastructure fields |
 | Cycling (v4.1) | Low-Stress Connectivity | LTS-filtered primal graph components, island lengths, low-stress share and destination-reach population |
+| Microclimate (v4.2) | Road Emissions | Calculate segment emissions (g/km/day) from traffic volume and an emission factor |
+| Microclimate (v4.2) | Air Quality Screening | Dispersion index grid, receiver index values and exposure bands with canyon factor |
 
 ## Release roadmap
 
@@ -330,9 +332,14 @@ planx/
   `engine/cycling.py`. 367 unit + 288 e2e + 24 dashboard checks on QGIS 3.44
   LTR and QGIS 4.0.2.
 
+- **v4.2 - Air Quality Screening:** SHIPPED 2026-07-10 - **Microclimate Group**:
+  **Road Emissions** computes segment emissions in g/km/day from traffic volume and an emission factor.
+  **Air Quality Screening** generates a unitless pollution dispersion index grid and calculates receiver levels and exposure bands, accounting for wind speed, decay exponent alpha, and street canyon effects. New pure-NumPy `engine/air.py`.
+  372 unit + 294 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ### The v4 series (in progress)
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-B have shipped: 50 -> 53 algorithms across 16 groups.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-C have shipped: 50 -> 55 algorithms across 16 groups.
 
 ## Quality gates (every release)
 

@@ -3,6 +3,18 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.2.0] - 2026-07-10
+
+Air Quality Screening: road emissions calculation and air dispersion modeling (55 algorithms, 16 groups).
+
+### Added
+- **Road Emissions** (Microclimate group) - calculates segment emissions (g/km/day) from a traffic volume field and a documented generic NOx-proxy emission factor.
+- **Air Quality Screening** (Microclimate group) - generates a unitless pollution dispersion index grid and calculates receiver levels and exposure bands, accounting for wind speed, decay exponent alpha, and street canyon effects.
+- Pure-NumPy `engine/air.py` with emissions, sample strength, concentration, canyon factor, and exposure bands.
+
+### Tested
+- 372 engine unit checks and 294 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4.
+
 ## [4.1.0] - 2026-07-10
 
 Cycling and LTS: cycling stress classification and low-stress connectivity (53 algorithms, 16 groups).

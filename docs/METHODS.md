@@ -86,7 +86,13 @@ a fixed 0–100 scale. Road noise screening: RLS-90-style emission
 `37.3 + 10 lg(M(1+0.082p))`, roads as point samples calibrated so an
 infinite line reproduces the 25 m reference (`L_s = L_m25 +
 10 lg(25ℓ/π)`), energetic summing with `20 lg r` spreading and a fixed
-insertion loss behind buildings — screening, not compliance.
+insertion loss behind buildings — screening, not compliance. Road emissions:
+segment emissions `E = AADT * EF` (g/km/day). Air quality screening: dispersion index grid,
+receivers and exposure bands. Dispersion modeled as line-calibrated point samples
+where index `C = Σ strength / (u * (d + d0)^alpha)`. Calibration ensures that at 25 m, an
+infinite line source under `alpha = 2` and wind speed `u` has concentration index equal
+to the emission rate `E` (`strength = E * 25 * ℓ / π`). If buildings are present on both
+sides perpendicular to the receiver, a canyon factor `1 + min(2, H/W)` is applied.
 
 ## Plan Standards & QA
 

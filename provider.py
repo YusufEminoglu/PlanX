@@ -60,6 +60,8 @@ from .algorithms.alg_plan_audit import PlanAuditAlgorithm
 from .algorithms.alg_demo_city import DemoCityAlgorithm
 from .algorithms.alg_cycling_stress import CyclingStressAlgorithm
 from .algorithms.alg_low_stress_islands import LowStressIslandsAlgorithm
+from .algorithms.alg_road_emissions import RoadEmissionsAlgorithm
+from .algorithms.alg_air_screen import AirScreenAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -104,6 +106,8 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(AnnualSolarAlgorithm())
         self.addAlgorithm(HeatRiskGridAlgorithm())
         self.addAlgorithm(NoiseScreenAlgorithm())
+        self.addAlgorithm(RoadEmissionsAlgorithm())
+        self.addAlgorithm(AirScreenAlgorithm())
         # 6 | Plan Standards and QA
         self.addAlgorithm(LandUseBalanceAlgorithm())
         self.addAlgorithm(FacilityAdequacyAlgorithm())

@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, allocate, centrality, cycling, demo, equity, graphs, morphology, optimize,
+    HAS_SCIPY, air, allocate, centrality, cycling, demo, equity, graphs, morphology, optimize,
     paths, report, scenario, solar, standards, syntax, walkability,
 )
 
@@ -1583,6 +1583,31 @@ isl3 = cycling.low_stress_islands(edge_from, edge_to, edge_len, bridge_lts, thre
 check("cycling islands: raising threshold merges the network",
       isl3["n_components"] == 1 and isl3["edge_labels"].tolist() == [0, 0, 0]
       and close(float(isl3["component_length"][0]), 300.0))
+# --------------------------------------------------------------------------- #
+# 35. Air quality screening (Phase C)
+# --------------------------------------------------------------------------- #
+# doubling distance halves concentration index at alpha=1
+c_50 = air.concentration([[0.0, 0.0]], [100.0], 0.0, 50.0, 1.0, alpha=1.0, d0=0.0)
+c_100 = air.concentration([[0.0, 0.0]], [100.0], 0.0, 100.0, 1.0, alpha=1.0, d0=0.0)
+check("air: doubling distance halves the single-source index at alpha=1",
+      close(c_50, 2.0) and close(c_100, 1.0))
+
+# canyon factor 2 when H=W
+check("air: canyon factor 2 when H=W", close(air.canyon_factor(15.0, 15.0), 2.0))
+
+# infinite-line calibration ±tolerance
+xs_val = np.arange(-5000.0, 5001.0, 1.0)
+src_xy_val = np.column_stack((xs_val, np.zeros_like(xs_val)))
+strength_val = air.sample_strength(1000.0, 1.0)
+strengths_val = np.full_like(xs_val, strength_val)
+c_inf = air.concentration(src_xy_val, strengths_val, 0.0, 25.0, 1.0, alpha=2.0, d0=0.0)
+check("air: infinite-line calibration within tolerance", abs(c_inf - 1000.0) < 10.0)
+
+# band splitting
+labels_val, counts_val = air.exposure_bands([15.0, 25.0, 35.0], weights=[2.0, 3.0, 5.0], breaks=[20.0, 30.0])
+check("air: band splitting counts", counts_val.tolist() == [2.0, 3.0, 5.0])
+check("air: band splitting labels", labels_val == ["< 20", "20 - 30", ">= 30"])
+
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
