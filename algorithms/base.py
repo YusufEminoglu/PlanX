@@ -34,6 +34,7 @@ GROUP_VISIBILITY = ("Visibility", "visibility")
 GROUP_POPULATION = ("Population and Housing", "population")
 GROUP_GREEN = ("Green Infrastructure", "green")
 GROUP_GROWTH = ("Urban Growth", "growth")
+GROUP_CYCLE = ("Cycling", "cycling")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

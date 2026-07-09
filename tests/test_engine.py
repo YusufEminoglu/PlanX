@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, allocate, centrality, demo, equity, graphs, morphology, optimize,
+    HAS_SCIPY, allocate, centrality, cycling, demo, equity, graphs, morphology, optimize,
     paths, report, scenario, solar, standards, syntax, walkability,
 )
 
@@ -1547,6 +1547,42 @@ check("demo: identical result from separate process",
 if os.path.exists(_cross_script_demo):
     os.remove(_cross_script_demo)
 
+# --------------------------------------------------------------------------- #
+# 34. Cycling stress and low-stress islands (Phase B)
+# --------------------------------------------------------------------------- #
+check("cycling: default rule table parses",
+      cycling.parse_lts_rules(cycling.DEFAULT_LTS_RULES_TEXT)["mixed_lts1_aadt"] == 1000.0)
+try:
+    cycling.parse_lts_rules("mixed_lts1_speed=slow")
+    check("cycling: malformed rules raise", False)
+except ValueError:
+    check("cycling: malformed rules raise", True)
+
+lts_rows = cycling.lts_classify(
+    speed=[70.0, 40.0, 60.0, 25.0, 30.0, 45.0, 55.0],
+    lanes=[4.0, 2.0, 4.0, 2.0, 2.0, 2.0, 2.0],
+    aadt=[20000.0, 5000.0, 5000.0, 900.0, 5000.0, 5000.0, 5000.0],
+    infra=["path", "lane", "lane", "mixed", "mixed", "mixed", "mixed"])
+check("cycling: every LTS rule row hand case",
+      lts_rows.tolist() == [1, 2, 3, 1, 2, 3, 4])
+
+custom = cycling.lts_classify([35.0], [2.0], [800.0], ["mixed"],
+                              cycling.parse_lts_rules("mixed_lts1_speed=35"))
+check("cycling: agency threshold override changes classification", int(custom[0]) == 1)
+
+edge_from = np.asarray([0, 1, 2], dtype=np.int64)
+edge_to = np.asarray([1, 2, 3], dtype=np.int64)
+edge_len = np.asarray([100.0, 100.0, 100.0])
+bridge_lts = np.asarray([1, 3, 1])
+isl2 = cycling.low_stress_islands(edge_from, edge_to, edge_len, bridge_lts, threshold=2)
+check("cycling islands: high-stress bridge splits two low-stress islands",
+      isl2["n_components"] == 2 and isl2["edge_labels"].tolist() == [0, -1, 1])
+check("cycling islands: low-stress share excludes bridge",
+      close(isl2["low_share"], 2.0 / 3.0))
+isl3 = cycling.low_stress_islands(edge_from, edge_to, edge_len, bridge_lts, threshold=3)
+check("cycling islands: raising threshold merges the network",
+      isl3["n_components"] == 1 and isl3["edge_labels"].tolist() == [0, 0, 0]
+      and close(float(isl3["component_length"][0]), 300.0))
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")

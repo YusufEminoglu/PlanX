@@ -58,6 +58,8 @@ from .algorithms.alg_growth_sim import GrowthSimAlgorithm
 from .algorithms.alg_sprawl_metrics import SprawlMetricsAlgorithm
 from .algorithms.alg_plan_audit import PlanAuditAlgorithm
 from .algorithms.alg_demo_city import DemoCityAlgorithm
+from .algorithms.alg_cycling_stress import CyclingStressAlgorithm
+from .algorithms.alg_low_stress_islands import LowStressIslandsAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -144,3 +146,6 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(LandCoverChangeAlgorithm())
         self.addAlgorithm(GrowthSimAlgorithm())
         self.addAlgorithm(SprawlMetricsAlgorithm())
+        # 16 | Cycling
+        self.addAlgorithm(CyclingStressAlgorithm())
+        self.addAlgorithm(LowStressIslandsAlgorithm())

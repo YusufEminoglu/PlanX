@@ -102,6 +102,18 @@ group; net migration adds after each step. Housing needs: `households ×
 (1 + vacancy) − stock + losses + backlog`. Residential capacity:
 `max(0, area × FAR − existing) × efficiency / unit size`, floored.
 
+## Cycling
+
+Cycling Stress is a screening Level of Traffic Stress classifier after the
+Mekuria/Furth family of methods, simplified to four transparent rule rows:
+separated paths are LTS 1; painted lanes are LTS 2 when speed <= 50 and
+lanes <= 3, otherwise LTS 3; mixed traffic is LTS 1 when speed <= 30,
+lanes <= 2 and AADT < 1000, LTS 2 when speed <= 30 and lanes <= 2,
+LTS 3 when speed <= 50, otherwise LTS 4. All thresholds are parsed from
+an editable `key=value` table. Low-Stress Connectivity filters the primal
+street graph to edges with `LTS <= threshold`, labels connected components
+as cycling islands, sums island length, and optionally counts origin
+population whose snapped node lies in a destination island.
 ## Green Infrastructure
 
 Park hierarchies as a `min_ha = max_dist` ladder tested on network

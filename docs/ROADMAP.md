@@ -97,6 +97,8 @@ planx/
 | Urban Growth (v3.5) | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest share, edge density |
 | Reporting (v3.6) | Batch Plan Auditor | one run chains the battery -> scenario snapshot + HTML report |
 | Reporting (v4.0) | Generate Demo City | deterministic synthetic town generator (streets, buildings, land use, POIs, facilities, demand, green, DSM) |
+| Cycling (v4.1) | Cycling Stress (LTS) | simplified Mekuria/Furth-style LTS 1-4 from speed, lanes, AADT and infrastructure fields |
+| Cycling (v4.1) | Low-Stress Connectivity | LTS-filtered primal graph components, island lengths, low-stress share and destination-reach population |
 
 ## Release roadmap
 
@@ -318,9 +320,19 @@ planx/
   for distance checks.
   360 unit + 282 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
+- **v4.1 - Cycling and LTS:** SHIPPED 2026-07-10 - **NEW GROUP Cycling**:
+  **Cycling Stress (LTS)** classifies street segments into Level of Traffic
+  Stress 1-4 from speed, lane count, AADT and cycling infrastructure, with
+  every threshold editable through a key=value rules table. **Low-Stress
+  Connectivity** filters the primal street graph by an LTS threshold, labels
+  connected cycling islands, reports low-stress length share and optionally
+  counts the population whose island contains a destination. New pure-NumPy
+  `engine/cycling.py`. 367 unit + 288 e2e + 24 dashboard checks on QGIS 3.44
+  LTR and QGIS 4.0.2.
+
 ### The v4 series (in progress)
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phase A has shipped: 50 -> 51 algorithms across 15 groups.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-B have shipped: 50 -> 53 algorithms across 16 groups.
 
 ## Quality gates (every release)
 

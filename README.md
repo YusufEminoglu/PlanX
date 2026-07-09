@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fifty-one Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fifty-three Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -41,9 +41,10 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Visibility** — DSM **viewsheds** (observer/target heights, radius), an **isovist field** (visible area, radials, circularity, occlusivity on a point grid — the VGA view) and **landmark visual exposure** (from where can it be seen — skyline and heritage screening).
 - **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog) and **residential capacity** (FAR arithmetic per parcel, district roll-up) — projection feeds needs, capacity tests the zoning.
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
+- **Cycling** — **Cycling Stress (LTS)** classifies street segments from speed, lanes, AADT and cycling infrastructure, then **Low-Stress Connectivity** maps the LTS-filtered cycling islands and destination-reach population.
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
-- **Verified math** — 360 engine unit checks against hand-computed values + 282 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Verified math** — 367 engine unit checks against hand-computed values + 288 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -106,6 +107,8 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Microclimate | Road Noise Screening | RLS-90-style emission + spreading + building screening → dB(A) grid, exposure bands |
 | Green Infrastructure | Green Space Access | Park hierarchy (size-within-distance ladder) on network distances, coverage per class |
 | Green Infrastructure | Urban Green Connectivity | Patch components, Probability-of-Connectivity index, per-patch dPC importance |
+| Cycling | Cycling Stress (LTS) | Segment LTS 1-4 from speed, lanes, AADT and cycling infrastructure, with editable thresholds |
+| Cycling | Low-Stress Connectivity | LTS-filtered connected islands, low-stress length share and optional destination-reach population |
 | Urban Growth | Land-Cover Change Analysis | Transition matrix + per-class gains/losses/persistence in hectares |
 | Urban Growth | Urban Growth Simulation (CA) | Deterministic constrained cellular automaton → year-of-conversion raster |
 | Urban Growth | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest-patch share, edge density |

@@ -3,6 +3,18 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.1.0] - 2026-07-10
+
+Cycling and LTS: cycling stress classification and low-stress connectivity (53 algorithms, 16 groups).
+
+### Added
+- **Cycling Stress (LTS)** (new Cycling group) - classifies street segments into LTS 1-4 from speed, lanes, AADT and cycling infrastructure fields, with editable threshold rules and a length-share table.
+- **Low-Stress Connectivity** (Cycling group) - filters the network by an LTS threshold, labels connected cycling islands, reports low-stress network length share and optional destination-reach population.
+- Pure-NumPy `engine/cycling.py` with threshold parsing, vectorized LTS classification and LTS-filtered primal graph components.
+
+### Tested
+- 367 engine unit checks and 288 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4.
+
 ## [4.0.0] - 2026-07-09
 
 Demo City & Speed: synthetic city generator and hot-loop vectorisation (51 algorithms).
