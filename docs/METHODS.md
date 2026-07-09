@@ -146,4 +146,6 @@ Score cards and the one-file HTML report are pure stdlib (inline SVG).
 Scenario snapshots capture the metrics as JSON; comparisons are
 direction-aware (the registry knows that a higher access score is good
 and more deficits are bad). The Batch Plan Auditor chains the standard
-battery and snapshots the result in one run.
+battery and snapshots the result in one run. Demo City generates a
+deterministic, synthetic town using block-subdivided geometries and
+ray-intersection street noding.

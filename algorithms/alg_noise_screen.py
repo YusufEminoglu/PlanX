@@ -234,12 +234,31 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
                 "shrink the extent.")
         x0, y1 = extent.xMinimum(), extent.yMaximum()
         grid = np.full((rows, cols), -1.0, dtype=np.float32)
+        rxs = x0 + (np.arange(cols) + 0.5) * cell
+        min_dist = max(1.0, cell / 2.0)
         for r in range(rows):
             if feedback.isCanceled():
                 break
             cy = y1 - (r + 0.5) * cell
+
+            # Broadcast distance calculations for the entire row at once
+            dx = src_xy[:, 0][:, None] - rxs[None, :]
+            dy = src_xy[:, 1][:, None] - cy
+            d_row = np.hypot(dx, dy)
+
             for c in range(cols):
-                lv = level_at(x0 + (c + 0.5) * cell, cy)
+                rx = rxs[c]
+                d = d_row[:, c]
+                keep = np.where(d <= cutoff)[0]
+                if not len(keep):
+                    lv = -np.inf
+                else:
+                    d_keep = np.maximum(d[keep], min_dist)
+                    contrib = src_lvl[keep] - 20.0 * np.log10(d_keep)
+                    blocked = blocked_mask(rx, cy, keep)
+                    if blocked is not None:
+                        contrib = contrib - np.where(blocked, float(screen_db), 0.0)
+                    lv = float(10.0 * np.log10(np.sum(10.0 ** (contrib / 10.0))))
                 grid[r, c] = lv if math.isfinite(lv) else -1.0
             feedback.setProgress(80.0 * (r + 1) / rows)
 

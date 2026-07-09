@@ -96,6 +96,7 @@ planx/
 | Urban Growth (v3.5) | Urban Growth Simulation (CA) | deterministic constrained CA -> year-of-conversion raster |
 | Urban Growth (v3.5) | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest share, edge density |
 | Reporting (v3.6) | Batch Plan Auditor | one run chains the battery -> scenario snapshot + HTML report |
+| Reporting (v4.0) | Generate Demo City | deterministic synthetic town generator (streets, buildings, land use, POIs, facilities, demand, green, DSM) |
 
 ## Release roadmap
 
@@ -308,11 +309,18 @@ planx/
   and source of every group. 350 unit + 274 e2e + 24 dashboard checks on
   QGIS 3.44 LTR and QGIS 4.0.2.
 
-### The v3 series (complete)
+- **v4.0 — Demo City & Speed:** SHIPPED 2026-07-09 — **Generate Demo City**
+  (Reporting and Dashboard): generates a deterministic synthetic town with
+  streets, buildings, land use, POIs, facilities, demand points, green polygons,
+  and a DSM raster, allowing all tools to be tried in one click.
+  **Speed optimization**: visibility `isovist_field` precomputes direction
+  offsets to speed up the loop, and noise screening grid uses row-broadcasting
+  for distance checks.
+  360 unit + 282 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
-Every phase of `docs/ENHANCEMENT_PLAN_v3.md` has shipped: 28 -> 50
-algorithms and 9 -> 15 groups across seven releases (v2.12, v2.13,
-v3.0-v3.6). Future work starts a new plan.
+### The v4 series (in progress)
+
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phase A has shipped: 50 -> 51 algorithms across 15 groups.
 
 ## Quality gates (every release)
 

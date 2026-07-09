@@ -3,6 +3,20 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.0.0] - 2026-07-09
+
+Demo City & Speed: synthetic city generator and hot-loop vectorisation (51 algorithms).
+
+### Added
+- **Generate Demo City** (Reporting group) — deterministic synthetic town generator: streets, buildings, land use, POIs, facilities, demand, green, and a DSM raster, allowing all tools to be tried in one click.
+
+### Optimized
+- **Speed optimization in visibility.isovist_field** — precomputes direction offsets once per field execution, speeding up the loop.
+- **Speed optimization in noise screening grid** — broadcasts distance calculations per row-chunk to avoid cell-by-cell loops.
+
+### Testing
+- Engine unit checks grown to **360** (including exact feature counts for demo city, DSM elevation validation, cross-process determinism, and isovist_field bit-identity regression checks); end-to-end assertions at **282** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.6.0] - 2026-07-09
 
 The Batch Plan Auditor closes the loop (50 algorithms, 15 groups).

@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fifty Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives fifty-one Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -43,7 +43,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
-- **Verified math** — 350 engine unit checks against hand-computed values + 274 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Verified math** — 360 engine unit checks against hand-computed values + 282 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -56,11 +56,11 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 
 ## 📖 Quick start
 
-1. Load a street network (OSM export, plan centerlines…) in a **projected CRS** and run **Prepare Network** to node it.
-2. Run **Space Syntax (Segment Angular Analysis)** with radii `800, n` and style the output by `NACH_800` — your first integration/choice map.
-3. Add facility points and run **Service Areas (Isochrones)** with breaks `250, 500, 1000` for catchment bands.
-4. Drop building footprints in and run **Building Form Metrics** or **Morphological Tessellation → Spacematrix Density** for a density portrait.
-5. Pick amenity layers and run **Multi-Amenity Access Score** for a 15-minute-city map.
+1. Run **Generate Demo City** with default parameters to instantly generate a complete set of synthetic urban layers (streets, buildings, land use, POIs, facilities, demand points, green polygons, and a DSM raster) in a projected metric CRS.
+2. Run **Space Syntax (Segment Angular Analysis)** on the generated streets network with radii `800, n` and style by `NACH_800` — your first integration/choice map.
+3. Run **Service Areas (Isochrones)** on the streets network using the generated facilities as input and breaks `250, 500, 1000` for catchment bands.
+4. Run **Building Form Metrics** or **Morphological Tessellation → Spacematrix Density** on the generated buildings for a density portrait.
+5. Run **Multi-Amenity Access Score** on the demand points using the POIs and facilities for a 15-minute-city map.
 6. Open **PlanX → Plan Dashboard** for live score cards over your outputs, then **Save HTML Report…** (or run **Plan Performance Report (HTML)** in Processing) for a shareable one-file report.
 
 ## ⚙️ Reference
@@ -91,6 +91,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Reporting & Dashboard | Plan Performance Report (HTML) | One-file scorecard report: charts, balance bars, score map — inline SVG |
 | Reporting & Dashboard | Scenario Compare (A/B) | Metric-by-metric diff of two plan snapshots with direction-aware winners + HTML report |
 | Reporting & Dashboard | Scenario Snapshot | Auto-detects PlanX output layers and captures the plan score metrics to a snapshot JSON |
+| Reporting & Dashboard | Generate Demo City | Generates a deterministic synthetic city with streets, buildings, land use, POIs, facilities, demand, green, and a DSM |
 | Walkability | Walkability Audit | Street-segment walk scores 0-100: intersections, mix, destinations, block length, slope |
 | Walkability | Pedestrian Route Quality | Quality-weighted routes vs plain shortest: detour ratio, mean walk score, low-quality share |
 | Transit | GTFS Import and Service Stats | Validated feed import: stops with departures/routes + route service summary |

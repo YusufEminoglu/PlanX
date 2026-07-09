@@ -57,6 +57,7 @@ from .algorithms.alg_landcover_change import LandCoverChangeAlgorithm
 from .algorithms.alg_growth_sim import GrowthSimAlgorithm
 from .algorithms.alg_sprawl_metrics import SprawlMetricsAlgorithm
 from .algorithms.alg_plan_audit import PlanAuditAlgorithm
+from .algorithms.alg_demo_city import DemoCityAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -110,6 +111,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(ScenarioCompareAlgorithm())
         self.addAlgorithm(ScenarioSnapshotAlgorithm())
         self.addAlgorithm(PlanAuditAlgorithm())
+        self.addAlgorithm(DemoCityAlgorithm())
         # 8 | Optimization
         self.addAlgorithm(FacilityLocationAlgorithm())
         self.addAlgorithm(CapacitatedAllocationAlgorithm())

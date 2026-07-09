@@ -73,7 +73,10 @@ def min_rotated_rect(points: np.ndarray):
         if norm == 0:
             continue
         ux, uy = ex / norm, ey / norm
-        rot = hull @ np.array([[ux, -uy], [uy, ux]])
+        # element-wise rotation; avoids BLAS-backed @ for portability
+        rot = np.empty_like(hull)
+        rot[:, 0] = hull[:, 0] * ux + hull[:, 1] * uy
+        rot[:, 1] = -hull[:, 0] * uy + hull[:, 1] * ux
         w = rot[:, 0].max() - rot[:, 0].min()
         h = rot[:, 1].max() - rot[:, 1].min()
         area = w * h

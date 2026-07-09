@@ -148,15 +148,93 @@ def isovist(mask, origin_rc, pixel=1.0, n_rays=360, max_dist=None):
 
 def isovist_field(mask, points_rc, pixel=1.0, n_rays=180, max_dist=None,
                   cancel=None):
-    """Isovist measures sampled at many points; returns arrays per metric."""
+    """Isovist measures sampled at many points; returns arrays per metric.
+
+    Optimized by precomputing direction offsets and ray steps.
+    """
     keys = ("area", "perimeter", "min_rad", "max_rad", "mean_rad",
             "circularity", "occlusivity")
     out = {k: np.zeros(len(points_rc)) for k in keys}
+
+    mask = np.asarray(mask, dtype=bool)
+    rows, cols = mask.shape
+
+    diag = math.hypot(rows, cols) * pixel
+    reach = diag if max_dist is None or max_dist <= 0 else min(max_dist, diag)
+    t = _ray_steps(pixel, reach)
+    n_steps = len(t)
+
+    # Precompute direction vectors and t_dr / t_dc float arrays
+    t_dr = []
+    t_dc = []
+    cos_angles = []
+    sin_angles = []
+    for k in range(int(n_rays)):
+        az = 2.0 * math.pi * k / n_rays
+        dc = math.sin(az) / pixel
+        dr = -math.cos(az) / pixel
+        t_dr.append(t * dr)
+        t_dc.append(t * dc)
+        cos_angles.append(math.cos(az))
+        sin_angles.append(math.sin(az))
+
     for i, rc in enumerate(points_rc):
         if cancel is not None and i % 50 == 0 and cancel():
             break
-        iso = isovist(mask, rc, pixel=pixel, n_rays=n_rays,
-                      max_dist=max_dist)
-        for k in keys:
-            out[k][i] = iso[k]
+        r0, c0 = int(rc[0]), int(rc[1])
+        if not (0 <= r0 < rows and 0 <= c0 < cols):
+            raise ValueError("origin lies outside the mask")
+        if mask[r0, c0]:
+            out["area"][i] = 0.0
+            out["perimeter"][i] = 0.0
+            out["min_rad"][i] = 0.0
+            out["max_rad"][i] = 0.0
+            out["mean_rad"][i] = 0.0
+            out["circularity"][i] = 0.0
+            out["occlusivity"][i] = 1.0
+            continue
+
+        radials = np.empty(int(n_rays))
+        occluded = 0
+        end_x = np.empty(int(n_rays))
+        end_y = np.empty(int(n_rays))
+
+        for k in range(int(n_rays)):
+            rr = np.rint(r0 + t_dr[k]).astype(np.int64)
+            cc = np.rint(c0 + t_dc[k]).astype(np.int64)
+
+            inside = (rr >= 0) & (rr < rows) & (cc >= 0) & (cc < cols)
+            stop = n_steps
+            hit = False
+            if not inside.all():
+                stop = int(np.argmin(inside))
+
+            blocked = mask[rr[:stop], cc[:stop]]
+            if blocked.any():
+                stop = int(np.argmax(blocked))
+                hit = True
+
+            dist = t[stop - 1] if stop > 0 else 0.0
+            if not hit and max_dist is not None and max_dist > 0:
+                dist = min(dist, max_dist)
+
+            radials[k] = dist
+            occluded += 1 if hit else 0
+            end_x[k] = dist * sin_angles[k]
+            end_y[k] = dist * cos_angles[k]
+
+        x2 = np.roll(end_x, -1)
+        y2 = np.roll(end_y, -1)
+        area = 0.5 * abs(float(np.sum(end_x * y2 - x2 * end_y)))
+        perimeter = float(np.sum(np.hypot(x2 - end_x, y2 - end_y)))
+        circ = 4.0 * math.pi * area / (perimeter ** 2) if perimeter > 0 else 0.0
+
+        out["area"][i] = area
+        out["perimeter"][i] = perimeter
+        out["min_rad"][i] = float(radials.min())
+        out["max_rad"][i] = float(radials.max())
+        out["mean_rad"][i] = float(radials.mean())
+        out["circularity"][i] = float(min(1.0, circ))
+        out["occlusivity"][i] = occluded / float(n_rays)
+
     return out

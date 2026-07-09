@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, allocate, centrality, equity, graphs, morphology, optimize,
+    HAS_SCIPY, allocate, centrality, demo, equity, graphs, morphology, optimize,
     paths, report, scenario, solar, standards, syntax, walkability,
 )
 
@@ -187,9 +187,12 @@ check("4x1 rect: elongation == 0.75", close(mr["elongation"], 0.75, 1e-9))
 check("4x1 rect: orientation == 0", close(mr["orientation"], 0.0, 1e-6))
 
 theta = math.radians(30.0)
-rot = np.array([[math.cos(theta), -math.sin(theta)],
-                [math.sin(theta), math.cos(theta)]])
-mrot = morphology.shape_metrics(rect @ rot.T)
+c, s = math.cos(theta), math.sin(theta)
+rect_rot = np.column_stack([
+    rect[:, 0] * c - rect[:, 1] * s,
+    rect[:, 0] * s + rect[:, 1] * c
+])
+mrot = morphology.shape_metrics(rect_rot)
 check("rotated rect: orientation == 30", close(mrot["orientation"], 30.0, 1e-6))
 
 # L-shape: concave -> convexity < 1
@@ -1267,8 +1270,27 @@ iso_blocked = visibility.isovist(corridor, (18, 5), pixel=1.0, n_rays=90)
 check("isovist: origin on an obstacle collapses to zero",
       iso_blocked["area"] == 0.0 and iso_blocked["occlusivity"] == 1.0)
 
+
+def naive_isovist_field(mask, points_rc, pixel=1.0, n_rays=180, max_dist=None):
+    keys = ("area", "perimeter", "min_rad", "max_rad", "mean_rad",
+            "circularity", "occlusivity")
+    out = {k: np.zeros(len(points_rc)) for k in keys}
+    for i, rc in enumerate(points_rc):
+        iso = visibility.isovist(mask, rc, pixel=pixel, n_rays=n_rays, max_dist=max_dist)
+        for k in keys:
+            out[k][i] = iso[k]
+    return out
+
+
 fld = visibility.isovist_field(corridor, [(20, 20), (5, 5)], pixel=1.0,
                                n_rays=90, max_dist=15.0)
+fld_naive = naive_isovist_field(corridor, [(20, 20), (5, 5)], pixel=1.0,
+                                n_rays=90, max_dist=15.0)
+bit_identical_isovist = True
+for k in fld:
+    if not np.array_equal(fld[k], fld_naive[k]):
+        bit_identical_isovist = False
+check("isovist field: optimized is bit-identical to naive", bit_identical_isovist)
 check("isovist field: per-point arrays align",
       len(fld["area"]) == 2 and fld["area"][1] > fld["area"][0])
 
@@ -1493,6 +1515,37 @@ check("registry: rising low-walk share credited to A",
 check("registry: labels resolve for the auditor keys",
       "Gini" in scenario.label_of("access_gini")
       and "Walkability" in scenario.label_of("walk_score_mean"))
+
+# --------------------------------------------------------------------------- #
+# 33. Generate Demo City (Phase A1)
+# --------------------------------------------------------------------------- #
+res_demo = demo.generate_demo_city(42, 2, 2, 100.0)
+check("demo streets count", len(res_demo["streets"]) == 14)
+check("demo buildings count", len(res_demo["buildings"]) == 12)
+check("demo landuse count", len(res_demo["landuse"]) == 4)
+check("demo pois count", len(res_demo["pois"]) == 2)
+check("demo facilities count", len(res_demo["facilities"]) == 2)
+check("demo demand count", len(res_demo["demand"]) == 2)
+check("demo green count", len(res_demo["green"]) == 1)
+check("demo DSM max == tallest building", close(res_demo["dsm"].max(), max(b[1] for b in res_demo["buildings"])))
+
+# Cross-process identity for demo city
+_cross_script_demo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_demo_cross_check.py")
+with open(_cross_script_demo, "w", encoding="utf-8") as fh:
+    fh.write(
+        "import sys\n"
+        "sys.path.insert(0, r'" + os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + "')\n"
+        "from planx.engine import demo\n"
+        "res = demo.generate_demo_city(42, 2, 2, 100.0)\n"
+        "print(len(res['streets']), len(res['buildings']), float(res['dsm'].sum()))\n"
+    )
+_out_demo = subprocess.run(  # nosec B603 - fixed args, test-only script
+    [sys.executable, _cross_script_demo], capture_output=True, text=True)
+_expected_demo = f"14 12 {float(res_demo['dsm'].sum())}\n"
+check("demo: identical result from separate process",
+      _out_demo.returncode == 0 and _out_demo.stdout.replace('\r', '') == _expected_demo)
+if os.path.exists(_cross_script_demo):
+    os.remove(_cross_script_demo)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
