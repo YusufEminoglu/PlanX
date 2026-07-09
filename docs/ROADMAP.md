@@ -80,6 +80,9 @@ planx/
 | Reporting (v3.0) | Scenario Snapshot | auto-detected PlanX outputs -> plan score metrics captured to snapshot JSON (batchable) |
 | Walkability (v3.0) | Walkability Audit | street-segment 0-100 walk scores: intersections, mix entropy, destinations, block length, slope |
 | Walkability (v3.0) | Pedestrian Route Quality | quality-weighted routing vs plain shortest: detour ratio, mean walk score, low-quality share |
+| Transit (v3.1) | GTFS Import and Service Stats | validated feed import: stops + per-day route service summary |
+| Transit (v3.1) | Transit Frequency Map | departures/hour, headway and route counts per stop for a window |
+| Transit (v3.1) | Transit Travel-Time Access | walk+transit door-to-door vs walk-only (RAPTOR earliest arrival, transfers) |
 
 ## Release roadmap
 
@@ -225,10 +228,22 @@ planx/
   per origin-destination pair. 265 unit + 205 e2e checks on QGIS 3.44 LTR
   and QGIS 4.0.2.
 
+- **v3.1 — Transit (GTFS):** SHIPPED 2026-07-09 — a new Transit group read
+  straight from GTFS zips, no dependencies: **GTFS Import and Service
+  Stats** (validated import with named errors; stops + per-day route
+  summary), **Transit Frequency Map** (departures/hour, mean headway and
+  route counts per stop for any window) and **Transit Travel-Time Access**
+  (walk on the street network to a stop, RAPTOR-style earliest arrival
+  with up to N transfers, walk to each destination - reported against
+  walking all the way, per destination). New pure `engine/transit.py`
+  (past-midnight times as plain seconds; FIFO trips per route documented)
+  and `paths.multi_source_offset` for the egress leg. 287 unit + 221 e2e
+  checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ### Next: the v3 series
 
 The queued Future ideas are all shipped. Development continues along
-`docs/ENHANCEMENT_PLAN_v3.md` (phases D-I): GTFS transit (v3.1), visibility/isovists (v3.2),
+`docs/ENHANCEMENT_PLAN_v3.md` (phases E-I): visibility/isovists (v3.2),
 population & housing (v3.3), noise + green infrastructure (v3.4), urban
 growth simulation (v3.5) and the batch Plan Auditor (v3.6).
 

@@ -29,6 +29,7 @@ GROUP_REPORT = ("Reporting and Dashboard", "reporting")
 GROUP_OPTIMIZE = ("Optimization", "optimization")
 GROUP_EQUITY = ("Equity", "equity")
 GROUP_WALK = ("Walkability", "walkability")
+GROUP_TRANSIT = ("Transit", "transit")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

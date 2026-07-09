@@ -1089,6 +1089,124 @@ except ValueError:
     check("walk_scores: unknown component raises", True)
 
 # --------------------------------------------------------------------------- #
+# 26. GTFS transit kernels (Phase D)
+# --------------------------------------------------------------------------- #
+# Synthetic feed: R1 A->B->C every 30 min 07:00-09:30 (10 min per hop),
+# R2 C->D at 08:25 and 09:25 (10 min ride). Weekday service Jan-Dec 2026,
+# with 2026-07-07 cancelled by a calendar_dates exception.
+import tempfile  # noqa: E402
+import zipfile  # noqa: E402
+
+from planx.engine import transit  # noqa: E402
+
+
+def _write_gtfs_fixture(path):
+    def csv_lines(header, rows):
+        return "\n".join([header] + [",".join(str(c) for c in r)
+                                     for r in rows]) + "\n"
+
+    def hhmm(minutes):
+        return f"{minutes // 60:02d}:{minutes % 60:02d}:00"
+
+    r1_starts = [420, 450, 480, 510, 540, 570]  # 07:00 ... 09:30
+    trips = [(f"t{i + 1}", "R1", "WK") for i in range(len(r1_starts))]
+    trips += [("u1", "R2", "WK"), ("u2", "R2", "WK")]
+    st_rows = []
+    for i, m0 in enumerate(r1_starts):
+        tid = f"t{i + 1}"
+        st_rows += [(tid, hhmm(m0), hhmm(m0), "A", 1),
+                    (tid, hhmm(m0 + 10), hhmm(m0 + 10), "B", 2),
+                    (tid, hhmm(m0 + 20), hhmm(m0 + 20), "C", 3)]
+    st_rows += [("u1", hhmm(505), hhmm(505), "C", 1),
+                ("u1", hhmm(515), hhmm(515), "D", 2),
+                ("u2", hhmm(565), hhmm(565), "C", 1),
+                ("u2", hhmm(575), hhmm(575), "D", 2)]
+    files = {
+        "stops.txt": csv_lines(
+            "stop_id,stop_name,stop_lat,stop_lon",
+            [("A", "Stop A", 0.0, 0.0), ("B", "Stop B", 0.0, 0.01),
+             ("C", "Stop C", 0.0, 0.02), ("D", "Stop D", 0.0, 0.04)]),
+        "routes.txt": csv_lines(
+            "route_id,route_short_name,route_long_name,route_type",
+            [("R1", "1", "Mainline", 3), ("R2", "2", "Branch", 3)]),
+        "trips.txt": csv_lines("trip_id,route_id,service_id",
+                               [(t, r, s) for (t, r, s) in trips]),
+        "stop_times.txt": csv_lines(
+            "trip_id,arrival_time,departure_time,stop_id,stop_sequence",
+            st_rows),
+        "calendar.txt": csv_lines(
+            "service_id,monday,tuesday,wednesday,thursday,friday,saturday,"
+            "sunday,start_date,end_date",
+            [("WK", 1, 1, 1, 1, 1, 0, 0, "20260101", "20261231")]),
+        "calendar_dates.txt": csv_lines(
+            "service_id,date,exception_type", [("WK", "20260707", 2)]),
+    }
+    with zipfile.ZipFile(path, "w") as zf:
+        for name, text in files.items():
+            zf.writestr(name, text)
+    return path
+
+
+check("gtfs: parse_time plain", transit.parse_time("08:30:00") == 30600)
+check("gtfs: parse_time past midnight", transit.parse_time("25:10:00") == 90600)
+try:
+    transit.parse_time("8h30")
+    check("gtfs: malformed time raises", False)
+except ValueError:
+    check("gtfs: malformed time raises", True)
+
+_gtfs_path = os.path.join(tempfile.gettempdir(), "planx_test_gtfs.zip")
+_write_gtfs_fixture(_gtfs_path)
+feed = transit.read_gtfs(_gtfs_path)
+check("gtfs: 4 stops read", feed["stop_ids"] == ["A", "B", "C", "D"])
+check("gtfs: 8 trips read", len(feed["trips"]) == 8)
+
+_bad_path = os.path.join(tempfile.gettempdir(), "planx_test_gtfs_bad.zip")
+with zipfile.ZipFile(_bad_path, "w") as zf:
+    zf.writestr("stops.txt", "stop_id,stop_lat,stop_lon\nA,0,0\n")
+try:
+    transit.read_gtfs(_bad_path)
+    check("gtfs: missing files raise a named error", False)
+except ValueError as exc:
+    check("gtfs: missing files raise a named error",
+          "routes.txt" in str(exc) and "stop_times.txt" in str(exc))
+
+check("gtfs: Monday runs", transit.active_services(feed, "20260706") == {"WK"})
+check("gtfs: Sunday empty", transit.active_services(feed, "20260705") == set())
+check("gtfs: exception removes 2026-07-07",
+      transit.active_services(feed, "20260707") == set())
+check("gtfs: first service day is 2026-01-01 (a Thursday)",
+      transit.first_service_day(feed) == "20260101")
+
+freq = transit.stop_frequencies(feed, "20260706", window=(7 * 3600, 9 * 3600))
+check("gtfs: stop A has 4 departures 07-09",
+      int(freq["departures"][0]) == 4)
+check("gtfs: headway at A is 30 min", close(freq["headway_min"][0], 30.0))
+check("gtfs: C departs only via R2 in the window",
+      int(freq["departures"][2]) == 1 and int(freq["n_routes"][2]) == 1)
+check("gtfs: terminus D never departs", int(freq["departures"][3]) == 0)
+
+pats, stop_pats = transit.compile_day(feed, "20260706")
+check("gtfs: two patterns compiled", len(pats) == 2)
+check("gtfs: R1 pattern holds 6 trips",
+      sorted(p["arr"].shape[0] for p in pats) == [2, 6])
+
+arr = transit.earliest_arrival(pats, stop_pats, 4, {0: 8 * 3600},
+                               max_transfers=1)
+check("gtfs: RAPTOR reaches B 08:10", close(arr[1], 8 * 3600 + 600))
+check("gtfs: RAPTOR reaches C 08:20", close(arr[2], 8 * 3600 + 1200))
+check("gtfs: RAPTOR transfers to D 08:35", close(arr[3], 8 * 3600 + 2100))
+arr0 = transit.earliest_arrival(pats, stop_pats, 4, {0: 8 * 3600},
+                                max_transfers=0)
+check("gtfs: without transfers D is unreachable", not np.isfinite(arr0[3]))
+arr_late = transit.earliest_arrival(pats, stop_pats, 4, {0: 8 * 3600 + 300},
+                                    max_transfers=2)
+check("gtfs: five past eight -> next 08:30 trip -> C 08:50",
+      close(arr_late[2], 8 * 3600 + 3000))
+check("gtfs: late start still catches the 09:25 branch to D",
+      close(arr_late[3], 9 * 3600 + 2100))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

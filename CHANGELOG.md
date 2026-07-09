@@ -3,6 +3,20 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.1.0] - 2026-07-09
+
+Transit: GTFS feeds become first-class citizens (37 algorithms).
+
+### Added
+- **NEW GROUP: Transit.**
+- **GTFS Import and Service Stats** — loads a GTFS zip into QGIS with validation on the way in (named errors for missing files / malformed times). Stops as WGS84 points with daily departures + route counts; a route summary table (mode, trips, service span, longest stop sequence). Service day defaults to the feed's first active day.
+- **Transit Frequency Map** — departures per stop within a time window: departures/hour, mean headway minutes, distinct routes (the frequent-network map), plus per-route trips in the window.
+- **Transit Travel-Time Access** — door-to-door with public transport: walk to a stop on the street network, ride a RAPTOR-style timetable with up to N transfers, walk to each destination. Reports walk-only vs transit minutes, winning mode and minutes saved per destination. Overtaking trips treated FIFO (screening simplification, documented).
+- Engine: pure-stdlib+NumPy `engine/transit.py` — GTFS zip reader (utf-8-sig, past-midnight times as plain seconds, never datetimes), `calendar`/`calendar_dates` service resolution, `stop_frequencies`, RAPTOR `compile_day` (pattern grouping by route + stop sequence) and `earliest_arrival`; `paths.multi_source_offset` (egress Dijkstra whose sources start at their own arrival offsets); three new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **287** (synthetic in-code GTFS: transfer chains, no-transfer cutoffs, late boarding, cancelled service days); end-to-end assertions to **221** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.0.0] - 2026-07-09
 
 Scenarios & Walkability: the plan-evaluation loop closes and a tenth tool

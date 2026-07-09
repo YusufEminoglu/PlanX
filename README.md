@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives thirty-four Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives thirty-seven Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -36,8 +36,9 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Accessibility equity** — measure how *fairly* access is shared, not just how much there is: population-weighted **Gini**, a **Theil index** split into between- and within-group inequality (the environmental-justice number), **P90/P10**, coefficient of variation and an **access-poverty share**, on any value (access score, travel time, distance); plus **Inequality Curves** — an exportable **Lorenz / concentration curve** and the **Atkinson index** at your chosen inequality aversion; and **Demographic Equity Cross-Tabs** — who actually holds the low values: representation ratios per subgroup × value class and the Duncan dissimilarity index.
 - **Scenario A/B comparison** — snapshot the score cards for two plan alternatives (dashboard buttons or the batchable Scenario Snapshot algorithm) and diff them metric by metric with direction-aware winners, in the dock or as a one-file HTML comparison report.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
+- **Transit from GTFS** — load and validate any GTFS feed (stops with departures, route service stats), map **stop frequencies and headways** for a time window, and compute **door-to-door walk+transit travel times** (RAPTOR-style earliest arrival with transfers, access/egress on the street network, always compared against walking).
 - **Walkability studio** — a **Walkability Audit** scoring every street segment 0-100 from intersection density, land-use mix entropy, destinations, block length and slope (editable weights/breakpoints), and **Pedestrian Route Quality** routing over quality-weighted streets: the detour ratio, the mean walk score along the route, the share on low-scoring segments.
-- **Verified math** — 265 engine unit checks against hand-computed values + 205 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Verified math** — 287 engine unit checks against hand-computed values + 221 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -87,6 +88,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Reporting & Dashboard | Scenario Snapshot | Auto-detects PlanX output layers and captures the plan score metrics to a snapshot JSON |
 | Walkability | Walkability Audit | Street-segment walk scores 0-100: intersections, mix, destinations, block length, slope |
 | Walkability | Pedestrian Route Quality | Quality-weighted routes vs plain shortest: detour ratio, mean walk score, low-quality share |
+| Transit | GTFS Import and Service Stats | Validated feed import: stops with departures/routes + route service summary |
+| Transit | Transit Frequency Map | Departures per hour, mean headway and route counts per stop for a time window |
+| Transit | Transit Travel-Time Access | Door-to-door walk+transit vs walk-only minutes per destination (RAPTOR, transfers) |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Facility Siting | Choose where to build facilities under capacity constraints and travel limits |
 | Optimization | Capacitated Allocation | Nearest facility with free capacity, spill when full, uncovered when none in reach |

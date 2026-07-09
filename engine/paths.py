@@ -161,6 +161,46 @@ def reconstruct_path(pred_node, pred_edge, source, target):
     return nodes, edges
 
 
+def multi_source_offset(indptr, adj, weights, n, sources, offsets,
+                        cutoff=None):
+    """Min over sources of ``offset_s + path cost`` to every node.
+
+    Like :func:`multi_source` but each source enters the heap at its own
+    initial cost - the egress kernel of transit accessibility (offset =
+    arrival time at a stop, weights = walking seconds). Pure heapq.
+    Returns (cost[n], winning_source_pos[n] with -1 where unreachable).
+    """
+    sources = np.asarray(sources, dtype=np.int64)
+    offsets = np.asarray(offsets, dtype=np.float64)
+    dist = np.full(n, INF)
+    label = np.full(n, -1, dtype=np.int64)
+    heap = []
+    for i, s in enumerate(sources):
+        s = int(s)
+        off = float(offsets[i])
+        if not np.isfinite(off):
+            continue
+        if off < dist[s]:
+            dist[s] = off
+            label[s] = i
+            heap.append((off, s, i))
+    heapq.heapify(heap)
+    while heap:
+        d, u, lab = heapq.heappop(heap)
+        if d > dist[u]:
+            continue
+        for k in range(indptr[u], indptr[u + 1]):
+            v = adj[k]
+            nd = d + weights[k]
+            if cutoff is not None and nd > cutoff:
+                continue
+            if nd < dist[v]:
+                dist[v] = nd
+                label[v] = lab
+                heapq.heappush(heap, (nd, v, lab))
+    return dist, label
+
+
 def dijkstra_pruned(indptr, adj, w_cost, w_prune, n, source, radius):
     """Dijkstra minimizing ``w_cost`` while pruning expansion once the
     accumulated ``w_prune`` of the settled path exceeds ``radius``.

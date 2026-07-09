@@ -41,6 +41,9 @@ from .algorithms.alg_scenario_compare import ScenarioCompareAlgorithm
 from .algorithms.alg_scenario_snapshot import ScenarioSnapshotAlgorithm
 from .algorithms.alg_walkability import WalkabilityAlgorithm
 from .algorithms.alg_route_quality import RouteQualityAlgorithm
+from .algorithms.alg_gtfs_import import GtfsImportAlgorithm
+from .algorithms.alg_transit_frequency import TransitFrequencyAlgorithm
+from .algorithms.alg_transit_access import TransitAccessAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -105,3 +108,7 @@ class PlanXProvider(QgsProcessingProvider):
         # 10 | Walkability
         self.addAlgorithm(WalkabilityAlgorithm())
         self.addAlgorithm(RouteQualityAlgorithm())
+        # 11 | Transit
+        self.addAlgorithm(GtfsImportAlgorithm())
+        self.addAlgorithm(TransitFrequencyAlgorithm())
+        self.addAlgorithm(TransitAccessAlgorithm())
