@@ -101,6 +101,9 @@ planx/
 | Cycling (v4.1) | Low-Stress Connectivity | LTS-filtered primal graph components, island lengths, low-stress share and destination-reach population |
 | Microclimate (v4.2) | Road Emissions | Calculate segment emissions (g/km/day) from traffic volume and an emission factor |
 | Microclimate (v4.2) | Air Quality Screening | Dispersion index grid, receiver index values and exposure bands with canyon factor |
+| Hazard (v4.3) | Flow Accumulation | Deterministic priority-flood filling, D8 steepest-descent direction, and topological flow accumulation rasters |
+| Hazard (v4.3) | HAND and Inundation | Height Above Nearest Drainage (HAND) raster and binary inundation mask for a given depth |
+| Hazard (v4.3) | Flood Exposure | Intersects inundation mask with buildings and population to output counts and shares, and annotates receiver features |
 
 ## Release roadmap
 
@@ -337,9 +340,15 @@ planx/
   **Air Quality Screening** generates a unitless pollution dispersion index grid and calculates receiver levels and exposure bands, accounting for wind speed, decay exponent alpha, and street canyon effects. New pure-NumPy `engine/air.py`.
   372 unit + 294 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
+- **v4.3 - Hazard Screening:** SHIPPED 2026-07-10 - **NEW GROUP Hazard Screening**:
+  **Flow Accumulation** fills DEM depressions using priority-flood, computes D8 flow direction, and calculates topological flow accumulation.
+  **HAND and Inundation** calculates Height Above Nearest Drainage by tracing D8 paths, and generates a binary inundation mask.
+  **Flood Exposure** intersects the inundation mask with buildings and population to output counts and shares, and annotates receiver features. New pure-NumPy `engine/hydro.py`.
+  378 unit + 300 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ### The v4 series (in progress)
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-C have shipped: 50 -> 55 algorithms across 16 groups.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-D have shipped: 50 -> 58 algorithms across 17 groups.
 
 ## Quality gates (every release)
 

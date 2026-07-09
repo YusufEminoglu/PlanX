@@ -42,9 +42,10 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog) and **residential capacity** (FAR arithmetic per parcel, district roll-up) — projection feeds needs, capacity tests the zoning.
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
 - **Cycling** — **Cycling Stress (LTS)** classifies street segments from speed, lanes, AADT and cycling infrastructure, then **Low-Stress Connectivity** maps the LTS-filtered cycling islands and destination-reach population.
+- **Hazard screening** — **Flow Accumulation** (priority-flood fill, D8 flow, flow accumulation), **Height Above Nearest Drainage (HAND)**, **Inundation Mapping** and **Flood Exposure** (overlay with buildings and population to output exposed counts/shares and annotated receiver layers).
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
-- **Verified math** — 372 engine unit checks against hand-computed values + 294 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Verified math** — 378 engine unit checks against hand-computed values + 300 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -114,6 +115,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Urban Growth | Land-Cover Change Analysis | Transition matrix + per-class gains/losses/persistence in hectares |
 | Urban Growth | Urban Growth Simulation (CA) | Deterministic constrained cellular automaton → year-of-conversion raster |
 | Urban Growth | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest-patch share, edge density |
+| Hazard Screening | Flow Accumulation | Fills DEM depressions, computes D8 flow direction and topological flow accumulation rasters |
+| Hazard Screening | HAND and Inundation | Height Above Nearest Drainage (HAND) raster and binary inundation mask for a given depth |
+| Hazard Screening | Flood Exposure | Intersects inundation mask with buildings and population to output counts and shares |
 | Reporting & Dashboard | Batch Plan Auditor | One run chains the standard battery into a scenario snapshot + HTML report |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Facility Siting | Choose where to build facilities under capacity constraints and travel limits |

@@ -94,6 +94,11 @@ infinite line source under `alpha = 2` and wind speed `u` has concentration inde
 to the emission rate `E` (`strength = E * 25 * ℓ / π`). If buildings are present on both
 sides perpendicular to the receiver, a canyon factor `1 + min(2, H/W)` is applied.
 
+## Hazard Screening
+
+Wang & Liu (2006) deterministic priority-flood depression filling using a priority queue. D8 flow direction: steepest-descent slope `(drop / distance)` to 8 neighbors with a fixed tie-break order. Flow accumulation: Kahn's topological sorting. Height Above Nearest Drainage (HAND): downstream elevation difference `dem[r, c] - dem[dr, dc]` relative to drainage cells (where flow accumulation >= threshold). Inundation mask: binary mask where `HAND <= depth`. Flood exposure: intersects inundation mask with building footprint centroids and population points to calculate exposed counts and percentage shares.
+
+
 ## Plan Standards & QA
 
 Land-use balance against free-text per-capita standards (`green=10`),

@@ -62,6 +62,9 @@ from .algorithms.alg_cycling_stress import CyclingStressAlgorithm
 from .algorithms.alg_low_stress_islands import LowStressIslandsAlgorithm
 from .algorithms.alg_road_emissions import RoadEmissionsAlgorithm
 from .algorithms.alg_air_screen import AirScreenAlgorithm
+from .algorithms.alg_flow_accumulation import FlowAccumulationAlgorithm
+from .algorithms.alg_hand_index import HandIndexAlgorithm
+from .algorithms.alg_flood_exposure import FloodExposureAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -153,3 +156,7 @@ class PlanXProvider(QgsProcessingProvider):
         # 16 | Cycling
         self.addAlgorithm(CyclingStressAlgorithm())
         self.addAlgorithm(LowStressIslandsAlgorithm())
+        # 17 | Hazard Screening
+        self.addAlgorithm(FlowAccumulationAlgorithm())
+        self.addAlgorithm(HandIndexAlgorithm())
+        self.addAlgorithm(FloodExposureAlgorithm())

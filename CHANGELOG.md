@@ -3,6 +3,19 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.3.0] - 2026-07-10
+
+Hazard Screening: flow accumulation, HAND, and flood exposure mapping (58 algorithms, 17 groups).
+
+### Added
+- **Flow Accumulation** (new Hazard Screening group) - fills DEM depressions, computes D8 flow directions, and calculates topological flow accumulation.
+- **HAND and Inundation** (Hazard Screening group) - calculates Height Above Nearest Drainage by tracing D8 paths, and generates a binary inundation mask.
+- **Flood Exposure** (Hazard Screening group) - intersects the inundation mask with building footprint centroids and population points to calculate exposed counts and percentage shares, and annotates receiver features.
+- Pure-NumPy `engine/hydro.py` with priority-flood filling, D8 steepest-descent direction, topological flow accumulation, HAND, inundation, and building/population exposure calculations.
+
+### Tested
+- 378 engine unit checks and 300 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4.
+
 ## [4.2.0] - 2026-07-10
 
 Air Quality Screening: road emissions calculation and air dispersion modeling (55 algorithms, 16 groups).

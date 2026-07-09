@@ -35,6 +35,7 @@ GROUP_POPULATION = ("Population and Housing", "population")
 GROUP_GREEN = ("Green Infrastructure", "green")
 GROUP_GROWTH = ("Urban Growth", "growth")
 GROUP_CYCLE = ("Cycling", "cycling")
+GROUP_HAZARD = ("Hazard Screening", "hazard")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, demo, equity, graphs, morphology, optimize,
+    HAS_SCIPY, air, allocate, centrality, cycling, demo, equity, graphs, hydro, morphology, optimize,
     paths, report, scenario, solar, standards, syntax, walkability,
 )
 
@@ -1607,6 +1607,70 @@ check("air: infinite-line calibration within tolerance", abs(c_inf - 1000.0) < 1
 labels_val, counts_val = air.exposure_bands([15.0, 25.0, 35.0], weights=[2.0, 3.0, 5.0], breaks=[20.0, 30.0])
 check("air: band splitting counts", counts_val.tolist() == [2.0, 3.0, 5.0])
 check("air: band splitting labels", labels_val == ["< 20", "20 - 30", ">= 30"])
+
+# --------------------------------------------------------------------------- #
+# 36. Hydrology / Hazard screening (Phase D)
+# --------------------------------------------------------------------------- #
+# Pit DEM fills to pour point
+dem_pit = np.array([
+    [5.0, 5.0, 5.0],
+    [5.0, 2.0, 5.0],
+    [5.0, 5.0, 5.0]
+])
+filled_pit = hydro.fill_depressions(dem_pit)
+check("hydro: a pit DEM fills exactly to its pour point",
+      filled_pit[1, 1] == 5.0 and np.all(filled_pit[0, :] == 5.0) and np.all(filled_pit[2, :] == 5.0))
+
+# 1-D slope gives accumulation 1..n and HAND equal to elevation above channel
+dem_slope = np.array([
+    [5.0, 4.0, 3.0, 2.0, 1.0]
+])
+dirs_slope = hydro.d8_flow(dem_slope)
+check("hydro: 1-D slope D8 directions are all East (1) except sink",
+      dirs_slope.tolist() == [[1, 1, 1, 1, 0]])
+
+accum_slope = hydro.flow_accumulation(dirs_slope)
+check("hydro: 1-D slope flow accumulation is 1..n",
+      accum_slope.tolist() == [[1.0, 2.0, 3.0, 4.0, 5.0]])
+
+# Let threshold = 3.0
+drainage_slope = accum_slope >= 3.0
+hand_slope = hydro.hand(dem_slope, dirs_slope, drainage_slope)
+check("hydro: 1-D slope HAND is elevation above the channel",
+      hand_slope.tolist() == [[2.0, 1.0, 0.0, 0.0, 0.0]])
+
+# Valley floods correct three cells at depth 1
+dem_valley = np.array([
+    [3.0, 3.0, 3.0],
+    [2.0, 1.0, 2.0],
+    [3.0, 3.0, 3.0]
+])
+dirs_valley = hydro.d8_flow(dem_valley)
+accum_valley = hydro.flow_accumulation(dirs_valley)
+drainage_valley = accum_valley >= 5.0
+hand_valley = hydro.hand(dem_valley, dirs_valley, drainage_valley)
+inund_valley = hydro.inundation(hand_valley, depth=1.0)
+check("hydro: a hand-built valley floods the right three cells at depth 1",
+      inund_valley.tolist() == [
+          [0.0, 0.0, 0.0],
+          [1.0, 1.0, 1.0],
+          [0.0, 0.0, 0.0]
+      ])
+
+# Exposure cross-tab check
+inund_grid_test = np.array([
+    [0.0, 0.0, 0.0],
+    [1.0, 1.0, 1.0],
+    [0.0, 0.0, 0.0]
+])
+bld_coords_test = [(1.5, -15.0), (1.5, -5.0)]
+gt_test = (0.0, 1.0, 0.0, 0.0, 0.0, -10.0)
+exp_res = hydro.exposure(inund_grid_test, bld_coords_test, [(1.5, -15.0), (1.5, -5.0)], [10.0, 20.0], gt_test)
+check("hydro: exposure cross-tab equals hand counts",
+      exp_res["exposed_bld"] == 1.0 and exp_res["total_bld"] == 2.0
+      and close(exp_res["pct_bld"], 50.0)
+      and exp_res["exposed_pop"] == 10.0 and exp_res["total_pop"] == 30.0
+      and close(exp_res["pct_pop"], 100.0 / 3.0))
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
