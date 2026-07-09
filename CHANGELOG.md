@@ -3,6 +3,20 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.4.0] - 2026-07-09
+
+Environment Screening: road noise and green infrastructure (46 algorithms).
+
+### Added
+- **Road Noise Screening** (Microclimate group) — screening-quality dB(A) grid: RLS-90-style emission from traffic volumes (hourly factor for AADT) and heavy shares; roads as line-calibrated point sources; energetic sum with 20 lg r spreading; fixed insertion loss behind buildings. Optional receivers report levels + a population exposure table (5 dB bands). Documented as screening, not compliance.
+- **NEW GROUP: Green Infrastructure.**
+- **Green Space Access** — the park-hierarchy standard (`min_ha=max_dist` ladder) on real network distances: per-demand pass/fail per class, classes met, per-class covered population, citywide m²/capita.
+- **Urban Green Connectivity** — crossable-gap patch graph: components, binary Probability-of-Connectivity index, per-patch dPC importance (the stepping-stone argument, quantified).
+- Engine: pure-NumPy `engine/noise.py` (the infinite-line calibration is a unit test) and `engine/green.py`; three new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **331**; end-to-end assertions to **256** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.3.0] - 2026-07-09
 
 Population & Housing: the demographic backbone of plan-making (43 algorithms).

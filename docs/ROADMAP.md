@@ -89,6 +89,9 @@ planx/
 | Population (v3.3) | Population Projection (Cohort-Component) | Leslie matrix from an age-group rate table, step totals |
 | Population (v3.3) | Housing Needs Assessment | households x (1+vacancy) - stock + losses + backlog |
 | Population (v3.3) | Residential Capacity | parcel FAR arithmetic -> buildable m2 + units, district roll-up |
+| Microclimate (v3.4) | Road Noise Screening | RLS-90-style emission + line-calibrated sampling + insertion loss -> dB(A) grid |
+| Green Infra (v3.4) | Green Space Access | park hierarchy min_ha=max_dist on network distances, coverage per class |
+| Green Infra (v3.4) | Urban Green Connectivity | crossable-gap components, PC index, per-patch dPC |
 
 ## Release roadmap
 
@@ -268,6 +271,19 @@ planx/
   allocation). New pure-NumPy `engine/population.py` and
   `report.svg_pyramid`. 316 unit + 242 e2e checks on QGIS 3.44 LTR and
   QGIS 4.0.2.
+
+- **v3.4 — Environment Screening:** SHIPPED 2026-07-09 — **Road Noise
+  Screening** (Microclimate): RLS-90-style emission, roads sampled as
+  point sources calibrated so an infinite line reproduces the 25 m
+  reference (that calibration is a unit test), energetic sum with 20 lg r
+  spreading, fixed insertion loss where buildings block sight lines,
+  receiver levels + population exposure bands - loudly documented as
+  screening, not compliance. **NEW GROUP Green Infrastructure**: **Green
+  Space Access** (the min-size-within-max-distance park ladder on real
+  network distances, per-class covered population) and **Urban Green
+  Connectivity** (crossable-gap components, binary PC index, per-patch
+  dPC importance). New pure `engine/noise.py` + `engine/green.py`.
+  331 unit + 256 e2e checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
 ### Next: the v3 series
 

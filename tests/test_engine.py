@@ -1325,6 +1325,72 @@ check("pyramid: svg carries the labels and both series",
       and "#27ae60" in pyr and "#d64541" in pyr)
 
 # --------------------------------------------------------------------------- #
+# 29. Road-noise screening (Phase G)
+# --------------------------------------------------------------------------- #
+from planx.engine import green, noise  # noqa: E402
+
+check("noise: RLS emission 1000 veh/h at 10 percent heavy = 69.9 dB",
+      close(float(noise.emission_rls(1000.0, 10.0)), 37.3 + 10 * math.log10(1820.0)))
+check("noise: zero traffic is silent",
+      np.isneginf(noise.emission_rls(0.0, 5.0)))
+
+# Point-sample calibration: an effectively infinite straight road sampled
+# every 10 m must reproduce the 25 m line level within a fraction of a dB.
+lm25 = 70.0
+xs = np.arange(-10000.0, 10000.0, 10.0)
+src = np.column_stack([xs, np.zeros_like(xs)])
+lvl = np.full(len(xs), float(noise.sample_level(lm25, 10.0)))
+at25 = noise.receiver_level(src, lvl, 0.0, 25.0)
+check("noise: infinite-line samples reproduce the 25 m reference",
+      abs(at25 - lm25) < 0.3)
+at50 = noise.receiver_level(src, lvl, 0.0, 50.0)
+check("noise: line spreading loses ~3 dB per doubling",
+      abs((at25 - at50) - 3.0) < 0.3)
+
+one = np.asarray([[0.0, 0.0]])
+one_lvl = np.asarray([noise.sample_level(lm25, 10.0)])
+free = noise.receiver_level(one, one_lvl, 100.0, 0.0)
+shadowed = noise.receiver_level(one, one_lvl, 100.0, 0.0,
+                                blocked=np.asarray([True]), screen_db=10.0)
+check("noise: screening subtracts exactly the insertion loss",
+      close(free - shadowed, 10.0))
+check("noise: cutoff silences distant sources",
+      np.isneginf(noise.receiver_level(one, one_lvl, 1000.0, 0.0, cutoff=500.0)))
+
+labels_b, totals_b = noise.exposure_bands(
+    [44.0, 52.0, 66.0], weights=[10.0, 20.0, 5.0])
+check("noise: exposure bands split the population",
+      close(totals_b[0], 10.0) and close(totals_b[2], 20.0)
+      and close(totals_b[5], 5.0) and close(sum(totals_b), 35.0))
+
+# --------------------------------------------------------------------------- #
+# 30. Green connectivity (Phase G)
+# --------------------------------------------------------------------------- #
+check("green: hierarchy parses and sorts",
+      green.parse_hierarchy("2=800, 0.5=300") == [(0.5, 300.0), (2.0, 800.0)])
+try:
+    green.parse_hierarchy("banana")
+    check("green: malformed hierarchy raises", False)
+except ValueError:
+    check("green: malformed hierarchy raises", True)
+
+# Chain of three patches (1, 1, 2 ha): fully connected PC = 1; removing the
+# middle stepping stone costs the most.
+conn = green.connectivity([1.0, 1.0, 2.0], [(0, 1), (1, 2)])
+check("green: one chained component", conn["n_components"] == 1)
+check("green: fully connected PC = 1", close(conn["pc"], 1.0))
+check("green: stepping stone loses 68.75 percent of PC",
+      close(conn["dpc"][1], 68.75))
+check("green: end patch 0 loses 43.75 percent",
+      close(conn["dpc"][0], 43.75))
+check("green: the large end patch matters most of the ends",
+      conn["dpc"][2] > conn["dpc"][0])
+
+iso = green.connectivity([1.0, 1.0], [])
+check("green: two isolated equal patches -> PC 0.5",
+      iso["n_components"] == 2 and close(iso["pc"], 0.5))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

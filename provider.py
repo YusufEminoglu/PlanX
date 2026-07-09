@@ -50,6 +50,9 @@ from .algorithms.alg_visual_exposure import VisualExposureAlgorithm
 from .algorithms.alg_population_projection import PopulationProjectionAlgorithm
 from .algorithms.alg_housing_needs import HousingNeedsAlgorithm
 from .algorithms.alg_residential_capacity import ResidentialCapacityAlgorithm
+from .algorithms.alg_noise_screen import NoiseScreenAlgorithm
+from .algorithms.alg_green_access import GreenAccessAlgorithm
+from .algorithms.alg_green_connectivity import GreenConnectivityAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -93,6 +96,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(SolarIrradiationAlgorithm())
         self.addAlgorithm(AnnualSolarAlgorithm())
         self.addAlgorithm(HeatRiskGridAlgorithm())
+        self.addAlgorithm(NoiseScreenAlgorithm())
         # 6 | Plan Standards and QA
         self.addAlgorithm(LandUseBalanceAlgorithm())
         self.addAlgorithm(FacilityAdequacyAlgorithm())
@@ -126,3 +130,6 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(PopulationProjectionAlgorithm())
         self.addAlgorithm(HousingNeedsAlgorithm())
         self.addAlgorithm(ResidentialCapacityAlgorithm())
+        # 14 | Green Infrastructure
+        self.addAlgorithm(GreenAccessAlgorithm())
+        self.addAlgorithm(GreenConnectivityAlgorithm())

@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives forty-three Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives forty-six Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -40,7 +40,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Walkability studio** — a **Walkability Audit** scoring every street segment 0-100 from intersection density, land-use mix entropy, destinations, block length and slope (editable weights/breakpoints), and **Pedestrian Route Quality** routing over quality-weighted streets: the detour ratio, the mean walk score along the route, the share on low-scoring segments.
 - **Visibility** — DSM **viewsheds** (observer/target heights, radius), an **isovist field** (visible area, radials, circularity, occlusivity on a point grid — the VGA view) and **landmark visual exposure** (from where can it be seen — skyline and heritage screening).
 - **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog) and **residential capacity** (FAR arithmetic per parcel, district roll-up) — projection feeds needs, capacity tests the zoning.
-- **Verified math** — 316 engine unit checks against hand-computed values + 242 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
+- **Verified math** — 331 engine unit checks against hand-computed values + 256 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -99,6 +100,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Population & Housing | Population Projection (Cohort-Component) | Leslie-matrix projection from an age-group rate table, per-step totals |
 | Population & Housing | Housing Needs Assessment | Households + vacancy + losses + backlog → dwellings to deliver |
 | Population & Housing | Residential Capacity | Parcel FAR arithmetic → buildable floorspace and dwelling units, district roll-up |
+| Microclimate | Road Noise Screening | RLS-90-style emission + spreading + building screening → dB(A) grid, exposure bands |
+| Green Infrastructure | Green Space Access | Park hierarchy (size-within-distance ladder) on network distances, coverage per class |
+| Green Infrastructure | Urban Green Connectivity | Patch components, Probability-of-Connectivity index, per-patch dPC importance |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Facility Siting | Choose where to build facilities under capacity constraints and travel limits |
 | Optimization | Capacitated Allocation | Nearest facility with free capacity, spill when full, uncovered when none in reach |
