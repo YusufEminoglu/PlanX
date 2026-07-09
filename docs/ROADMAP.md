@@ -86,6 +86,9 @@ planx/
 | Visibility (v3.2) | Viewshed (DSM) | radial LOS sweep, observer/target heights, visibility count raster |
 | Visibility (v3.2) | Isovist Field | Benedikt isovist measures on a grid: area, radials, circularity, occlusivity |
 | Visibility (v3.2) | Visual Exposure of Landmarks | inverse viewshed of the outline: per-cell visible-point count |
+| Population (v3.3) | Population Projection (Cohort-Component) | Leslie matrix from an age-group rate table, step totals |
+| Population (v3.3) | Housing Needs Assessment | households x (1+vacancy) - stock + losses + backlog |
+| Population (v3.3) | Residential Capacity | parcel FAR arithmetic -> buildable m2 + units, district roll-up |
 
 ## Release roadmap
 
@@ -253,6 +256,18 @@ planx/
   for impact studies). New pure-NumPy `engine/visibility.py`, rays capped
   at the raster diagonal (the shadow-sweep lesson). 304 unit + 233 e2e
   checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
+- **v3.3 — Population & Housing:** SHIPPED 2026-07-09 — the demographic
+  backbone: **Population Projection (Cohort-Component)** (Leslie matrix
+  from a plain age-group table - survival / fertility / net migration as
+  fields, any step count, per-step totals), **Housing Needs Assessment**
+  (the needs identity with vacancy allowance, replacement losses and
+  backlog, every intermediate reported) and **Residential Capacity**
+  (per-parcel FAR arithmetic to whole dwelling units + district roll-up;
+  the reality check against the need and a target source for land-use
+  allocation). New pure-NumPy `engine/population.py` and
+  `report.svg_pyramid`. 316 unit + 242 e2e checks on QGIS 3.44 LTR and
+  QGIS 4.0.2.
 
 ### Next: the v3 series
 

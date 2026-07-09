@@ -448,6 +448,43 @@ def _density_section(summary) -> str:
             f"{summary['max']:.1f} per hectare.</p></section>")
 
 
+def svg_pyramid(labels, start, end, width=460, bar_h=16,
+                start_name="now", end_name="horizon"):
+    """Age-structure comparison: per group, the start population (grey)
+    behind the projected end population (coloured by growth/decline)."""
+    labels = [str(v) for v in labels]
+    start = [float(v) for v in start]
+    end = [float(v) for v in end]
+    peak = max(max(start, default=0.0), max(end, default=0.0)) or 1.0
+    label_w, pad = 90, 4
+    row_h = bar_h + 6
+    height = pad * 2 + row_h * len(labels) + 16
+    chart_w = width - label_w - 70
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" '
+             f'height="{height}" role="img">']
+    for i, lab in enumerate(labels):
+        y = pad + i * row_h
+        parts.append(f'<text x="0" y="{y + bar_h - 3}" font-size="11" '
+                     f'fill="#333">{_html.escape(lab)}</text>')
+        w_start = chart_w * start[i] / peak
+        parts.append(f'<rect x="{label_w}" y="{y}" width="{w_start:.1f}" '
+                     f'height="{bar_h - 4}" fill="#b0bec5" rx="2"/>')
+        w_end = chart_w * end[i] / peak
+        color = TONE_COLORS["good" if end[i] >= start[i] else "bad"]
+        parts.append(f'<rect x="{label_w}" y="{y + 4}" width="{w_end:.1f}" '
+                     f'height="{bar_h - 4}" fill="{color}" '
+                     f'fill-opacity="0.85" rx="2"/>')
+        parts.append(f'<text x="{label_w + max(w_start, w_end) + 4:.1f}" '
+                     f'y="{y + bar_h - 3}" font-size="9" fill="#666">'
+                     f'{end[i]:,.0f}</text>')
+    parts.append(f'<text x="{label_w}" y="{height - 4}" font-size="9" '
+                 f'fill="#777">grey = {_html.escape(str(start_name))}, '
+                 f'coloured = {_html.escape(str(end_name))} '
+                 '(green grows, red shrinks)</text>')
+    parts.append("</svg>")
+    return "".join(parts)
+
+
 def _fmt_metric(value) -> str:
     if value is None:
         return "-"

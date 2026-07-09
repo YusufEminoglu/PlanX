@@ -47,6 +47,9 @@ from .algorithms.alg_transit_access import TransitAccessAlgorithm
 from .algorithms.alg_viewshed import ViewshedAlgorithm
 from .algorithms.alg_isovist_field import IsovistFieldAlgorithm
 from .algorithms.alg_visual_exposure import VisualExposureAlgorithm
+from .algorithms.alg_population_projection import PopulationProjectionAlgorithm
+from .algorithms.alg_housing_needs import HousingNeedsAlgorithm
+from .algorithms.alg_residential_capacity import ResidentialCapacityAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -119,3 +122,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(ViewshedAlgorithm())
         self.addAlgorithm(IsovistFieldAlgorithm())
         self.addAlgorithm(VisualExposureAlgorithm())
+        # 13 | Population and Housing
+        self.addAlgorithm(PopulationProjectionAlgorithm())
+        self.addAlgorithm(HousingNeedsAlgorithm())
+        self.addAlgorithm(ResidentialCapacityAlgorithm())

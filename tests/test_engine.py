@@ -1273,6 +1273,58 @@ check("isovist field: per-point arrays align",
       len(fld["area"]) == 2 and fld["area"][1] > fld["area"][0])
 
 # --------------------------------------------------------------------------- #
+# 28. Population & housing (Phase F)
+# --------------------------------------------------------------------------- #
+from planx.engine import population  # noqa: E402
+
+# Hand-computed Leslie projection, 3 groups over 2 steps:
+# pop [100, 80, 60], survival [0.9, 0.8, 0.5], fertility [0, 0.4, 0.1].
+proj = population.cohort_projection(
+    [100.0, 80.0, 60.0], [0.9, 0.8, 0.5], [0.0, 0.4, 0.1], steps=2)
+check("leslie: step 1 births 38, aged 90, elders 94",
+      np.allclose(proj[1], [38.0, 90.0, 94.0]))
+check("leslie: step 2 [45.4, 34.2, 119]",
+      np.allclose(proj[2], [45.4, 34.2, 119.0]))
+check("leslie: row 0 is the start population",
+      np.allclose(proj[0], [100.0, 80.0, 60.0]))
+
+proj_mig = population.cohort_projection(
+    [100.0, 80.0, 60.0], [0.9, 0.8, 0.5], [0.0, 0.4, 0.1],
+    migration=[10.0, 0.0, -5.0], steps=1)
+check("leslie: migration lands after the update",
+      np.allclose(proj_mig[1], [48.0, 90.0, 89.0]))
+
+neg = population.cohort_projection(
+    [1.0, 0.0], [0.0, 0.0], [0.0, 0.0], migration=[-50.0, 0.0], steps=1)
+check("leslie: emigration never drives a group negative",
+      float(neg[1, 0]) == 0.0)
+
+hn = population.housing_needs(10000.0, 2.5, 3800.0, vacancy_target=0.05,
+                              replacement_units=100.0, backlog_units=50.0)
+check("housing: 4000 households -> target 4200",
+      close(hn["households"], 4000.0) and close(hn["target_stock"], 4200.0))
+check("housing: need = 4200 - 3800 + 100 + 50 = 550",
+      close(hn["need"], 550.0))
+hn_surplus = population.housing_needs(1000.0, 2.5, 900.0)
+check("housing: oversupplied market reports a surplus",
+      hn_surplus["need"] < 0)
+
+build, units = population.residential_capacity(
+    [1000.0, 500.0], [1.5, 2.0], existing_floor=[600.0, 2000.0],
+    unit_size=90.0, efficiency=0.85)
+check("capacity: 1000 m2 x 1.5 FAR - 600 = 900 buildable",
+      close(build[0], 900.0))
+check("capacity: 900 x 0.85 / 90 -> 8 whole units", int(units[0]) == 8)
+check("capacity: overbuilt parcel clamps to zero, never negative",
+      close(build[1], 0.0) and int(units[1]) == 0)
+
+pyr = report.svg_pyramid(["0-14", "15-64", "65+"],
+                         [100.0, 300.0, 80.0], [90.0, 310.0, 130.0])
+check("pyramid: svg carries the labels and both series",
+      pyr.startswith("<svg") and "0-14" in pyr and "65+" in pyr
+      and "#27ae60" in pyr and "#d64541" in pyr)
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

@@ -3,6 +3,20 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.3.0] - 2026-07-09
+
+Population & Housing: the demographic backbone of plan-making (43 algorithms).
+
+### Added
+- **NEW GROUP: Population and Housing.**
+- **Population Projection (Cohort-Component)** — a Leslie-matrix projection from a plain age-group table: per-step survival, fertility and optional net migration as fields, any number of steps. Outputs step × age-group rows and per-step totals. Single-sex screening form; rates constant over the horizon.
+- **Housing Needs Assessment** — the standard needs identity, batchable: future households, vacancy allowance, replacement losses, backlog; every intermediate in a metric/value table. Negative need = surplus.
+- **Residential Capacity** — per-parcel buildable floorspace from FAR − existing floorspace → whole dwelling units (unit size, net-to-gross efficiency), with a district roll-up. The reality check against the housing need; feeds the Land-Use Allocation Optimizer.
+- Engine: pure-NumPy `engine/population.py` (`leslie_matrix`, `cohort_projection`, `housing_needs`, `residential_capacity`); `report.svg_pyramid` age-structure chart; three new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **316** (hand-computed two-step Leslie projection, migration floors, needs identity, capacity clamps); end-to-end assertions to **242** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.2.0] - 2026-07-09
 
 Visibility: viewsheds, isovists and landmark exposure (40 algorithms).
