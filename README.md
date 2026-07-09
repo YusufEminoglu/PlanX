@@ -39,14 +39,15 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Transit from GTFS** — load and validate any GTFS feed (stops with departures, route service stats), map **stop frequencies and headways** for a time window, and compute **door-to-door walk+transit travel times** (RAPTOR-style earliest arrival with transfers, access/egress on the street network, always compared against walking).
 - **Walkability studio** — a **Walkability Audit** scoring every street segment 0-100 from intersection density, land-use mix entropy, destinations, block length and slope (editable weights/breakpoints), and **Pedestrian Route Quality** routing over quality-weighted streets: the detour ratio, the mean walk score along the route, the share on low-scoring segments.
 - **Visibility** — DSM **viewsheds** (observer/target heights, radius), an **isovist field** (visible area, radials, circularity, occlusivity on a point grid — the VGA view) and **landmark visual exposure** (from where can it be seen — skyline and heritage screening).
-- **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog) and **residential capacity** (FAR arithmetic per parcel, district roll-up) — projection feeds needs, capacity tests the zoning.
+- **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog), **residential capacity** (FAR arithmetic per parcel, district roll-up) and **population allocation** (apportioning a population increment over parcels using deterministic largest-remainder method) — projection feeds needs, capacity tests the zoning.
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
 - **Cycling** — **Cycling Stress (LTS)** classifies street segments from speed, lanes, AADT and cycling infrastructure, then **Low-Stress Connectivity** maps the LTS-filtered cycling islands and destination-reach population.
 - **Hazard screening** — **Flow Accumulation** (priority-flood fill, D8 flow, flow accumulation), **Height Above Nearest Drainage (HAND)**, **Inundation Mapping** and **Flood Exposure** (overlay with buildings and population to output exposed counts/shares and annotated receiver layers).
 - **Travel demand** — **Trip Generation** (zone productions/attractions from population/employment rates), **Gravity Distribution** (doubly constrained Furness/IPF zone-to-zone flow balancing with exponential/power deterrence over network costs) and **Mode Split** (multinomial logit shares and split flows for K modes).
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
-- **Verified math** — 384 engine unit checks against hand-computed values + 310 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
+- **Verified math** — 387 engine unit checks against hand-computed values + 317 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -95,6 +96,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Reporting & Dashboard | Scenario Compare (A/B) | Metric-by-metric diff of two plan snapshots with direction-aware winners + HTML report |
 | Reporting & Dashboard | Scenario Snapshot | Auto-detects PlanX output layers and captures the plan score metrics to a snapshot JSON |
 | Reporting & Dashboard | Generate Demo City | Generates a deterministic synthetic city with streets, buildings, land use, POIs, facilities, demand, green, and a DSM |
+| Reporting & Dashboard | Scenario Pipeline (LUTI-lite) | Chained CA growth → largest-remainder population growth allocation to newly developed cells → access & walkability evaluation |
 | Walkability | Walkability Audit | Street-segment walk scores 0-100: intersections, mix, destinations, block length, slope |
 | Walkability | Pedestrian Route Quality | Quality-weighted routes vs plain shortest: detour ratio, mean walk score, low-quality share |
 | Transit | GTFS Import and Service Stats | Validated feed import: stops with departures/routes + route service summary |
@@ -106,6 +108,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Population & Housing | Population Projection (Cohort-Component) | Leslie-matrix projection from an age-group rate table, per-step totals |
 | Population & Housing | Housing Needs Assessment | Households + vacancy + losses + backlog → dwellings to deliver |
 | Population & Housing | Residential Capacity | Parcel FAR arithmetic → buildable floorspace and dwelling units, district roll-up |
+| Population & Housing | Allocate Population Growth | Apportions a target population growth increment over parcels using largest-remainder allocation |
 | Microclimate | Road Noise Screening | RLS-90-style emission + spreading + building screening → dB(A) grid, exposure bands |
 | Microclimate | Road Emissions | Calculate segment emissions (g/km/day) from traffic volume and an emission factor |
 | Microclimate | Air Quality Screening | Dispersion index grid, receiver index values and exposure bands with canyon effect |

@@ -119,3 +119,36 @@ def residential_capacity(area, far, existing_floor=None, unit_size=90.0,
     buildable = np.clip(potential, 0.0, None)
     units = np.floor(buildable * float(efficiency) / float(unit_size))
     return buildable, units.astype(np.int64)
+
+
+def allocate_growth(total: int, weights: np.ndarray) -> np.ndarray:
+    """Largest-remainder apportionment (Hare-Niemeyer method).
+
+    Distributes an integer total over elements proportional to weights.
+    Deterministic index tie-break. Sums exactly to total.
+    """
+    total = int(total)
+    w = np.asarray(weights, dtype=float).ravel()
+    n = w.size
+    if n == 0:
+        return np.array([], dtype=np.int64)
+    if total <= 0:
+        return np.zeros(n, dtype=np.int64)
+
+    w_sum = w.sum()
+    if w_sum <= 0:
+        w = np.ones(n, dtype=float)
+        w_sum = float(n)
+
+    quotas = total * (w / w_sum)
+    alloc = np.floor(quotas).astype(np.int64)
+    remainder = total - alloc.sum()
+
+    if remainder > 0:
+        fracs = quotas - alloc
+        indices = np.arange(n)
+        order = np.lexsort((indices, -fracs))
+        for idx in order[:remainder]:
+            alloc[idx] += 1
+
+    return alloc

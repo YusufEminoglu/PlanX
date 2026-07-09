@@ -3,6 +3,18 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [4.5.0] - 2026-07-10
+
+LUTI-lite Scenario Pipeline: growth, allocation and evaluation chained (63 algorithms, 18 groups).
+
+### Added
+- **Allocate Population Growth** (Population and Housing group) - distributes a population growth increment over parcels or zones with deterministic largest-remainder (Hare-Niemeyer) apportionment, weighted by capacity, a custom field, or uniformly.
+- **Scenario Pipeline (LUTI-lite)** (Reporting group) - one run chains the cellular-automaton growth simulation, apportions the population growth onto the newly converted cells proportional to suitability, rebuilds the grown city's demand points, and re-evaluates 15-minute accessibility and walkability into a scenario snapshot JSON plus a metric table.
+- Pure-NumPy `population.allocate_growth` (sums exactly to the total, deterministic tie-break).
+
+### Tested
+- 387 engine unit checks and 317 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4.
+
 ## [4.4.0] - 2026-07-10
 
 Travel Demand: trip generation, gravity distribution, and mode split modeling (61 algorithms, 18 groups).

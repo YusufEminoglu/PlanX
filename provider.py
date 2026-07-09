@@ -68,6 +68,8 @@ from .algorithms.alg_flood_exposure import FloodExposureAlgorithm
 from .algorithms.alg_trip_generation import TripGenerationAlgorithm
 from .algorithms.alg_gravity_model import GravityModelAlgorithm
 from .algorithms.alg_mode_split import ModeSplitAlgorithm
+from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
+from .algorithms.alg_scenario_pipeline import ScenarioPipelineAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -124,6 +126,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(ScenarioSnapshotAlgorithm())
         self.addAlgorithm(PlanAuditAlgorithm())
         self.addAlgorithm(DemoCityAlgorithm())
+        self.addAlgorithm(ScenarioPipelineAlgorithm())
         # 8 | Optimization
         self.addAlgorithm(FacilityLocationAlgorithm())
         self.addAlgorithm(CapacitatedAllocationAlgorithm())
@@ -149,6 +152,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(PopulationProjectionAlgorithm())
         self.addAlgorithm(HousingNeedsAlgorithm())
         self.addAlgorithm(ResidentialCapacityAlgorithm())
+        self.addAlgorithm(PopAllocateAlgorithm())
         # 14 | Green Infrastructure
         self.addAlgorithm(GreenAccessAlgorithm())
         self.addAlgorithm(GreenConnectivityAlgorithm())

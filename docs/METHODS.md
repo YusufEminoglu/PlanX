@@ -104,6 +104,12 @@ Wang & Liu (2006) deterministic priority-flood depression filling using a priori
 Linear trip generation: `P = pop * p_rate` and `A = jobs * a_rate`. Doubly constrained gravity distribution using Furness/IPF balancing with exponential `exp(-beta * cost)` or power `cost^-beta` deterrence functions over network costs computed via Dijkstra many-to-many shortest paths. Mode split: multinomial logit shares `P_k = exp(U_k) / sum(exp(U_m))` and split flows based on mode travel times, time coefficients (betas), and constants (ASCs).
 
 
+## Scenario Pipeline & Population Allocation
+
+Population growth allocation uses largest-remainder apportionment (Hare-Niemeyer method). Quotas are calculated as `total * weight_i / sum(weights)`. Integer allocations are assigned as the floor of the quotas, and remaining fractional deficits are satisfied by distributing units one-by-one to elements with the largest fractional parts, tie-breaking by index ascending. Scenario Pipeline implements a Land-Use/Transport Interaction (LUTI) loop: runs cellular-automaton urban growth simulation, extracts developed cells, allocates population growth to cell centroids proportional to development suitability using largest-remainder allocation, and evaluates walkability and network accessibility.
+
+
+
 
 ## Plan Standards & QA
 

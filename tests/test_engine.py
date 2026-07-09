@@ -1710,6 +1710,21 @@ check("demand: logit shares for two modes with a 10-minute gap match the hand va
       close(shares_split[0][0, 0], e / (e + 1.0)) and close(shares_split[1][0, 0], 1.0 / (e + 1.0)))
 
 # --------------------------------------------------------------------------- #
+# Scenario Pipeline (v4.5)
+# --------------------------------------------------------------------------- #
+alloc_1 = population.allocate_growth(5, np.array([1.0, 1.0, 1.0]))
+check("population: allocate_growth exactness and tie-breaking",
+      alloc_1.tolist() == [2, 2, 1])
+
+alloc_2 = population.allocate_growth(10, np.array([1.2, 2.5, 0.3, 0.0]))
+check("population: allocate_growth with varying weights",
+      alloc_2.tolist() == [3, 6, 1, 0])
+
+alloc_3 = population.allocate_growth(2, np.array([0.0, 0.0, 0.0]))
+check("population: allocate_growth uniform fallback for zero weights",
+      alloc_3.tolist() == [1, 1, 0])
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

@@ -107,6 +107,9 @@ planx/
 | Demand (v4.4) | Trip Generation | Calculates production and attraction trip rates from population and jobs |
 | Demand (v4.4) | Gravity Distribution | Doubly constrained zone-to-zone flow balancing (Furness/IPF) with exponential or power deterrence |
 | Demand (v4.4) | Mode Split | Splits OD flows into multiple mode shares and flows using a multinomial logit model |
+| Population (v4.5) | Allocate Population Growth | Apportions a target population growth increment over parcels using largest-remainder allocation |
+| Scenario (v4.5) | Scenario Pipeline | Chained CA growth → largest-remainder population growth allocation to newly developed cells → access & walkability evaluation |
+
 
 ## Release roadmap
 
@@ -355,9 +358,14 @@ planx/
   **Mode Split** splits OD flows into multiple mode shares and flows using a multinomial logit model. New pure-NumPy `engine/demand.py`.
   384 unit + 310 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
+- **v4.5 - LUTI-lite Scenario Pipeline:** SHIPPED 2026-07-10 - **Reporting / Population Groups**:
+  **Allocate Population Growth** distributes a population increment over parcels using deterministic largest-remainder apportionment.
+  **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility and walkability.
+  387 unit + 317 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ### The v4 series (in progress)
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-E have shipped: 50 -> 61 algorithms across 18 groups.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-F have shipped: 50 -> 63 algorithms across 18 groups.
 
 ## Quality gates (every release)
 
