@@ -92,6 +92,9 @@ planx/
 | Microclimate (v3.4) | Road Noise Screening | RLS-90-style emission + line-calibrated sampling + insertion loss -> dB(A) grid |
 | Green Infra (v3.4) | Green Space Access | park hierarchy min_ha=max_dist on network distances, coverage per class |
 | Green Infra (v3.4) | Urban Green Connectivity | crossable-gap components, PC index, per-patch dPC |
+| Urban Growth (v3.5) | Land-Cover Change Analysis | transition matrix + per-class gains/losses/persistence (ha) |
+| Urban Growth (v3.5) | Urban Growth Simulation (CA) | deterministic constrained CA -> year-of-conversion raster |
+| Urban Growth (v3.5) | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest share, edge density |
 
 ## Release roadmap
 
@@ -284,6 +287,15 @@ planx/
   Connectivity** (crossable-gap components, binary PC index, per-patch
   dPC importance). New pure `engine/noise.py` + `engine/green.py`.
   331 unit + 256 e2e checks on QGIS 3.44 LTR and QGIS 4.0.2.
+
+- **v3.5 — Urban Growth:** SHIPPED 2026-07-09 — **Land-Cover Change
+  Analysis** (the transition matrix with per-class accounting in
+  hectares), **Urban Growth Simulation (CA)** (constrained cellular
+  automaton: suitability x neighbourhood pull, per-step demand, never-
+  build constraints, year-of-conversion raster; deterministic across
+  processes and unit-tested as such) and **Urban Sprawl Metrics** (SDG
+  11.3.1 LCRPGR + patch structure). New pure-NumPy `engine/growth.py`.
+  345 unit + 266 e2e checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
 ### Next: the v3 series
 

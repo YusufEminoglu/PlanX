@@ -3,6 +3,20 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.5.0] - 2026-07-09
+
+Urban Growth: change accounting, growth simulation and the sprawl scorecard (49 algorithms).
+
+### Added
+- **NEW GROUP: Urban Growth.**
+- **Land-Cover Change Analysis** — the transition matrix of two class rasters: from/to pairs with cells + hectares, per-class gains/losses/persistence/net, optional class labels; the largest conversion named in the log.
+- **Urban Growth Simulation (CA)** — constrained cellular automaton (SLEUTH tradition): score = suitability × (base + weight × urban neighbourhood share); top scorers convert per step until the land demand is met; never-build constraints; deterministic for a given seed **across processes** (unit-tested). Output: year-of-conversion raster.
+- **Urban Sprawl Metrics** — SDG 11.3.1 LCRPGR (land consumption vs population growth) + patch count, largest-patch share, edge density.
+- Engine: pure-NumPy `engine/growth.py`; three new group-coloured tool icons.
+
+### Testing
+- Engine unit checks grown to **345** (hand-counted transition matrices, gradient-following CA, constraint masks, cross-process determinism, hand-computed LCRPGR and edge lengths); end-to-end assertions to **266** on QGIS 3.44 LTR and QGIS 4.0.2.
+
 ## [3.4.0] - 2026-07-09
 
 Environment Screening: road noise and green infrastructure (46 algorithms).

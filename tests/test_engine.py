@@ -1391,6 +1391,92 @@ check("green: two isolated equal patches -> PC 0.5",
       iso["n_components"] == 2 and close(iso["pc"], 0.5))
 
 # --------------------------------------------------------------------------- #
+# 31. Urban growth (Phase H)
+# --------------------------------------------------------------------------- #
+import subprocess  # noqa: E402  # nosec B404 - fixed argv, test-only
+
+from planx.engine import growth  # noqa: E402
+
+cm = growth.change_matrix([[1, 1], [2, 2]], [[1, 2], [2, 2]])
+check("change: classes found", cm["classes"] == [1, 2])
+check("change: matrix counts the single conversion",
+      cm["matrix"].tolist() == [[1, 1], [0, 2]])
+check("change: per-class gains/losses/persistence",
+      cm["persisted"].tolist() == [1, 2] and cm["lost"].tolist() == [1, 0]
+      and cm["gained"].tolist() == [0, 1] and cm["net"].tolist() == [-1, 1])
+cm_nd = growth.change_matrix([[1, 0], [2, 2]], [[1, 0], [2, 1]], nodata=0)
+check("change: nodata cells ignored", int(cm_nd["matrix"].sum()) == 3)
+
+# CA on a 5x5: seed centre, suitability rising eastward -> growth goes east.
+seed = np.zeros((5, 5), dtype=bool)
+seed[2, 2] = True
+suit_g = np.tile(np.arange(5, dtype=float), (5, 1))  # column index = pull
+sim = growth.ca_simulate(seed, suit_g, demand_cells=4, iterations=2,
+                         neigh_weight=1.0, base=0.1, rng_seed=42)
+check("ca: start mask preserved", sim["masks"][0].sum() == 1)
+check("ca: demand fully converted over the steps",
+      sum(sim["converted"]) == 4 and sim["masks"][-1].sum() == 5)
+check("ca: growth follows the suitability gradient east",
+      bool(sim["masks"][-1][2, 3]) and bool(sim["masks"][-1][2, 4])
+      and not bool(sim["masks"][-1][2, 0]))
+check("ca: year-of-conversion is ordered",
+      sim["year_of"][2, 2] == 0 and sim["year_of"][2, 3] >= 1)
+
+blocked = np.zeros((5, 5), dtype=bool)
+blocked[:, 3:] = True  # the attractive east is off limits
+sim_b = growth.ca_simulate(seed, suit_g, demand_cells=4, iterations=2,
+                           constraints=blocked, rng_seed=42)
+check("ca: constraints keep the east untouched",
+      not sim_b["masks"][-1][:, 3:].any()
+      and sim_b["masks"][-1].sum() == 5)
+
+sim_same = growth.ca_simulate(seed, suit_g, demand_cells=4, iterations=2,
+                              neigh_weight=1.0, base=0.1, rng_seed=42)
+check("ca: same seed reproduces the identical history",
+      all(np.array_equal(a, b)
+          for a, b in zip(sim["masks"], sim_same["masks"])))
+
+# Cross-process determinism: a fresh interpreter must produce the same
+# conversion order (the osm_3d_model hash() lesson).
+_cross_script = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "_growth_cross_check.py")
+with open(_cross_script, "w", encoding="utf-8") as fh:
+    fh.write(
+        "import sys\n"
+        "sys.path.insert(0, r'" + os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))) + "')\n"
+        "import numpy as np\n"
+        "from planx.engine import growth\n"
+        "seed = np.zeros((5, 5), dtype=bool); seed[2, 2] = True\n"
+        "suit = np.tile(np.arange(5, dtype=float), (5, 1))\n"
+        "sim = growth.ca_simulate(seed, suit, demand_cells=4, iterations=2,\n"
+        "                         neigh_weight=1.0, base=0.1, rng_seed=42)\n"
+        "print(''.join('1' if v else '0'\n"
+        "              for v in sim['masks'][-1].ravel().tolist()))\n")
+_out = subprocess.run(  # nosec B603 - own interpreter + file we just wrote
+    [sys.executable, _cross_script], capture_output=True, text=True)
+_expected = "".join("1" if v else "0"
+                    for v in sim["masks"][-1].ravel().tolist())
+check("ca: identical result from a separate process",
+      _out.returncode == 0 and _out.stdout.strip() == _expected)
+os.remove(_cross_script)
+
+# Sprawl: 4 -> 8 urban cells while population grows 21 percent.
+t1 = np.zeros((6, 6), dtype=bool)
+t1[0:2, 0:2] = True
+t2 = np.zeros((6, 6), dtype=bool)
+t2[0:2, 0:3] = True          # main patch: 6 cells
+t2[4, 4] = True
+t2[4, 5] = True              # outlier: 2 cells
+sm = growth.sprawl_metrics(t1, t2, 1000.0, 1210.0, pixel=1.0)
+check("sprawl: LCRPGR = ln2 / ln1.21",
+      close(sm["lcrpgr"], math.log(2.0) / math.log(1.21), 1e-9))
+check("sprawl: two patches, largest holds 75 percent",
+      sm["n_patches"] == 2 and close(sm["largest_share"], 0.75))
+check("sprawl: edge length hand-count (2x3 block + 1x2 block)",
+      close(sm["edge_length"], 10.0 + 6.0))
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

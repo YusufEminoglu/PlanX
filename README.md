@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives forty-six Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives forty-nine Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -41,7 +41,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Visibility** — DSM **viewsheds** (observer/target heights, radius), an **isovist field** (visible area, radials, circularity, occlusivity on a point grid — the VGA view) and **landmark visual exposure** (from where can it be seen — skyline and heritage screening).
 - **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog) and **residential capacity** (FAR arithmetic per parcel, district roll-up) — projection feeds needs, capacity tests the zoning.
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
-- **Verified math** — 331 engine unit checks against hand-computed values + 256 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
+- **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
+- **Verified math** — 345 engine unit checks against hand-computed values + 266 end-to-end assertions on real QGIS 3 LTR and QGIS 4.
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -103,6 +104,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Microclimate | Road Noise Screening | RLS-90-style emission + spreading + building screening → dB(A) grid, exposure bands |
 | Green Infrastructure | Green Space Access | Park hierarchy (size-within-distance ladder) on network distances, coverage per class |
 | Green Infrastructure | Urban Green Connectivity | Patch components, Probability-of-Connectivity index, per-patch dPC importance |
+| Urban Growth | Land-Cover Change Analysis | Transition matrix + per-class gains/losses/persistence in hectares |
+| Urban Growth | Urban Growth Simulation (CA) | Deterministic constrained cellular automaton → year-of-conversion raster |
+| Urban Growth | Urban Sprawl Metrics | SDG 11.3.1 LCRPGR + patches, largest-patch share, edge density |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Facility Siting | Choose where to build facilities under capacity constraints and travel limits |
 | Optimization | Capacitated Allocation | Nearest facility with free capacity, spill when full, uncovered when none in reach |

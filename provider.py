@@ -53,6 +53,9 @@ from .algorithms.alg_residential_capacity import ResidentialCapacityAlgorithm
 from .algorithms.alg_noise_screen import NoiseScreenAlgorithm
 from .algorithms.alg_green_access import GreenAccessAlgorithm
 from .algorithms.alg_green_connectivity import GreenConnectivityAlgorithm
+from .algorithms.alg_landcover_change import LandCoverChangeAlgorithm
+from .algorithms.alg_growth_sim import GrowthSimAlgorithm
+from .algorithms.alg_sprawl_metrics import SprawlMetricsAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -133,3 +136,7 @@ class PlanXProvider(QgsProcessingProvider):
         # 14 | Green Infrastructure
         self.addAlgorithm(GreenAccessAlgorithm())
         self.addAlgorithm(GreenConnectivityAlgorithm())
+        # 15 | Urban Growth
+        self.addAlgorithm(LandCoverChangeAlgorithm())
+        self.addAlgorithm(GrowthSimAlgorithm())
+        self.addAlgorithm(SprawlMetricsAlgorithm())
