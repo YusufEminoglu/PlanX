@@ -40,7 +40,21 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
             "Run this once before the other PlanX network tools whenever your "
             "data may contain crossing lines that do not share a vertex "
             "(typical for raw OSM or CAD exports). The output carries seg_id "
-            "and length_m fields plus the original attributes."
+            "and length_m fields plus the original attributes.\n\n"
+            "How to read the results\n"
+            "- The segment count in the log is the first sanity check: a "
+            "raw layer that keeps its feature count after noding had no "
+            "crossings to fix - either it was already noded or (more "
+            "likely for CAD/OSM) lines cross without touching and layers "
+            "were merged wrong.\n"
+            "- seg_id is a stable per-segment key for joins back to any "
+            "PlanX result; length_m is ready for length-weighted stats.\n"
+            "- If a later tool reports a surprisingly disconnected graph "
+            "(low reach, empty catchments), come back here: overpasses "
+            "kept as crossings, tiny gaps at junctions and duplicate "
+            "digitising are the usual culprits. Raising the minimum "
+            "length drops slivers that would otherwise become fake "
+            "dead-end junctions."
         )
 
     def initAlgorithm(self, config=None):

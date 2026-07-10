@@ -3,10 +3,26 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [4.7.0] - 2026-07-11
+
+Service Areas rebuilt as exact isochrones with pedshed analysis; every tool's help now teaches how to interpret its results.
 
 ### Changed
-- Network Centrality and Space Syntax help now end with a "How to read the results" section: what each output field means in planning terms, the NACH x NAIN quadrant reading (high street / corridor / calm centre / background), cross-radius interpretation, 50-city NACH benchmarks, styling advice (quantiles, top 5-10%) and the edge-effect caveat.
+- **Service Areas (Isochrones) rebuilt** - the old implementation kept or dropped WHOLE street segments (an edge with one endpoint under the break was included entirely, overshooting by up to a full block) and offered only buffer polygons. Reach is now computed exactly: streets are trimmed at the precise point where the cost budget runs out, including meet-in-the-middle coverage from both ends and mid-edge facility entries. Facilities enter the network at the nearest point of the nearest street (not the nearest junction), and with length costs the straight-line approach distance is deducted from the budget.
+- **Every algorithm's help (64/64) now ends with a "How to read the results" section**: per-field meaning in planning terms, reference values where the literature has them (NACH benchmarks, LTS audiences, pedshed and LCRPGR ranges, dB(A) and headway thresholds...), and practical next steps. Existing descriptions kept verbatim.
+
+### Added
+- Service Areas: **polygon methods** - street buffer (hugs the trimmed network), concave hull (isochrone blob, detail parameter, convex fallback on older GEOS) and convex hull; **per-facility catchments** (optional facility label field) alongside the merged nearest-facility scope; **rings mode** (band differences) for clean cartography.
+- Service Areas: **straight-line catchment circles** per facility and break - the regulation "desired reach" radius (e.g. a 500 m school catchment) drawn next to the real network catchment.
+- Service Areas: **catchment summary table with the pedshed ratio** (network catchment area / circle area), circle and network areas, and the trimmed reached street length per scope and break.
+- Reached-street output now carries facility, band, cost_from and len_m per trimmed piece - pieces are split at the break boundaries for exact band styling.
+- New pure-NumPy `engine/isochrone.py`: vectorized partial-edge reach fractions, interval algebra (merge/subtract/length), polyline cutting by arc-length fraction and mid-edge entry budgets - all hand-fixture unit-tested.
+
+### Fixed
+- README test counts were stale (387 unit / 317 e2e); now 425 / 363 and released numbers will track the suites.
+
+### Tested
+- 425 engine unit checks (19 new isochrone fixtures: trimming, meet-in-the-middle, interval algebra, polyline cuts, entry budgets) and 363 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4, including hand-derived exactness: 1000/3400 m trimmed street length on the grid fixture, an 80,000 m2 convex-hull diamond with pedshed = 2/pi on a cross network, and a 60 m entry piece after a 10 m snap. Dashboard harness 24/24 on both QGIS.
 
 ## [4.6.1] - 2026-07-10
 

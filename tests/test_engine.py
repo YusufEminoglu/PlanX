@@ -16,8 +16,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, demand, demo, equity, graphs, hydro, morphology, optimize,
-    paths, report, scenario, seismic, solar, standards, syntax, walkability,
+    HAS_SCIPY, air, allocate, centrality, cycling, demand, demo, equity, graphs, hydro, isochrone, morphology,
+    optimize, paths, report, scenario, seismic, solar, standards, syntax, walkability,
 )
 
 CHECKS = []
@@ -1792,6 +1792,96 @@ check("seismic: width parse - rubbish, empty, None and non-positive rejected",
       and seismic.parse_width_m(None) is None and seismic.parse_width_m(0) is None
       and seismic.parse_width_m(-3.0) is None and seismic.parse_width_m("5 km") is None
       and seismic.parse_width_m(float("nan")) is None)
+
+# --------------------------------------------------------------------------- #
+# Exact isochrones (v4.7 Service Areas rebuild)
+# --------------------------------------------------------------------------- #
+# Path A(0,0)-B(100,0)-C(200,0), two 100 m edges, source at node A, cutoff 150:
+# edge AB fully reached, edge BC reached to its midpoint only.
+iso_lines = [np.array([[0.0, 0.0], [100.0, 0.0]]),
+             np.array([[100.0, 0.0], [200.0, 0.0]])]
+gi = graphs.build_node_graph(iso_lines)
+a_node = int(np.argmin(np.abs(gi.node_xy[:, 0] - 0.0)))
+d_iso = paths.many_to_many(gi.indptr, gi.adj_node, gi.adj_cost,
+                           gi.num_nodes, [a_node])[0]
+full_i, fa_i, fb_i = isochrone.reach_fractions(
+    d_iso[gi.edge_from], d_iso[gi.edge_to], gi.edge_cost, 150.0)
+# Edge ids follow polyline order: edge 0 = AB, edge 1 = BC.
+check("iso: first edge fully reached, second is not",
+      bool(full_i[0]) and not bool(full_i[1]))
+check("iso: second edge trimmed at exactly half",
+      close(fa_i[1], 0.5) and close(fb_i[1], 0.0))
+
+# Meet-in-the-middle: one 100 m edge, both ends at cost 0, cutoff 60 covers
+# 0.6 from each side -> the whole edge; cutoff 40 leaves a 0.2 gap.
+full_m, fa_m, fb_m = isochrone.reach_fractions([0.0], [0.0], [100.0], 60.0)
+check("iso: 60+60 on a 100 m edge meets in the middle", bool(full_m[0]))
+full_g, fa_g, fb_g = isochrone.reach_fractions([0.0], [0.0], [100.0], 40.0)
+check("iso: 40+40 leaves a gap - two pieces",
+      not bool(full_g[0])
+      and isochrone.edge_intervals(False, float(fa_g[0]), float(fb_g[0]))
+      == [(0.0, 0.4), (0.6, 1.0)])
+
+# Interval algebra
+check("iso: merge_intervals unions overlaps",
+      isochrone.merge_intervals([(0.0, 0.3), (0.2, 0.5), (0.8, 0.9)])
+      == [(0.0, 0.5), (0.8, 0.9)])
+check("iso: subtract_intervals cuts a hole",
+      isochrone.subtract_intervals([(0.0, 1.0)], [(0.3, 0.6)])
+      == [(0.0, 0.3), (0.6, 1.0)])
+check("iso: subtracting a cover leaves nothing",
+      isochrone.subtract_intervals([(0.2, 0.8)], [(0.0, 1.0)]) == [])
+check("iso: interval_length sums the pieces",
+      close(isochrone.interval_length([(0.0, 0.4), (0.6, 1.0)]), 0.8))
+
+# Polyline cutting on an L: (0,0)-(10,0)-(10,10), total length 20.
+ell = np.array([[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]])
+cut = isochrone.cut_polyline(ell, 0.25, 0.75)
+check("iso: cut keeps the interior corner vertex",
+      cut is not None and np.allclose(cut, [[5.0, 0.0], [10.0, 0.0], [10.0, 5.0]]))
+check("iso: point_at the halfway mark is the corner",
+      np.allclose(isochrone.point_at(ell, 0.5), [10.0, 0.0]))
+check("iso: degenerate cut returns None",
+      isochrone.cut_polyline(ell, 0.5, 0.5) is None)
+full_cut = isochrone.cut_polyline(ell, 0.0, 1.0)
+check("iso: full-range cut reproduces the polyline",
+      full_cut is not None and np.allclose(full_cut, ell))
+
+# Mid-edge facility entry: 100 m edge, entry at t=0.5.
+check("iso: entry interval 30 m budget spans 0.2-0.8",
+      isochrone.entry_interval(0.5, 0.0, 100.0, 30.0) == (0.2, 0.8))
+check("iso: snap cost eats the whole budget -> no piece",
+      isochrone.entry_interval(0.5, 30.0, 100.0, 30.0) is None)
+check("iso: generous budget clips to the full edge",
+      isochrone.entry_interval(0.5, 0.0, 100.0, 200.0) == (0.0, 1.0))
+
+# End-to-end: path graph again, plus a second entry mid-way on edge BC.
+riv = isochrone.reach_intervals(
+    d_iso, gi.edge_from, gi.edge_to, gi.edge_cost, 150.0)
+check("iso: reach_intervals full edge + half edge",
+      riv.get(0) == [(0.0, 1.0)] and riv.get(1) == [(0.0, 0.5)])
+# Entry at t=0.9 with 100 already spent: budget 50 -> piece (0.4, 1.0),
+# which overlaps the node piece (0, 0.5) -> the whole edge is reached.
+riv2 = isochrone.reach_intervals(
+    d_iso, gi.edge_from, gi.edge_to, gi.edge_cost, 150.0,
+    entries=[(1, 0.9, 100.0)])
+check("iso: a mid-edge entry merges into the node reach",
+      riv2.get(1) == [(0.0, 1.0)])
+
+# Band splitting: isolated 100 m edge, facility at its midpoint, breaks 30/60.
+d_inf = np.array([np.inf, np.inf])
+iv30 = isochrone.reach_intervals(
+    d_inf, np.array([0]), np.array([1]), np.array([100.0]), 30.0,
+    entries=[(0, 0.5, 0.0)])
+iv60 = isochrone.reach_intervals(
+    d_inf, np.array([0]), np.array([1]), np.array([100.0]), 60.0,
+    entries=[(0, 0.5, 0.0)])
+band2 = isochrone.subtract_intervals(iv60.get(0, []), iv30.get(0, []))
+check("iso: inner band is the 0.2-0.8 window around the entry",
+      iv30.get(0) == [(0.2, 0.8)])
+check("iso: outer band is the two leftover tips",
+      band2 == [(0.0, 0.2), (0.8, 1.0)]
+      and close(isochrone.interval_length(band2), 0.4))
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

@@ -45,7 +45,21 @@ class RoadEmissionsAlgorithm(PlanXAlgorithm):
             "By default, the traffic volume field is multiplied by the hourly/daily factor. "
             "If your volume field is already daily volume (AADT), keep the factor as 1.0. "
             "If it is hourly volume, set the factor to 24.0.\n\n"
-            "Outputs the road network with calculated emissions (g/km/day). Use a projected CRS."
+            "Outputs the road network with calculated emissions (g/km/day). Use a projected CRS.\n\n"
+            "How to read the results\n"
+            "- emission is traffic volume translated into pollutant mass "
+            "per km of road per day: it ranks ROADS as sources, before "
+            "any dispersion. The top segments are where reduction "
+            "measures (volume, speed, fleet) act at the source.\n"
+            "- Because the factor is a single per-vehicle value, the map "
+            "is exactly proportional to traffic - reading it next to the "
+            "dispersion grid separates 'lots of source' from 'poor "
+            "dilution' locations.\n\n"
+            "Using the results: feed the output straight into Air Quality "
+            "Screening (its emission field default matches); test traffic "
+            "scenarios by editing volumes and rerunning the pair; when a "
+            "fleet-specific factor arrives, only this tool needs "
+            "rerunning - the dispersion reuses the new emissions."
         )
 
     def initAlgorithm(self, config=None):

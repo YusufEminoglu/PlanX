@@ -25,7 +25,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 
 - **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.
 - **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness, **eigenvector** and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
-- **Real network accessibility** — OD cost matrices with detour ratios, multi-facility **service-area isochrones**, nearest-facility allocation with load summaries.
+- **Real network accessibility** — OD cost matrices with detour ratios, **exact service-area isochrones** (partial-edge trimming: reach ends mid-street, not at whole segments; street-buffer / concave-hull / convex-hull polygons, per-facility or merged) with straight-line **radius circles and the pedshed ratio** built in, nearest-facility allocation with load summaries.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
 - **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Annual Solar Potential** (year-long clear-sky irradiation from twelve representative-day sweeps, kWh/m²/yr, with an optional monthly raster), **Sky View Factor**, frontal-area wind-roughness grids, a vector **Heat Island Risk Grid**, **Road Emissions** (daily segment emissions) and **Air Quality Screening** (dispersion index grid with canyon effect and exposure bands).
@@ -47,7 +47,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Verified math** — 387 engine unit checks against hand-computed values + 317 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the sixty-four tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 425 engine unit checks against hand-computed values + 363 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -62,7 +63,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 
 1. Run **Generate Demo City** with default parameters to instantly generate a complete set of synthetic urban layers (streets, buildings, land use, POIs, facilities, demand points, green polygons, and a DSM raster) in a projected metric CRS.
 2. Run **Space Syntax (Segment Angular Analysis)** on the generated streets network with radii `800, n` and style by `NACH_800` — your first integration/choice map.
-3. Run **Service Areas (Isochrones)** on the streets network using the generated facilities as input and breaks `250, 500, 1000` for catchment bands.
+3. Run **Service Areas (Isochrones)** on the streets network using the generated facilities as input and breaks `250, 500, 1000` — trimmed catchment bands, straight-line circles and the **pedshed ratio** (network catchment ÷ circle) in one run.
 4. Run **Building Form Metrics** or **Morphological Tessellation → Spacematrix Density** on the generated buildings for a density portrait.
 5. Run **Multi-Amenity Access Score** on the demand points using the POIs and facilities for a 15-minute-city map.
 6. Open **PlanX → Plan Dashboard** for live score cards over your outputs, then **Save HTML Report…** (or run **Plan Performance Report (HTML)** in Processing) for a shareable one-file report.
@@ -73,7 +74,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 |-------|------|--------------|
 | Network Analysis | Prepare Network | Explode, node at intersections, dedupe, drop slivers |
 | Network Analysis | OD Cost Matrix | Many-to-many network costs, detour ratio, desire lines |
-| Network Analysis | Service Areas (Isochrones) | Multi-facility cost bands as edges + dissolved polygons |
+| Network Analysis | Service Areas (Isochrones) | Exact trimmed isochrones (street buffer / concave / convex), straight-line circles + pedshed ratio |
 | Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary |
 | Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, eigenvector, Brandes betweenness (nodes + edges) |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |

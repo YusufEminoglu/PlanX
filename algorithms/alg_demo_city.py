@@ -59,7 +59,22 @@ class DemoCityAlgorithm(PlanXAlgorithm):
             "network centrality, walkability, shadow casting, and access tools in one click.\n\n"
             "Outputs: street network lines, building footprints (with height), land-use polygons "
             "(residential, commercial, green, school), POI points, facilities (with name and capacity), "
-            "demand points (with population), green polygons, and a DSM raster."
+            "demand points (with population), green polygons, and a DSM raster.\n\n"
+            "How to read the results\n"
+            "- Nothing here is real: the town exists so every other tool "
+            "has clean, compatible inputs on the first click. Use it to "
+            "LEARN a tool's outputs on a city small enough to check by "
+            "eye, before trusting it on real data.\n"
+            "- The same seed always regenerates the identical town - "
+            "handy for reproducible tutorials, bug reports and "
+            "documentation figures; change the seed for a different "
+            "layout, the size parameters for a bigger test.\n\n"
+            "Using the results: the quickstart pair is streets -> Space "
+            "Syntax (radii '800, n') and facilities -> Service Areas; "
+            "the DSM feeds the Microclimate tools, demand + facilities "
+            "feed Adequacy and the Batch Plan Auditor. When a tool "
+            "misbehaves on your data but works on the demo city, the "
+            "difference (CRS, noding, field types) is the diagnosis."
         )
 
     def initAlgorithm(self, config=None):

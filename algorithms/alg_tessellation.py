@@ -49,7 +49,22 @@ class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
             "all buildings when no study area is given).\n\n"
             "Use the cells as analysis units: join population, run "
             "Spacematrix Density on them, or measure coverage ratios. "
-            "Smaller densify spacing = smoother cell borders but slower."
+            "Smaller densify spacing = smoother cell borders but slower.\n\n"
+            "How to read the results\n"
+            "- Each cell is the ground a building 'controls' - the best "
+            "available stand-in for its plot. Cell area distribution "
+            "reads like plot-size distribution: uniform small cells = "
+            "fine-grained fabric; a few giant cells = campuses, malls, "
+            "estates.\n"
+            "- Building area / cell area approximates plot coverage "
+            "without owning cadastral data; sudden cell-size jumps mark "
+            "morphological boundaries between neighbourhood types.\n"
+            "- Cells at the study-area edge are artificially clipped - "
+            "exclude the outer ring from statistics.\n\n"
+            "Using the results: treat cells as the unit for Spacematrix "
+            "Density, dasymetric population, and typology clustering; "
+            "compare cell-size variance between districts to quantify "
+            "grain (an input regulating plans often prescribe implicitly)."
         )
 
     def initAlgorithm(self, config=None):
