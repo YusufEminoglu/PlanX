@@ -1,7 +1,26 @@
 # Changelog
 
+## [4.6.1] - 2026-07-10
+
+- Seismic debris: four road/open-space network sources (OSM class widths, width column, ROI minus blocks, polygons as-is)
+
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [4.6.1] - 2026-07-10
+
+Seismic debris tool: four road / open-space network sources - the network input no longer requires manual digitizing.
+
+### Added
+- **Four network sources** for Seismic Collapse and Debris Spread ("Network source" selector, parameters labelled A-D): (A) street/open-space polygons used as-is; (B) OSM highway centerlines buffered by class-typical urban widths (motorway/trunk 25 m ... path 3 m, `_link` ramps inherit the parent class, `width` values override per feature, the `highway` field is auto-detected); (C) any centerlines buffered by a road-width attribute (lenient parsing: `6.5`, `6,5`, `'6.5 m'` all work, fallback width for gaps - the Demo City streets plug straight in); (D) region of interest minus dissolved blocks/parcels (cadastral parcels dissolve into blocks internally; without an ROI, the convex hull of the blocks expanded by the fallback width is used). Wrong mode/layer combinations fail fast with an actionable message.
+- Street-width helpers in `engine.seismic` (`highway_width_m`, `parse_width_m`) - pure NumPy, unit-tested.
+
+### Fixed
+- Network inputs in a different CRS are now reprojected to the buildings CRS (mixed-CRS inputs previously produced misaligned blockage), and the buildings layer requires a projected CRS, since debris radii and street widths are metric.
+- README algorithm count corrected to sixty-four.
+
+### Tested
+- 406 engine unit checks and 347 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4 (all four network sources exercised end-to-end, including exact blockage-area checks and wrong-mode error paths).
 
 ## [4.6.0] - 2026-07-10
 
@@ -9,14 +28,13 @@ Seismic Risk: Monte Carlo building-collapse and debris-spread screening (64 algo
 
 ### Added
 - **Seismic Collapse and Debris Spread** (new Seismic Risk group) - screening-quality Monte Carlo model for earthquake-induced building collapse: per-building collapse probability from construction year and event moment magnitude (Mw), a seeded random draw so a scenario is exactly reproducible (or re-rollable by changing the seed), debris spread radius and volume for collapsed buildings, the resulting network blockage, and the remaining open evacuation corridors.
-- **Four network sources** for the road / open-space input, so no manual digitizing is ever required: (A) street/open-space polygons used as-is; (B) OSM highway centerlines buffered by class-typical urban widths (motorway/trunk 25 m ... path 3 m, `_link` ramps inherit the parent class, `width` values override per feature, the `highway` field is auto-detected); (C) any centerlines buffered by a road-width attribute (lenient parsing: `6.5`, `6,5`, `'6.5 m'` all work, fallback width for gaps - the Demo City streets plug straight in); (D) region of interest minus dissolved blocks/parcels (cadastral parcels dissolve into blocks internally; without an ROI, the convex hull of the blocks expanded by the fallback width is used). Network inputs in a different CRS are reprojected to the buildings CRS; wrong mode/layer combinations fail fast with an actionable message, and the buildings layer now requires a projected CRS (debris radii are metric).
-- Pure-NumPy `engine.seismic` module (`base_probability`, `magnitude_factor`, `collapse_probability`, `simulate_collapse`, `debris_extent`, plus `highway_width_m`/`parse_width_m` street-width helpers) - vectorized and unit-testable without a QGIS session.
+- Pure-NumPy `engine.seismic` module (`base_probability`, `magnitude_factor`, `collapse_probability`, `simulate_collapse`, `debris_extent`) - vectorized and unit-testable without a QGIS session.
 
 ### Fixed
 - **Generate Demo City**: green-space blocks no longer receive building footprints (the block-fill loop placed a 2x2 grid of buildings in every block regardless of land use). Buildings, DSM and demand-point counts adjusted accordingly.
 
 ### Tested
-- 406 engine unit checks and 347 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4 (all four network sources exercised end-to-end, including exact blockage-area checks and wrong-mode error paths).
+- 397 engine unit checks and 324 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4.
 
 ## [4.5.0] - 2026-07-10
 
