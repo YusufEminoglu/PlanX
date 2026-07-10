@@ -1,9 +1,5 @@
 # Changelog
 
-## [4.6.0] - 2026-07-10
-
-- Seismic Risk: Monte Carlo collapse and debris spread with four road/open-space network sources
-
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
