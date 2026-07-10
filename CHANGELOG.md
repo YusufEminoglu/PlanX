@@ -3,6 +3,11 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- Network Centrality and Space Syntax help now end with a "How to read the results" section: what each output field means in planning terms, the NACH x NAIN quadrant reading (high street / corridor / calm centre / background), cross-radius interpretation, 50-city NACH benchmarks, styling advice (quantiles, top 5-10%) and the edge-effect caveat.
+
 ## [4.6.1] - 2026-07-10
 
 Seismic debris tool: four road / open-space network sources - the network input no longer requires manual digitizing.
