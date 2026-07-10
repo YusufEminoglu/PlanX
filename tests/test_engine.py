@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from planx.engine import (  # noqa: E402
     HAS_SCIPY, air, allocate, centrality, cycling, demand, demo, equity, graphs, hydro, morphology, optimize,
-    paths, report, scenario, solar, standards, syntax, walkability,
+    paths, report, scenario, seismic, solar, standards, syntax, walkability,
 )
 
 CHECKS = []
@@ -1521,7 +1521,7 @@ check("registry: labels resolve for the auditor keys",
 # --------------------------------------------------------------------------- #
 res_demo = demo.generate_demo_city(42, 2, 2, 100.0)
 check("demo streets count", len(res_demo["streets"]) == 14)
-check("demo buildings count", len(res_demo["buildings"]) == 12)
+check("demo buildings count", len(res_demo["buildings"]) == 8)
 check("demo landuse count", len(res_demo["landuse"]) == 4)
 check("demo pois count", len(res_demo["pois"]) == 2)
 check("demo facilities count", len(res_demo["facilities"]) == 2)
@@ -1541,7 +1541,7 @@ with open(_cross_script_demo, "w", encoding="utf-8") as fh:
     )
 _out_demo = subprocess.run(  # nosec B603 - fixed args, test-only script
     [sys.executable, _cross_script_demo], capture_output=True, text=True)
-_expected_demo = f"14 12 {float(res_demo['dsm'].sum())}\n"
+_expected_demo = f"14 8 {float(res_demo['dsm'].sum())}\n"
 check("demo: identical result from separate process",
       _out_demo.returncode == 0 and _out_demo.stdout.replace('\r', '') == _expected_demo)
 if os.path.exists(_cross_script_demo):
@@ -1723,6 +1723,75 @@ check("population: allocate_growth with varying weights",
 alloc_3 = population.allocate_growth(2, np.array([0.0, 0.0, 0.0]))
 check("population: allocate_growth uniform fallback for zero weights",
       alloc_3.tolist() == [1, 1, 0])
+
+# --------------------------------------------------------------------------- #
+# Seismic collapse and debris spread (Monte Carlo)
+# --------------------------------------------------------------------------- #
+years = np.array([1980.0, 1990.0, 2010.0, 2020.0])
+base_p = seismic.base_probability(years)
+check("seismic: base probability tiers by construction year",
+      base_p.tolist() == [0.85, 0.60, 0.25, 0.05])
+
+check("seismic: magnitude factor is 1.0 at the Mw=7.0 reference point",
+      close(seismic.magnitude_factor(7.0), 1.0))
+check("seismic: magnitude factor matches the exponential formula off-reference",
+      close(seismic.magnitude_factor(7.8), math.exp(0.8 * 0.8)))
+
+p_clamped = seismic.collapse_probability(np.array([1980.0]), 9.0)
+check("seismic: collapse probability is clamped to 1.0 for extreme magnitude",
+      close(float(p_clamped[0]), 1.0))
+p_low = seismic.collapse_probability(np.array([2020.0]), 4.0)
+check("seismic: collapse probability stays within [0, 1] for a mild low scenario",
+      0.0 <= float(p_low[0]) <= 1.0)
+
+edge_draw = seismic.simulate_collapse(1, np.array([0.0, 1.0]))
+check("seismic: p=0 never collapses and p=1 always collapses",
+      edge_draw.tolist() == [False, True])
+
+draw_a = seismic.simulate_collapse(42, base_p)
+draw_b = seismic.simulate_collapse(42, base_p)
+draw_c = seismic.simulate_collapse(7, base_p)
+check("seismic: same seed reproduces the identical collapse draw",
+      draw_a.tolist() == draw_b.tolist())
+check("seismic: a different seed can sample a different draw",
+      draw_a.tolist() != draw_c.tolist())
+
+heights = np.array([10.0, 20.0])
+areas = np.array([100.0, 200.0])
+collapsed = np.array([True, False])
+radius, volume = seismic.debris_extent(heights, areas, collapsed, debris_factor=0.4, solid_volume_ratio=0.3)
+check("seismic: debris radius is height x k for collapsed buildings, 0 otherwise",
+      radius.tolist() == [4.0, 0.0])
+check("seismic: debris volume is area x height x solid ratio for collapsed buildings, 0 otherwise",
+      close(volume[0], 100.0 * 10.0 * 0.3) and volume[1] == 0.0)
+
+# Street-space width helpers (network sources B/C of the debris algorithm).
+check("seismic: OSM width - primary class maps to 18 m",
+      close(seismic.highway_width_m("primary", 8.0), 18.0))
+check("seismic: OSM width - motorway and trunk share 25 m",
+      close(seismic.highway_width_m("motorway", 8.0), 25.0)
+      and close(seismic.highway_width_m("trunk", 8.0), 25.0))
+check("seismic: OSM width - matching is case and whitespace tolerant",
+      close(seismic.highway_width_m("  Primary ", 8.0), 18.0))
+check("seismic: OSM width - '_link' ramps inherit the parent class width",
+      close(seismic.highway_width_m("primary_link", 8.0), 18.0)
+      and close(seismic.highway_width_m("MOTORWAY_LINK", 8.0), 25.0))
+check("seismic: OSM width - unknown class and None fall back",
+      close(seismic.highway_width_m("busway", 6.0), 6.0)
+      and close(seismic.highway_width_m(None, 6.0), 6.0)
+      and close(seismic.highway_width_m("", 6.0), 6.0))
+check("seismic: width parse - plain numbers pass through",
+      close(seismic.parse_width_m(7.5), 7.5) and close(seismic.parse_width_m(7), 7.0))
+check("seismic: width parse - numeric strings accepted",
+      close(seismic.parse_width_m("6.5"), 6.5))
+check("seismic: width parse - decimal comma and unit suffixes accepted",
+      close(seismic.parse_width_m("6,5 m"), 6.5)
+      and close(seismic.parse_width_m("12 metres"), 12.0))
+check("seismic: width parse - rubbish, empty, None and non-positive rejected",
+      seismic.parse_width_m("wide") is None and seismic.parse_width_m("") is None
+      and seismic.parse_width_m(None) is None and seismic.parse_width_m(0) is None
+      and seismic.parse_width_m(-3.0) is None and seismic.parse_width_m("5 km") is None
+      and seismic.parse_width_m(float("nan")) is None)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

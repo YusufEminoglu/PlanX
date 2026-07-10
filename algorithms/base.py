@@ -37,6 +37,7 @@ GROUP_GROWTH = ("Urban Growth", "growth")
 GROUP_CYCLE = ("Cycling", "cycling")
 GROUP_HAZARD = ("Hazard Screening", "hazard")
 GROUP_DEMAND = ("Travel Demand", "demand")
+GROUP_SEISMIC = ("Seismic Risk", "seismic")
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):

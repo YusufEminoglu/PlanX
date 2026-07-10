@@ -70,6 +70,7 @@ from .algorithms.alg_gravity_model import GravityModelAlgorithm
 from .algorithms.alg_mode_split import ModeSplitAlgorithm
 from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
 from .algorithms.alg_scenario_pipeline import ScenarioPipelineAlgorithm
+from .algorithms.alg_seismic_debris import SeismicDebrisAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -171,3 +172,5 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(TripGenerationAlgorithm())
         self.addAlgorithm(GravityModelAlgorithm())
         self.addAlgorithm(ModeSplitAlgorithm())
+        # 19 | Seismic Risk
+        self.addAlgorithm(SeismicDebrisAlgorithm())

@@ -138,7 +138,10 @@ def generate_demo_city(seed: int, blocks_x: int, blocks_y: int, block_size: floa
                 pois.append(((px1, py1), "Shop"))
                 pois.append(((px2, py2), "Cafe"))
 
-            # Place buildings inside block
+            # Place buildings inside block (green space stays free of footprints)
+            if use == "green":
+                continue
+
             margin = 0.1 * block_size
             b_w = 0.35 * block_size
             gap = 0.1 * block_size
