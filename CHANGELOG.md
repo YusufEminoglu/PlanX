@@ -1,9 +1,5 @@
 # Changelog
 
-## [4.6.1] - 2026-07-10
-
-- Seismic debris: four road/open-space network sources (OSM class widths, width column, ROI minus blocks, polygons as-is)
-
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
