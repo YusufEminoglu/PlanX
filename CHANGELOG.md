@@ -1,13 +1,9 @@
 # Changelog
 
-## [4.9.0] - 2026-07-11
-
-- Network Routing UX and Walking Comfort: OD routes, nearest-facility route geometries, prepare-network reprojection+index, walking slope comfort, street environment comfort
-
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [4.9.0] - UNRELEASED
+## [4.9.0] - 2026-07-11
 
 Network Routing UX & Walking Comfort additions.
 
