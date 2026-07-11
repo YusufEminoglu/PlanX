@@ -3,6 +3,11 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Improved
+- OD Routes, OD Cost Matrix and Nearest Facility Allocation help now spells out the cost-field contract: the router minimises the SUM of the chosen network-layer column, so it must be an additive per-segment quantity (a time or weighted length, never a speed - conversion formula included); net_cost, CUTOFF and k-nearest inherit the column's units; NULL costs read as 0 (free segments) and values must be non-negative; Walking Slope Comfort's time_fwd_min is the ready-made slope-aware cost; the detour ratio is a pure ratio only under the default length cost.
+
 ## [4.9.0] - 2026-07-11
 
 Network Routing UX & Walking Comfort additions.
