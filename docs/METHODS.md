@@ -12,7 +12,10 @@ weighted by length (or a cost field). Shortest paths run Dijkstra —
 identical results (unit-asserted). OD matrices report cost and the detour
 ratio `network / euclidean`; service areas are min-cost bands from
 multiple sources; nearest-facility allocation tracks the winning source
-per node.
+per node. Nearest-facility routes and OD routes rebuild the actual path
+geometry from predecessor-tracking Dijkstra trees (node and edge ids
+walked back to the source, oriented in travel order), with k-nearest
+destination limits and cost cutoffs.
 
 ## Centrality & Space Syntax
 
@@ -62,7 +65,18 @@ a DEM. Each is normalised 0–100 with documented breakpoints and combined
 with editable weights (missing components renormalise away). Route
 quality reroutes over `length × (1 + penalty × (100 − score)/100)` and
 reports the detour ratio, the length-weighted mean score and the
-low-score share of the route.
+low-score share of the route. Walking slope comfort samples a DEM along
+each segment and reports length-weighted mean and maximum grades, climb
+and descent, comfort classes and direction-aware travel times from
+Tobler's hiking function `speed = 6·e^(−3.5·|m+0.05|)` km/h (`m` = signed
+grade, fastest slightly downhill); the per-segment effective speed is the
+time-based harmonic aggregation `length / walking time`, not the mean of
+interval speeds. Street environment comfort turns weighted asset and
+barrier points into per-segment kernel densities with `u = d/h`: uniform
+`1`, triangular `1 − u`, Epanechnikov `1 − u²`, Gaussian `e^(−4.5·u²)`,
+all truncated at the bandwidth `h`; optional rasters join as segment
+means and the components combine min-max normalised, orientation-flipped,
+into `index = 100 · Σ w·oriented_norm / Σ w`.
 
 ## Visibility
 

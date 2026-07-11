@@ -16,7 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, demand, demo, equity, graphs, hydro, isochrone, morphology,
+    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, graphs, hydro, isochrone, morphology,
     optimize, paths, report, scenario, seismic, solar, standards, syntax, walkability,
 )
 
@@ -1987,6 +1987,174 @@ check("weighted rank: Beta score 75.0", close(sc_w_map["Beta"]["score"], 75.0))
 check("weighted rank: Gamma score 56.25", close(sc_w_map["Gamma"]["score"], 56.25))
 check("weighted rank: scenarios order (Beta, Gamma, Alpha)",
       [sc["name"] for sc in res_weighted["scenarios"]] == ["Beta", "Gamma", "Alpha"])
+
+# --------------------------------------------------------------------------- #
+# Paths: multi-source predecessor tree (v4.9)
+# --------------------------------------------------------------------------- #
+# Hand fixture: path graph 0-1-2-3-4, four edges e0=(0,1) e1=(1,2) e2=(2,3) e3=(3,4), all weights 1, sources=[0, 4]
+indptr_fixture = np.array([0, 1, 3, 5, 7, 8], dtype=np.int64)
+adj_node_fixture = np.array([1, 0, 2, 1, 3, 2, 4, 3], dtype=np.int32)
+adj_edge_fixture = np.array([0, 0, 1, 1, 2, 2, 3, 3], dtype=np.int32)
+weights_fixture = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], dtype=np.float64)
+sources_fixture = [0, 4]
+
+dist_tree, label_tree, pred_node, pred_edge = paths.multi_source_tree(
+    indptr_fixture, adj_node_fixture, adj_edge_fixture, weights_fixture, 5, sources_fixture
+)
+check("multi_source_tree: dist == [0, 1, 2, 1, 0]", np.allclose(dist_tree, [0.0, 1.0, 2.0, 1.0, 0.0]))
+check("multi_source_tree: label == [0, 0, 0, 1, 1]", np.all(label_tree == [0, 0, 0, 1, 1]))
+check("multi_source_tree: pred_node == [-1, 0, 1, 4, -1]", np.all(pred_node == [-1, 0, 1, 4, -1]))
+check("multi_source_tree: pred_edge == [-1, 0, 1, 3, -1]", np.all(pred_edge == [-1, 0, 1, 3, -1]))
+
+nodes_tree, edges_tree = paths.path_to_root(pred_node, pred_edge, 2)
+check("path_to_root: 2 -> ([0, 1, 2], [0, 1])", nodes_tree == [0, 1, 2] and edges_tree == [0, 1])
+
+# dist/label equal multi_source's output element-wise on this graph
+_orig_scipy_test = paths.HAS_SCIPY
+paths.HAS_SCIPY = False
+dist_ms, label_ms = paths.multi_source(indptr_fixture, adj_node_fixture, weights_fixture, 5, sources_fixture)
+paths.HAS_SCIPY = _orig_scipy_test
+check("multi_source_tree equal multi_source: dist", np.allclose(dist_tree, dist_ms))
+check("multi_source_tree equal multi_source: label", np.all(label_tree == label_ms))
+
+# AND on one irregular graph reused from the existing paths tests
+dist_tree_gw, label_tree_gw, _, _ = paths.multi_source_tree(
+    gw.indptr, gw.adj_node, gw.adj_edge, gw.adj_cost, gw.num_nodes, [0, 7, 13]
+)
+dist_ms_gw, label_ms_gw = paths.multi_source(gw.indptr, gw.adj_node, gw.adj_cost, gw.num_nodes, [0, 7, 13])
+check("multi_source_tree equal multi_source on irregular graph: dist", np.allclose(dist_tree_gw, dist_ms_gw))
+check("multi_source_tree equal multi_source on irregular graph: label", np.all(label_tree_gw == label_ms_gw))
+
+# With cutoff=1.5: node 2 unreachable (dist inf, preds -1)
+dist_cut, label_cut, pred_node_cut, pred_edge_cut = paths.multi_source_tree(
+    indptr_fixture, adj_node_fixture, adj_edge_fixture, weights_fixture, 5, sources_fixture, cutoff=1.5
+)
+check("multi_source_tree cutoff: dist[2] == inf", not np.isfinite(dist_cut[2]))
+check("multi_source_tree cutoff: pred_node[2] == -1", pred_node_cut[2] == -1)
+check("multi_source_tree cutoff: pred_edge[2] == -1", pred_edge_cut[2] == -1)
+
+# Check with target is itself a root
+nodes_root, edges_root = paths.path_to_root(pred_node, pred_edge, 0)
+check("path_to_root: 0 -> ([0], [])", nodes_root == [0] and edges_root == [])
+
+# check cyclic guard
+nodes_cycle, edges_cycle = paths.path_to_root(np.array([1, 0]), np.array([0, 0]), 0)
+check("path_to_root cyclic guard", nodes_cycle == [] and edges_cycle == [])
+
+# --------------------------------------------------------------------------- #
+# Walking comfort engine (v4.9)
+# --------------------------------------------------------------------------- #
+# grade_stats fixtures
+mean_abs, max_abs, climb, descent = comfort.grade_stats([0, 1, 3], [0, 10, 20])
+check("grade_stats: ascending profile",
+      close(mean_abs, 0.15) and close(max_abs, 0.2) and close(climb, 3.0) and close(descent, 0.0))
+
+mean_abs_2, max_abs_2, climb_2, descent_2 = comfort.grade_stats([5, 4, 4.5], [0, 10, 20])
+check("grade_stats: mixed profile",
+      close(mean_abs_2, 0.075) and close(max_abs_2, 0.1) and close(climb_2, 0.5) and close(descent_2, 1.0))
+
+check("grade_stats: short profile", comfort.grade_stats([1.0], [0.0]) == (0.0, 0.0, 0.0, 0.0))
+
+# tobler_speed fixtures
+check("tobler_speed: -0.05", close(comfort.tobler_speed(-0.05), 6.0))
+check("tobler_speed: 0.0", close(comfort.tobler_speed(0.0), 5.036744, 1e-5))
+check("tobler_speed: 0.10", close(comfort.tobler_speed(0.10), 3.549335, 1e-5))
+
+# profile_time_min
+check("profile_time_min: Mixed 10m segments",
+      close(comfort.profile_time_min([0.1, -0.1], [10, 10]), 0.288170, 1e-5))
+
+# class_of
+breaks = (5.0, 8.0, 12.0)
+check("class_of: 4.9 -> 1", comfort.class_of(4.9, breaks) == 1)
+check("class_of: 5.0 -> 1", comfort.class_of(5.0, breaks) == 1)
+check("class_of: 7.2 -> 2", comfort.class_of(7.2, breaks) == 2)
+check("class_of: 12.0 -> 3", comfort.class_of(12.0, breaks) == 3)
+check("class_of: 12.1 -> 4", comfort.class_of(12.1, breaks) == 4)
+
+# parse_breaks
+check("parse_breaks: default", comfort.parse_breaks("") == (5.0, 8.0, 12.0))
+check("parse_breaks: custom", comfort.parse_breaks("3,6") == (3.0, 6.0))
+try:
+    comfort.parse_breaks("6,3")
+    pb_desc = False
+except ValueError:
+    pb_desc = True
+check("parse_breaks: ValueError non-ascending", pb_desc)
+try:
+    comfort.parse_breaks("a,b")
+    pb_nan = False
+except ValueError:
+    pb_nan = True
+check("parse_breaks: ValueError non-numeric", pb_nan)
+
+# kernel_weight
+h = 100.0
+dists_k = np.array([50.0])
+check("kernel_weight: uniform", close(comfort.kernel_weight(dists_k, h, "uniform")[0], 1.0))
+check("kernel_weight: triangular", close(comfort.kernel_weight(dists_k, h, "triangular")[0], 0.5))
+check("kernel_weight: epanechnikov", close(comfort.kernel_weight(dists_k, h, "epanechnikov")[0], 0.75))
+check("kernel_weight: gaussian", close(comfort.kernel_weight(dists_k, h, "gaussian")[0], 0.324652, 1e-5))
+check("kernel_weight: beyond h", np.all(comfort.kernel_weight(np.array([150.0]), h, "epanechnikov") == 0.0))
+
+# segment_density
+samples = np.array([[0.0, 0.0], [10.0, 0.0]])
+pts = np.array([[5.0, 40.0]])
+w = np.array([1.0])
+check("segment_density: exact 0.8375", close(comfort.segment_density(samples, pts, w, 100.0, "epanechnikov"), 0.8375))
+check("segment_density: empty points",
+      comfort.segment_density(samples, np.empty((0, 2)), np.empty(0), 100.0, "epanechnikov") == 0.0)
+
+# combine_components
+idx, used, dropped = comfort.combine_components(
+    {"positive": np.array([2.0, 0.0, 1.0]), "negative": np.array([0.0, 4.0, 4.0])},
+    {"positive": +1, "negative": -1}
+)
+check("combine_components: exact [100, 0, 25]", np.allclose(idx, [100.0, 0.0, 25.0]))
+check("combine_components: used positive, negative", used == ["positive", "negative"])
+check("combine_components: dropped none", len(dropped) == 0)
+
+idx_w, _, _ = comfort.combine_components(
+    {"positive": np.array([2.0, 0.0, 1.0]), "negative": np.array([0.0, 4.0, 4.0])},
+    {"positive": +1, "negative": -1},
+    weights={"positive": 3.0}
+)
+check("combine_components: weighted [100, 0, 37.5]", np.allclose(idx_w, [100.0, 0.0, 37.5]))
+
+idx_drop, used_drop, dropped_drop = comfort.combine_components(
+    {"positive": np.array([2.0, 0.0, 1.0]), "negative": np.array([0.0, 4.0, 4.0]), "raster_plus": np.array([7.0, 7.0, 7.0])},
+    {"positive": +1, "negative": -1, "raster_plus": +1}
+)
+check("combine_components: constant dropped", np.allclose(idx_drop, [100.0, 0.0, 25.0]) and dropped_drop == ["raster_plus"])
+
+idx_none, used_none, dropped_none = comfort.combine_components(
+    {"positive": np.array([2.0, 0.0, 1.0]), "negative": None},
+    {"positive": +1, "negative": -1}
+)
+check("combine_components: absent None ignored",
+      np.allclose(idx_none, [100.0, 0.0, 50.0]) and used_none == ["positive"] and dropped_none == [])
+
+try:
+    comfort.combine_components({"positive": None, "negative": None}, {"positive": 1, "negative": -1})
+    cc_all_none = False
+except ValueError:
+    cc_all_none = True
+check("combine_components: ValueError all None", cc_all_none)
+
+# ValueError checks
+try:
+    comfort.combine_components({"positive": np.array([5.0, 5.0, 5.0])}, {"positive": 1})
+    cc_const_only = False
+except ValueError:
+    cc_const_only = True
+check("combine_components: ValueError all constant", cc_const_only)
+
+try:
+    comfort.combine_components({}, {})
+    cc_empty = False
+except ValueError:
+    cc_empty = True
+check("combine_components: ValueError empty dict", cc_empty)
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

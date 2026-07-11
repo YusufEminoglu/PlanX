@@ -228,3 +228,73 @@ def dijkstra_pruned(indptr, adj, w_cost, w_prune, n, source, radius):
                 prune[v] = np_
                 heapq.heappush(heap, (nc, np_, v))
     return cost, prune
+
+
+def multi_source_tree(indptr, adj_node, adj_edge, weights, n, sources,
+                      cutoff=None):
+    """Multi-source Dijkstra with predecessor tracking.
+
+    Same relaxation and tie behaviour as ``multi_source`` (labels win by
+    strict improvement only, so on an exact tie the earlier-settled source
+    keeps the node), but additionally records for every node the previous
+    node and the edge id used to arrive. Returns
+    ``(dist, label, pred_node, pred_edge)``; ``label`` indexes into
+    ``sources``; ``pred_node``/``pred_edge`` are -1 at the sources and at
+    unreachable nodes. ``dist`` and ``label`` must be numerically IDENTICAL
+    to ``multi_source`` for the same inputs (unit-tested).
+    """
+    sources = np.asarray(sources, dtype=np.int64)
+    dist = np.full(n, INF)
+    label = np.full(n, -1, dtype=np.int64)
+    pred_node = np.full(n, -1, dtype=np.int64)
+    pred_edge = np.full(n, -1, dtype=np.int64)
+    heap = []
+    for i, s in enumerate(sources):
+        s = int(s)
+        if dist[s] > 0.0:
+            dist[s] = 0.0
+            label[s] = i
+            heap.append((0.0, s, i))
+    heapq.heapify(heap)
+    while heap:
+        d, u, lab = heapq.heappop(heap)
+        if d > dist[u]:
+            continue
+        for k in range(indptr[u], indptr[u + 1]):
+            v = adj_node[k]
+            nd = d + weights[k]
+            if cutoff is not None and nd > cutoff:
+                continue
+            if nd < dist[v]:
+                dist[v] = nd
+                label[v] = lab
+                pred_node[v] = u
+                pred_edge[v] = adj_edge[k]
+                heapq.heappush(heap, (nd, v, lab))
+    return dist, label, pred_node, pred_edge
+
+
+def path_to_root(pred_node, pred_edge, target):
+    """Walk predecessors from ``target`` back to its source root.
+
+    Returns ``(nodes, edges)`` in ROOT->TARGET travel order (nodes has one
+    more entry than edges). ``([target], [])`` when target is itself a root
+    (pred -1 but finite dist is the caller's check); ``([], [])`` when the
+    walk exceeds len(pred_node) (corrupt input guard, same as
+    reconstruct_path).
+    """
+    target = int(target)
+    if pred_node[target] < 0:
+        return [target], []
+    nodes = [target]
+    edges = []
+    cur = target
+    while pred_node[cur] >= 0:
+        edges.append(int(pred_edge[cur]))
+        cur = int(pred_node[cur])
+        nodes.append(cur)
+        if len(nodes) > len(pred_node):
+            return [], []
+    nodes.reverse()
+    edges.reverse()
+    return nodes, edges

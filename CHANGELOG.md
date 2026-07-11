@@ -1,7 +1,32 @@
 # Changelog
 
+## [4.9.0] - 2026-07-11
+
+- Network Routing UX and Walking Comfort: OD routes, nearest-facility route geometries, prepare-network reprojection+index, walking slope comfort, street environment comfort
+
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [4.9.0] - UNRELEASED
+
+Network Routing UX & Walking Comfort additions.
+
+### Added
+- **OD Routes (Shortest Paths) algorithm** (`planx:odroutes` / `algorithms/alg_od_routes.py`): computes network shortest paths between origins and destinations, supporting `K_NEAREST` filtering, cost limits (`CUTOFF`), real street route paths (`OUT_ROUTES`), and straight desire lines (`OUT_LINES`).
+- **Walking Slope Comfort algorithm** (`planx:walkingslope` / `algorithms/alg_walking_slope.py`): profiles street segments against a DEM, interpolating elevation samples along the geometry, and calculates length-weighted grades, climb/descent, Tobler forward/reverse speeds and travel times, and slope comfort classes.
+- **Street Environment Comfort algorithm** (`planx:streetcomfort` / `algorithms/alg_street_comfort.py`): scores streets 0-100 based on positive assets and negative barriers point layers using spatial index search and distance kernel weights (uniform, triangular, epanechnikov, gaussian) plus raster factors, combined into a weighted comfort index.
+- **Prepare Network option `TARGET_CRS`** (`alg_prepare_network.py`): reprojects geometries to a target CRS while keeping length measurements in source-CRS meters.
+- **Prepare Network option `CREATE_INDEX`** (`alg_prepare_network.py`): creates a spatial index on the output layer.
+- **Nearest Facility route geometry output `ROUTES`** (`alg_nearest_facility.py`): outputs travel path geometries for allocated demand using Dijkstra predecessor tree tracking.
+- **Dijkstra predecessor tracking `multi_source_tree` & `path_to_root`** (`engine/paths.py`): tracks predecessors to reconstruct shortest path routes.
+- **Walking comfort engine** (`engine/comfort.py`): pure numpy math for Tobler speeds, profile times, grades, kernel weights, segment density, and multi-component index combining.
+- **Three new tool icons**: `tool_odroutes.png`, `tool_walkingslope.png`, `tool_streetcomfort.png`.
+
+### Tested
+- 503 engine unit checks (46 new checks for predecessor tracking, Tobler speeds, grades, kernel weights, and comfort combining), passing on both QGIS runners.
+- 448 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4, 0 failures on each (new blocks verify preparenetwork CRS and index, nearestfacility routes, odroutes vs odmatrix cost equality, walkingslope, and streetcomfort).
+- 26 dashboard check assertions on both QGIS runners.
+- Import check: 68 algorithms in 19 groups register cleanly on QGIS 3 LTR and QGIS 4.
 
 ## [4.8.0] - 2026-07-11
 

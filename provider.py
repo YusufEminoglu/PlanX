@@ -9,6 +9,7 @@ from qgis.core import QgsProcessingProvider
 
 from .algorithms.alg_prepare_network import PrepareNetworkAlgorithm
 from .algorithms.alg_od_matrix import ODCostMatrixAlgorithm
+from .algorithms.alg_od_routes import ODRoutesAlgorithm
 from .algorithms.alg_service_areas import ServiceAreasAlgorithm
 from .algorithms.alg_nearest_facility import NearestFacilityAlgorithm
 from .algorithms.alg_node_centrality import NetworkCentralityAlgorithm
@@ -41,6 +42,8 @@ from .algorithms.alg_scenario_compare import ScenarioCompareAlgorithm
 from .algorithms.alg_scenario_rank import ScenarioRankAlgorithm
 from .algorithms.alg_scenario_snapshot import ScenarioSnapshotAlgorithm
 from .algorithms.alg_walkability import WalkabilityAlgorithm
+from .algorithms.alg_walking_slope import WalkingSlopeAlgorithm
+from .algorithms.alg_street_comfort import StreetComfortAlgorithm
 from .algorithms.alg_route_quality import RouteQualityAlgorithm
 from .algorithms.alg_gtfs_import import GtfsImportAlgorithm
 from .algorithms.alg_transit_frequency import TransitFrequencyAlgorithm
@@ -95,6 +98,7 @@ class PlanXProvider(QgsProcessingProvider):
         # 1 | Network Analysis
         self.addAlgorithm(PrepareNetworkAlgorithm())
         self.addAlgorithm(ODCostMatrixAlgorithm())
+        self.addAlgorithm(ODRoutesAlgorithm())
         self.addAlgorithm(ServiceAreasAlgorithm())
         self.addAlgorithm(NearestFacilityAlgorithm())
         # 2 | Centrality & Space Syntax
@@ -142,6 +146,8 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(EquityCrosstabAlgorithm())
         # 10 | Walkability
         self.addAlgorithm(WalkabilityAlgorithm())
+        self.addAlgorithm(WalkingSlopeAlgorithm())
+        self.addAlgorithm(StreetComfortAlgorithm())
         self.addAlgorithm(RouteQualityAlgorithm())
         # 11 | Transit
         self.addAlgorithm(GtfsImportAlgorithm())

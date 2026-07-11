@@ -19,13 +19,13 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-five Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-eight Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
 - **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.
 - **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness, **eigenvector** and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
-- **Real network accessibility** — OD cost matrices with detour ratios, **exact service-area isochrones** (partial-edge trimming: reach ends mid-street, not at whole segments; street-buffer / concave-hull / convex-hull polygons, per-facility or merged) with straight-line **radius circles and the pedshed ratio** built in, nearest-facility allocation with load summaries.
+- **Real network accessibility** — OD cost matrices with detour ratios, **exact service-area isochrones** (partial-edge trimming: reach ends mid-street, not at whole segments; street-buffer / concave-hull / convex-hull polygons, per-facility or merged) with straight-line **radius circles and the pedshed ratio** built in, nearest-facility allocation with load summaries and travel path geometries.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
 - **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Annual Solar Potential** (year-long clear-sky irradiation from twelve representative-day sweeps, kWh/m²/yr, with an optional monthly raster), **Sky View Factor**, frontal-area wind-roughness grids, a vector **Heat Island Risk Grid**, **Road Emissions** (daily segment emissions) and **Air Quality Screening** (dispersion index grid with canyon effect and exposure bands).
@@ -37,7 +37,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Scenario A/B comparison & ranking** — snapshot the score cards for plan alternatives (dashboard buttons or the batchable Scenario Snapshot algorithm), diff two of them metric by metric, or rank any number of snapshots into a composite score with direction-aware, weighted min-max normalisation.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
 - **Transit from GTFS** — load and validate any GTFS feed (stops with departures, route service stats), map **stop frequencies and headways** for a time window, and compute **door-to-door walk+transit travel times** (RAPTOR-style earliest arrival with transfers, access/egress on the street network, always compared against walking).
-- **Walkability studio** — a **Walkability Audit** scoring every street segment 0-100 from intersection density, land-use mix entropy, destinations, block length and slope (editable weights/breakpoints), and **Pedestrian Route Quality** routing over quality-weighted streets: the detour ratio, the mean walk score along the route, the share on low-scoring segments.
+- **Walkability studio** — a **Walkability Audit** scoring every street segment 0-100 from intersection density, land-use mix entropy, destinations, block length and slope (editable weights/breakpoints), and **Pedestrian Route Quality** routing over quality-weighted streets: the detour ratio, the mean walk score along the route, the share on low-scoring segments; plus **Walking Slope Comfort** profiling street segments against a DEM using Tobler speed, and **Street Environment Comfort** scoring segments from positive/negative point kernel densities.
 - **Visibility** — DSM **viewsheds** (observer/target heights, radius), an **isovist field** (visible area, radials, circularity, occlusivity on a point grid — the VGA view) and **landmark visual exposure** (from where can it be seen — skyline and heritage screening).
 - **Population & housing** — a **cohort-component projection** (Leslie matrix from a plain age-group rate table), a **housing needs assessment** (households, vacancy, losses, backlog), **residential capacity** (FAR arithmetic per parcel, district roll-up) and **population allocation** (apportioning a population increment over parcels using deterministic largest-remainder method) — projection feeds needs, capacity tests the zoning.
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
@@ -47,8 +47,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the sixty-five tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 457 engine unit checks against hand-computed values + 384 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the sixty-eight tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 503 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -72,10 +72,11 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 
 | Group | Tool | What it does |
 |-------|------|--------------|
-| Network Analysis | Prepare Network | Explode, node at intersections, dedupe, drop slivers |
-| Network Analysis | OD Cost Matrix | Many-to-many network costs, detour ratio, desire lines |
+| Network Analysis | Prepare Network | Explode, node at intersections, dedupe, drop slivers, optional reprojection + spatial index |
+| Network Analysis | OD Cost Matrix | Many-to-many network costs, detour ratio, desire lines (OD Routes adds the path geometries) |
+| Network Analysis | OD Routes (Shortest Paths) | Shortest routing path lines, desire lines, k-nearest destinations |
 | Network Analysis | Service Areas (Isochrones) | Exact trimmed isochrones (street buffer / concave / convex), straight-line circles + pedshed ratio |
-| Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary |
+| Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary and path routes |
 | Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, eigenvector, Brandes betweenness (nodes + edges) |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |
 | Urban Morphology | Building Form Metrics | Area, IPQ, convexity, elongation, orientation, courtyards, shared walls… |
@@ -101,6 +102,8 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Reporting & Dashboard | Scenario Pipeline (LUTI-lite) | Chained CA growth → largest-remainder population growth allocation to newly developed cells → access & walkability evaluation |
 | Walkability | Walkability Audit | Street-segment walk scores 0-100: intersections, mix, destinations, block length, slope |
 | Walkability | Pedestrian Route Quality | Quality-weighted routes vs plain shortest: detour ratio, mean walk score, low-quality share |
+| Walkability | Walking Slope Comfort | Elevation profiles from DEM, Tobler speed fwd/rev, slope comfort classes |
+| Walkability | Street Environment Comfort | Scores segments 0-100 from comfort assets and barriers point layers + raster overlays |
 | Transit | GTFS Import and Service Stats | Validated feed import: stops with departures/routes + route service summary |
 | Transit | Transit Frequency Map | Departures per hour, mean headway and route counts per stop for a time window |
 | Transit | Transit Travel-Time Access | Door-to-door walk+transit vs walk-only minutes per destination (RAPTOR, transfers) |

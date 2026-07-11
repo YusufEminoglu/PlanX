@@ -32,6 +32,7 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
     CUTOFF = "CUTOFF"
     OUTPUT = "OUTPUT"
     SPIDER = "SPIDER"
+    ROUTES = "ROUTES"
     SUMMARY = "SUMMARY"
 
     def name(self):
@@ -62,7 +63,10 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
             "trip anyone must make (the number standards care about); "
             "mean_cost compares overall convenience between facilities.\n"
             "- Spider lines: long bundles crossing other catchments "
-            "indicate a missing facility or a network barrier.\n\n"
+            "indicate a missing facility or a network barrier.\n"
+            "- Allocation routes show the real streets the trips use — "
+            "bundle widths reveal which corridors carry each catchment; "
+            "length_m vs net_cost differences flag time-weighted assignments.\n\n"
             "Using the results: demand_n far above the average marks where "
             "the next facility relieves the most load; rerun with a "
             "candidate site added and compare max_cost/demand_n shifts. "
@@ -92,6 +96,8 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.SPIDER, self.tr("Allocation lines"), optional=True, createByDefault=False))
         self.addParameter(QgsProcessingParameterFeatureSink(
+            self.ROUTES, self.tr("Allocation routes (network paths)"), optional=True, createByDefault=False))
+        self.addParameter(QgsProcessingParameterFeatureSink(
             self.SUMMARY, self.tr("Facility load summary"), type=QgsProcessing.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -120,8 +126,19 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
         # Several facilities can share a node: keep the first per node and
         # remap labels afterwards.
         unique_nodes, first_pos = np.unique(f_nodes, return_index=True)
-        dist, label = paths.multi_source(graph.indptr, graph.adj_node, graph.adj_cost,
-                                         graph.num_nodes, unique_nodes, cutoff=cutoff)
+
+        req_routes = parameters.get(self.ROUTES) is not None
+        pred_node = pred_edge = None
+        if req_routes:
+            dist, label, pred_node, pred_edge = paths.multi_source_tree(
+                graph.indptr, graph.adj_node, graph.adj_edge, graph.adj_cost,
+                graph.num_nodes, unique_nodes, cutoff=cutoff
+            )
+        else:
+            dist, label = paths.multi_source(
+                graph.indptr, graph.adj_node, graph.adj_cost,
+                graph.num_nodes, unique_nodes, cutoff=cutoff
+            )
 
         out_fields = self.make_fields(("facility", STRING), ("net_cost", DOUBLE),
                                       base=demand.fields())
@@ -135,8 +152,30 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
                 self.make_fields(("facility", STRING), ("net_cost", DOUBLE)),
                 QgsWkbTypes.LineString, crs)
 
+        routes_sink = routes_dest = None
+        if req_routes:
+            routes_sink, routes_dest = self.parameterAsSink(
+                parameters, self.ROUTES, context,
+                self.make_fields(("demand_i", INT), ("facility", STRING),
+                                 ("net_cost", DOUBLE), ("length_m", DOUBLE)),
+                QgsWkbTypes.LineString, crs)
+
+        def route_geometry(nodes, edges):
+            pts = []
+            cur_xy = graph.node_xy[nodes[0]]
+            for eid in edges:
+                coords = polylines[eid]
+                d_start = float(np.hypot(*(coords[0] - cur_xy)))
+                d_end = float(np.hypot(*(coords[-1] - cur_xy)))
+                ordered = coords if d_start <= d_end else coords[::-1]
+                start = 1 if pts else 0
+                pts.extend(QgsPointXY(x, y) for x, y in ordered[start:])
+                cur_xy = np.asarray([ordered[-1, 0], ordered[-1, 1]])
+            return QgsGeometry.fromPolylineXY(pts)
+
         n_dem_fields = len(demand.fields())
         loads = {}
+        n_routes = 0
         for i, feat in enumerate(d_feats):
             if feedback.isCanceled():
                 break
@@ -164,6 +203,19 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
                 lf.setAttributes([fac, cost_val])
                 spider_sink.addFeature(lf, QgsFeatureSink.FastInsert)
 
+            if routes_sink is not None and fac:
+                nodes, edges = paths.path_to_root(pred_node, pred_edge, node)
+                if edges:
+                    length_val = float(np.sum(graph.edge_len[edges]))
+                    rf = QgsFeature()
+                    rf.setGeometry(route_geometry(nodes, edges))
+                    rf.setAttributes([i, fac, cost_val, length_val])
+                    routes_sink.addFeature(rf, QgsFeatureSink.FastInsert)
+                    n_routes += 1
+
+        if routes_sink is not None:
+            feedback.pushInfo(self.tr(f"Created {n_routes} allocation route(s)."))
+
         sum_fields = self.make_fields(("facility", STRING), ("demand_n", INT),
                                       ("mean_cost", DOUBLE), ("max_cost", DOUBLE))
         sum_sink, sum_dest = self.parameterAsSink(
@@ -182,6 +234,8 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
         results = {self.OUTPUT: out_dest, self.SUMMARY: sum_dest}
         if spider_dest is not None:
             results[self.SPIDER] = spider_dest
+        if routes_dest is not None:
+            results[self.ROUTES] = routes_dest
         return results
 
     def createInstance(self):

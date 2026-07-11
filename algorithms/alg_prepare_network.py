@@ -6,13 +6,18 @@ import processing
 from qgis.core import (
     QgsFeature,
     QgsFeatureSink,
+    QgsGeometry,
     QgsProcessing,
     QgsProcessingException,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
+    QgsProcessingParameterCrs,
+    QgsProcessingParameterBoolean,
     QgsProcessingUtils,
     QgsWkbTypes,
+    QgsCoordinateTransform,
+    QgsVectorDataProvider,
 )
 
 from .base import DOUBLE, GROUP_NETWORK, LONG, PlanXAlgorithm
@@ -23,6 +28,8 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
     ICON = "tool_preparenetwork.png"
     INPUT = "INPUT"
     MIN_LENGTH = "MIN_LENGTH"
+    TARGET_CRS = "TARGET_CRS"
+    CREATE_INDEX = "CREATE_INDEX"
     OUTPUT = "OUTPUT"
 
     def name(self):
@@ -48,13 +55,21 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
             "likely for CAD/OSM) lines cross without touching and layers "
             "were merged wrong.\n"
             "- seg_id is a stable per-segment key for joins back to any "
-            "PlanX result; length_m is ready for length-weighted stats.\n"
+            "PlanX result; length_m is measured in the source CRS and is "
+            "ready for length-weighted stats.\n"
+            "- The target CRS option allows reprojecting the output; geographic "
+            "CRS outputs will issue a warning since other PlanX tools require "
+            "projected coordinates. The spatial index option makes the resulting "
+            "temporary layer immediately fast in spatial joins/snapping.\n"
             "- If a later tool reports a surprisingly disconnected graph "
             "(low reach, empty catchments), come back here: overpasses "
             "kept as crossings, tiny gaps at junctions and duplicate "
             "digitising are the usual culprits. Raising the minimum "
             "length drops slivers that would otherwise become fake "
-            "dead-end junctions."
+            "dead-end junctions.\n\n"
+            "Using the results\n"
+            "Save the prepared network or feed it directly into routing, OD, or "
+            "walkability tools."
         )
 
     def initAlgorithm(self, config=None):
@@ -65,6 +80,12 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
             self.MIN_LENGTH, self.tr("Drop segments shorter than (map units)"),
             QgsProcessingParameterNumber.Double, 0.05, minValue=0.0)
         self.addParameter(p)
+        self.addParameter(QgsProcessingParameterCrs(
+            self.TARGET_CRS, self.tr("Reproject result to (empty = keep network CRS)"),
+            optional=True))
+        self.addParameter(QgsProcessingParameterBoolean(
+            self.CREATE_INDEX, self.tr("Create spatial index on the result"),
+            defaultValue=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Prepared network")))
 
@@ -72,6 +93,9 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
         source = self.parameterAsSource(parameters, self.INPUT, context)
         min_len = self.parameterAsDouble(parameters, self.MIN_LENGTH, context)
         self.require_projected(source, "Street network")
+
+        target_crs = self.parameterAsCrs(parameters, self.TARGET_CRS, context)
+        create_index = self.parameterAsBool(parameters, self.CREATE_INDEX, context)
 
         def child(alg, params):
             res = processing.run(alg, params, context=context,
@@ -91,11 +115,20 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
         if layer is None:
             raise QgsProcessingException("Internal error: noding produced no layer.")
 
+        source_crs = source.sourceCrs()
+        out_crs = source_crs
+        transform = None
+        if target_crs.isValid() and target_crs != source_crs:
+            out_crs = target_crs
+            transform = QgsCoordinateTransform(source_crs, target_crs, context.transformContext())
+            if target_crs.isGeographic():
+                feedback.pushWarning(self.tr("The target CRS is geographic. Other PlanX tools require a projected CRS."))
+
         fields = self.make_fields(("seg_id", LONG), ("length_m", DOUBLE),
                                   base=source.fields())
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.LineString, source.sourceCrs())
+            QgsWkbTypes.LineString, out_crs)
 
         seg_id = 0
         kept = 0
@@ -109,12 +142,27 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
             if length <= min_len:
                 continue
             out = QgsFeature(fields)
-            out.setGeometry(g)
+            if transform is not None:
+                g_trans = QgsGeometry(g)
+                g_trans.transform(transform)
+                out.setGeometry(g_trans)
+            else:
+                out.setGeometry(g)
             attrs = list(f.attributes())[:len(source.fields())]
             out.setAttributes(attrs + [seg_id, float(length)])
             sink.addFeature(out, QgsFeatureSink.FastInsert)
             seg_id += 1
             kept += 1
+
+        if create_index:
+            out_layer = QgsProcessingUtils.mapLayerFromString(dest_id, context)
+            if out_layer is not None:
+                if out_layer.dataProvider().capabilities() & QgsVectorDataProvider.CreateSpatialIndex:
+                    out_layer.dataProvider().createSpatialIndex()
+                    feedback.pushInfo(self.tr("Spatial index created."))
+                else:
+                    feedback.pushWarning(self.tr("Format does not support spatial index creation."))
+
         feedback.pushInfo(self.tr(f"Prepared network: {kept} segments."))
         return {self.OUTPUT: dest_id}
 
