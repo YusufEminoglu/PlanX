@@ -1,9 +1,5 @@
 # Changelog
 
-## [4.8.0] - 2026-07-11
-
-- Scenario Ranking: weighted multi-scenario composite ranking, HTML ranking board, dashboard Rank button
-
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
