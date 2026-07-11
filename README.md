@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-four Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-five Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -34,7 +34,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Location-allocation optimization** — site new schools/clinics/parks among your candidates with the classic models: greedy **maximal coverage** (Church & ReVelle) and **p-median** with Teitz–Bart vertex substitution, on real network distances, existing facilities respected; plus **Capacitated Allocation** that sends demand to the nearest facility *with free capacity*, spilling to the next when full; and land-use allocation — assign parcels to uses to maximise suitability under per-use area targets, with optional **compactness/adjacency** objectives and a **Pareto-front** sweep that maps the suitability-versus-compactness trade-off and its knee — no external solver.
 - **Multi-objective land-use allocation** — assign a land use to every parcel to **maximize suitability** while meeting a target area for each use (the spatial-allocation problem of plan-making): feed one suitability field per use (e.g. from Suitability Lab) and per-use area targets. Add a **compactness** weight so each use forms contiguous zones, and **adjacency rules** (`residential|industry=-2`) to keep incompatible uses apart, and get a styled land-use map plus a target-vs-allocated summary — greedy + capacity-respecting swap heuristic, no solver.
 - **Accessibility equity** — measure how *fairly* access is shared, not just how much there is: population-weighted **Gini**, a **Theil index** split into between- and within-group inequality (the environmental-justice number), **P90/P10**, coefficient of variation and an **access-poverty share**, on any value (access score, travel time, distance); plus **Inequality Curves** — an exportable **Lorenz / concentration curve** and the **Atkinson index** at your chosen inequality aversion; and **Demographic Equity Cross-Tabs** — who actually holds the low values: representation ratios per subgroup × value class and the Duncan dissimilarity index.
-- **Scenario A/B comparison** — snapshot the score cards for two plan alternatives (dashboard buttons or the batchable Scenario Snapshot algorithm) and diff them metric by metric with direction-aware winners, in the dock or as a one-file HTML comparison report.
+- **Scenario A/B comparison & ranking** — snapshot the score cards for plan alternatives (dashboard buttons or the batchable Scenario Snapshot algorithm), diff two of them metric by metric, or rank any number of snapshots into a composite score with direction-aware, weighted min-max normalisation.
 - **Zero dependencies** — stock QGIS only: no QNEAT3, no GRASS modules, no servers, no pip installs. SciPy (bundled with official builds) accelerates automatically.
 - **Transit from GTFS** — load and validate any GTFS feed (stops with departures, route service stats), map **stop frequencies and headways** for a time window, and compute **door-to-door walk+transit travel times** (RAPTOR-style earliest arrival with transfers, access/egress on the street network, always compared against walking).
 - **Walkability studio** — a **Walkability Audit** scoring every street segment 0-100 from intersection density, land-use mix entropy, destinations, block length and slope (editable weights/breakpoints), and **Pedestrian Route Quality** routing over quality-weighted streets: the detour ratio, the mean walk score along the route, the share on low-scoring segments.
@@ -47,8 +47,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the sixty-four tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 425 engine unit checks against hand-computed values + 363 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the sixty-five tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 457 engine unit checks against hand-computed values + 384 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
 ## 🚀 Installation
@@ -95,6 +95,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Plan Standards & QA | Density Grid | Area-share value disaggregation to a grid, density per hectare |
 | Reporting & Dashboard | Plan Performance Report (HTML) | One-file scorecard report: charts, balance bars, score map — inline SVG |
 | Reporting & Dashboard | Scenario Compare (A/B) | Metric-by-metric diff of two plan snapshots with direction-aware winners + HTML report |
+| Reporting & Dashboard | Scenario Ranking | Rank any number of scenario snapshots into a composite score using direction-aware, weighted normalisation |
 | Reporting & Dashboard | Scenario Snapshot | Auto-detects PlanX output layers and captures the plan score metrics to a snapshot JSON |
 | Reporting & Dashboard | Generate Demo City | Generates a deterministic synthetic city with streets, buildings, land use, POIs, facilities, demand, green, and a DSM |
 | Reporting & Dashboard | Scenario Pipeline (LUTI-lite) | Chained CA growth → largest-remainder population growth allocation to newly developed cells → access & walkability evaluation |

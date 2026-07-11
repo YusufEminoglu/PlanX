@@ -1884,6 +1884,111 @@ check("iso: outer band is the two leftover tips",
       and close(isochrone.interval_length(band2), 0.4))
 
 # --------------------------------------------------------------------------- #
+# Scenario ranking (v4.8 Phase G)
+# --------------------------------------------------------------------------- #
+# parse_weights checks
+w1, u1 = scenario.parse_weights("walk_score_mean=3")
+check("parse_weights happy path", w1 == {"walk_score_mean": 3.0} and u1 == [])
+
+w2, u2 = scenario.parse_weights("access_gini=2, made_up=1")
+check("parse_weights unknown list", w2 == {"access_gini": 2.0, "made_up": 1.0} and u2 == ["made_up"])
+
+w3, u3 = scenario.parse_weights("")
+check("parse_weights empty text", w3 == {} and u3 == [])
+
+try:
+    scenario.parse_weights("walk_score_mean=0")
+    pw_zero = False
+except ValueError:
+    pw_zero = True
+check("parse_weights <=0 ValueError", pw_zero)
+
+try:
+    scenario.parse_weights("banana")
+    pw_malformed = False
+except ValueError:
+    pw_malformed = True
+check("parse_weights malformed ValueError", pw_malformed)
+
+# rank checks
+snapA = scenario.snapshot("Alpha", {"walk_score_mean": 60.0, "access_gini": 0.20,
+                                    "walk_low_share": 30.0, "units_total": 100.0})
+snapB = scenario.snapshot("Beta",  {"walk_score_mean": 80.0, "access_gini": 0.40,
+                                    "walk_low_share": 30.0, "units_total": 200.0})
+snapC = scenario.snapshot("Gamma", {"walk_score_mean": 70.0, "access_gini": 0.25,
+                                    "walk_low_share": 30.0, "units_total": 300.0})
+
+# ValueError on 1 snapshot
+try:
+    scenario.rank([snapA])
+    rank_one = False
+except ValueError:
+    rank_one = True
+check("rank ValueError on 1 snapshot", rank_one)
+
+# ValueError on duplicate names
+try:
+    scenario.rank([snapA, snapA])
+    rank_dup = False
+except ValueError:
+    rank_dup = True
+check("rank ValueError on duplicate names", rank_dup)
+
+res = scenario.rank([snapA, snapB, snapC])
+
+# scores / ranks
+sc_map = {sc["name"]: sc for sc in res["scenarios"]}
+check("rank: Gamma score 62.5", close(sc_map["Gamma"]["score"], 62.5))
+check("rank: Alpha score 50.0", close(sc_map["Alpha"]["score"], 50.0))
+check("rank: Beta score 50.0", close(sc_map["Beta"]["score"], 50.0))
+
+check("rank: Gamma rank 1", sc_map["Gamma"]["rank"] == 1)
+check("rank: Alpha rank 2", sc_map["Alpha"]["rank"] == 2)
+check("rank: Beta rank 2", sc_map["Beta"]["rank"] == 2)
+
+# scenario sorting order: by (rank, name) -> Gamma, Alpha, Beta
+check("rank: scenarios order", [sc["name"] for sc in res["scenarios"]] == ["Gamma", "Alpha", "Beta"])
+
+# n_metrics
+check("rank: n_metrics == 2", all(sc["n_metrics"] == 2 for sc in res["scenarios"]))
+check("rank: metrics length == 2", len(res["metrics"]) == 2)
+
+# norms
+metrics_map = {m["key"]: m for m in res["metrics"]}
+check("rank: walk_score_mean norm Alpha == 0", close(metrics_map["walk_score_mean"]["norms"]["Alpha"], 0.0))
+check("rank: walk_score_mean norm Beta == 1", close(metrics_map["walk_score_mean"]["norms"]["Beta"], 1.0))
+check("rank: walk_score_mean norm Gamma == 0.5", close(metrics_map["walk_score_mean"]["norms"]["Gamma"], 0.5))
+
+check("rank: access_gini norm Alpha == 1", close(metrics_map["access_gini"]["norms"]["Alpha"], 1.0))
+check("rank: access_gini norm Beta == 0", close(metrics_map["access_gini"]["norms"]["Beta"], 0.0))
+check("rank: access_gini norm Gamma == 0.75", close(metrics_map["access_gini"]["norms"]["Gamma"], 0.75))
+
+# wins
+check("rank: Alpha wins == 1", sc_map["Alpha"]["wins"] == 1)
+check("rank: Beta wins == 1", sc_map["Beta"]["wins"] == 1)
+check("rank: Gamma wins == 0", sc_map["Gamma"]["wins"] == 0)
+
+# skipped reasons
+skipped_map = {item["key"]: item["reason"] for item in res["skipped"]}
+check("rank: walk_low_share constant", skipped_map.get("walk_low_share") == "constant")
+check("rank: units_total neutral", skipped_map.get("units_total") == "neutral")
+
+# Delta variant (not-shared)
+snapD = scenario.snapshot("Delta", {"walk_score_mean": 90.0})
+res_delta = scenario.rank([snapA, snapB, snapD])
+skipped_delta_map = {item["key"]: item["reason"] for item in res_delta["skipped"]}
+check("rank: access_gini not-shared with Delta", skipped_delta_map.get("access_gini") == "not-shared")
+
+# weighted rerun
+res_weighted = scenario.rank([snapA, snapB, snapC], weights={"walk_score_mean": 3.0})
+sc_w_map = {sc["name"]: sc for sc in res_weighted["scenarios"]}
+check("weighted rank: Alpha score 25.0", close(sc_w_map["Alpha"]["score"], 25.0))
+check("weighted rank: Beta score 75.0", close(sc_w_map["Beta"]["score"], 75.0))
+check("weighted rank: Gamma score 56.25", close(sc_w_map["Gamma"]["score"], 56.25))
+check("weighted rank: scenarios order (Beta, Gamma, Alpha)",
+      [sc["name"] for sc in res_weighted["scenarios"]] == ["Beta", "Gamma", "Alpha"])
+
+# --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]
 print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
 if fails:

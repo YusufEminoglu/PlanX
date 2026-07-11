@@ -184,3 +184,16 @@ and more deficits are bad). The Batch Plan Auditor chains the standard
 battery and snapshots the result in one run. Demo City generates a
 deterministic, synthetic town using block-subdivided geometries and
 ray-intersection street noding.
+
+Multi-scenario ranking scores any number of snapshots with a weighted
+composite: every scored metric is min-max normalised direction-aware so
+that 1 is always best (`norm = (v − min) / (max − min)` when higher is
+better, `norm = (max − v) / (max − min)` when lower is better), then
+`score = 100 · Σ w·norm / Σ w` with a default weight of 1. Ranks use
+competition ranking on descending score (equal scores share a rank and
+the next rank is skipped: 1, 2, 2, 4); wins count the metrics where a
+scenario holds the strictly best norm, so a balanced alternative can
+rank first with zero wins. Metrics are skipped as `neutral` (direction
+0 or unknown), `not-shared` (missing in at least one snapshot) or
+`constant` (max equals min), with reason precedence
+neutral > not-shared > constant.

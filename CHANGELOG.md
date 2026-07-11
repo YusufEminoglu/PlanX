@@ -1,7 +1,28 @@
 # Changelog
 
+## [4.8.0] - 2026-07-11
+
+- Scenario Ranking: weighted multi-scenario composite ranking, HTML ranking board, dashboard Rank button
+
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [4.8.0] - 2026-07-11
+
+Weighted composite scenario ranking, Processing ranking algorithm, HTML ranking board, and dashboard rank button.
+
+### Added
+- **Weighted multi-scenario ranking** (`engine/scenario.py`): ranks any number of scenario snapshots into a composite score based on direction-aware, weighted min-max normalisation, with tie-breaks and skipped-metrics (neutral, not-shared, constant) tracking.
+- **Processing algorithm `planx:scenariorank`** (`algorithms/alg_scenario_rank.py`): collects snapshots from files and/or folders, parses weights (supporting `;` and `,`), handles error paths, and outputs a composite ranking table and a detail metrics table.
+- **Scenario Ranking Board (HTML)** (`engine/report.py`): self-contained HTML page with a scoreboard, metrics heatmap, and skipped-metrics footnotes using inline styles and the theme color ramp.
+- **Dashboard Rank button** (`dashboard_dock.py`): QPushButton next to the Auditor button to launch the ranking algorithm dialog from the dock.
+- **New tool icon `tool_scenariorank.png`**: podium bars and a star glyph, generated from the script.
+
+### Tested
+- 457 engine unit checks (32 new checks for scenario ranking, weight parsing, and error validation).
+- 384 real-QGIS e2e assertions on QGIS 3 LTR and QGIS 4 (verifying the scenariorank algorithm with files, folders, weights, HTML output, and error conditions).
+- 26 dashboard check assertions on both QGIS runners.
+- Import checks and zip audit structures validated.
 
 ## [4.7.0] - 2026-07-11
 

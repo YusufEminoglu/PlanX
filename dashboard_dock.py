@@ -137,6 +137,10 @@ class PlanXDashboardDock(QDockWidget):
                                   "whole PlanX battery and snapshot it")
         self.audit_btn.clicked.connect(self.open_auditor)
         scn_row.addWidget(self.audit_btn)
+        self.rank_btn = QPushButton("Rank...")
+        self.rank_btn.setToolTip("Open Scenario Ranking - rank any number of saved scenario snapshots.")
+        self.rank_btn.clicked.connect(self.open_rank)
+        scn_row.addWidget(self.rank_btn)
         outer.addLayout(scn_row)
 
         self.history_label = QLabel("")
@@ -360,6 +364,14 @@ class PlanXDashboardDock(QDockWidget):
         except Exception as exc:
             self.iface.messageBar().pushWarning(
                 "PlanX", f"Could not open the auditor: {exc}")
+
+    def open_rank(self):
+        try:
+            import processing
+            processing.execAlgorithmDialog("planx:scenariorank", {})
+        except Exception as exc:
+            self.iface.messageBar().pushWarning(
+                "PlanX", f"Could not open Scenario Ranking: {exc}")
 
     def compare_snapshots(self):
         snaps = []

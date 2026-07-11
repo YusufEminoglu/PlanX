@@ -38,6 +38,7 @@ from .algorithms.alg_inequality_curves import InequalityCurvesAlgorithm
 from .algorithms.alg_capacitated_siting import CapacitatedSitingAlgorithm
 from .algorithms.alg_equity_crosstab import EquityCrosstabAlgorithm
 from .algorithms.alg_scenario_compare import ScenarioCompareAlgorithm
+from .algorithms.alg_scenario_rank import ScenarioRankAlgorithm
 from .algorithms.alg_scenario_snapshot import ScenarioSnapshotAlgorithm
 from .algorithms.alg_walkability import WalkabilityAlgorithm
 from .algorithms.alg_route_quality import RouteQualityAlgorithm
@@ -124,6 +125,7 @@ class PlanXProvider(QgsProcessingProvider):
         # 7 | Reporting and Dashboard
         self.addAlgorithm(PlanPerformanceReportAlgorithm())
         self.addAlgorithm(ScenarioCompareAlgorithm())
+        self.addAlgorithm(ScenarioRankAlgorithm())
         self.addAlgorithm(ScenarioSnapshotAlgorithm())
         self.addAlgorithm(PlanAuditAlgorithm())
         self.addAlgorithm(DemoCityAlgorithm())

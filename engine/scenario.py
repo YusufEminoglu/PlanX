@@ -195,3 +195,216 @@ def score_line(rows, name_a="A", name_b="B") -> str:
         head = f"'{name_b if wins_b > wins_a else name_a}' leads"
     return (f"{head}: {name_b} wins {wins_b}, {name_a} wins {wins_a}, "
             f"{ties} tied, over {len(rows)} compared metrics.")
+
+
+def parse_weights(text):
+    """Parse 'key=weight, key=weight' free text into a dict.
+
+    Returns (weights: dict[str, float], unknown: list[str]) where ``unknown``
+    lists keys not present in METRICS (they still apply if the snapshots
+    carry them - the caller decides how to report them). Accepts ';' as a
+    separator like the other PlanX free-text parsers. Empty/whitespace text
+    -> ({}, []). A malformed token or a weight <= 0 raises ValueError with
+    the offending token in the message.
+    """
+    if text is None or not str(text).strip():
+        return {}, []
+
+    weights = {}
+    unknown = []
+
+    # split by either ; or ,
+    for token in str(text).replace(";", ",").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        key, sep, value = token.partition("=")
+        key = key.strip()
+        if sep != "=":
+            raise ValueError(f"weights need 'key=weight' entries: '{token}'")
+        if not key:
+            raise ValueError(f"empty key in token: '{token}'")
+        try:
+            val = float(value.strip())
+        except ValueError as exc:
+            raise ValueError(f"weight for key '{key}' needs a numeric value: '{token}'") from exc
+
+        if val <= 0:
+            raise ValueError(f"weight must be positive: '{token}'")
+
+        weights[key] = val
+        if key not in METRICS:
+            if key not in unknown:
+                unknown.append(key)
+
+    return weights, unknown
+
+
+def rank(snapshots, weights=None):
+    """Rank any number of scenario snapshots by a weighted composite score.
+
+    ``snapshots``: list of snapshot dicts (from ``snapshot``/``from_json``).
+    ``weights``: optional {metric_key: float > 0}; default weight is 1.0.
+
+    Raises ValueError when fewer than 2 snapshots are given or when two
+    snapshots share the same name (names key the result tables).
+
+    SCORED metrics are those that are (a) present in EVERY snapshot,
+    (b) have a non-zero direction in METRICS (unknown keys have direction 0
+    via direction_of and are therefore never scored), and (c) are not
+    constant across the snapshots. Everything else is skipped
+    with a reason: 'neutral' (direction 0 / unknown), 'not-shared' (missing
+    in at least one snapshot), 'constant' (shared but max == min). Reason
+    precedence: neutral > not-shared > constant.
+
+    Per scored metric k with values v_s over scenarios s:
+        norm_s = (v_s - min) / (max - min)          if direction(k) == +1
+        norm_s = (max - v_s) / (max - min)          if direction(k) == -1
+    so 1.0 is always BEST. Composite per scenario:
+        score_s = 100 * sum_k(w_k * norm_k_s) / sum_k(w_k)
+    Ranks use competition ranking on descending score (equal scores share a
+    rank; the next rank is skipped: 1, 2, 2, 4). ``wins_s`` counts the scored
+    metrics where scenario s holds the strictly best norm (exact ties on a
+    metric award no win).
+
+    Returns {
+      "scenarios": [ {"name", "score", "rank", "wins", "n_metrics"} ... ]
+                   sorted by (rank, name),
+      "metrics":   [ {"key", "label", "direction", "weight",
+                      "values": {name: v}, "norms": {name: n}} ... ]
+                   ordered by the METRICS registry order (unknown keys never
+                   appear here - they are always skipped),
+      "skipped":   [ {"key", "reason"} ... ] ordered registry-first then
+                   alphabetically, deterministic,
+    }
+    "n_metrics" is len(result["metrics"]) (same for every scenario, kept per
+    row for table readability). All floats stay full precision - no rounding
+    in the engine.
+    """
+    if len(snapshots) < 2:
+        raise ValueError("At least 2 snapshots are required to rank.")
+
+    names = [s.get("name") for s in snapshots]
+    if len(names) != len(set(names)):
+        raise ValueError("Snapshot names must be unique.")
+
+    if weights is None:
+        weights = {}
+
+    # Gather all unique keys present across all snapshots
+    all_keys = set()
+    for snap in snapshots:
+        all_keys.update(snap.get("metrics", {}).keys())
+
+    known = [k for k in _ORDER if k in all_keys]
+    extra = sorted(k for k in all_keys if k not in METRICS)
+    all_keys_ordered = known + extra
+
+    scored_keys = []
+    skipped_list = []
+
+    for key in all_keys_ordered:
+        direction = direction_of(key)
+        if direction == 0:
+            skipped_list.append({"key": key, "reason": "neutral"})
+            continue
+
+        missing = False
+        values_list = []
+        for snap in snapshots:
+            metrics_dict = snap.get("metrics", {})
+            if key not in metrics_dict:
+                missing = True
+                break
+            values_list.append(metrics_dict[key])
+
+        if missing:
+            skipped_list.append({"key": key, "reason": "not-shared"})
+            continue
+
+        min_v = min(values_list)
+        max_v = max(values_list)
+        if min_v == max_v:
+            skipped_list.append({"key": key, "reason": "constant"})
+            continue
+
+        scored_keys.append(key)
+
+    # Compute scores and metrics details
+    scores = {snap["name"]: 0.0 for snap in snapshots}
+    wins = {snap["name"]: 0 for snap in snapshots}
+    metric_results = []
+
+    for k in scored_keys:
+        direction = direction_of(k)
+        weight = weights.get(k, 1.0)
+
+        values_k = {snap["name"]: snap.get("metrics", {})[k] for snap in snapshots}
+        min_k = min(values_k.values())
+        max_k = max(values_k.values())
+
+        norms_k = {}
+        for name, v in values_k.items():
+            if direction == 1:
+                norm = (v - min_k) / (max_k - min_k)
+            else:
+                norm = (max_k - v) / (max_k - min_k)
+            norms_k[name] = norm
+
+        best_scenarios = [name for name, norm in norms_k.items() if norm == 1.0]
+        if len(best_scenarios) == 1:
+            wins[best_scenarios[0]] += 1
+
+        metric_results.append({
+            "key": k,
+            "label": label_of(k),
+            "direction": direction,
+            "weight": weight,
+            "values": values_k,
+            "norms": norms_k,
+        })
+
+    n_metrics = len(metric_results)
+    total_weight = sum(weights.get(k, 1.0) for k in scored_keys)
+
+    for snap in snapshots:
+        name = snap["name"]
+        if total_weight > 0:
+            weighted_norm_sum = sum(
+                weights.get(k, 1.0) * norms_k[name]
+                for k, norms_k in ((mr["key"], mr["norms"]) for mr in metric_results)
+            )
+            score = 100.0 * weighted_norm_sum / total_weight
+        else:
+            score = 0.0
+        scores[name] = score
+
+    # Competition ranking
+    sorted_snaps = sorted(snapshots, key=lambda s: scores[s["name"]], reverse=True)
+    ranks = {}
+    current_rank = 1
+    for i, s in enumerate(sorted_snaps):
+        name = s["name"]
+        if i > 0:
+            prev_name = sorted_snaps[i - 1]["name"]
+            if scores[name] != scores[prev_name]:
+                current_rank = i + 1
+        ranks[name] = current_rank
+
+    scenarios_list = []
+    for snap in snapshots:
+        name = snap["name"]
+        scenarios_list.append({
+            "name": name,
+            "score": scores[name],
+            "rank": ranks[name],
+            "wins": wins[name],
+            "n_metrics": n_metrics,
+        })
+    scenarios_list.sort(key=lambda s: (s["rank"], s["name"]))
+
+    return {
+        "scenarios": scenarios_list,
+        "metrics": metric_results,
+        "skipped": skipped_list,
+    }
