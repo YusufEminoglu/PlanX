@@ -89,30 +89,30 @@ class RouteQualityAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK,
             self.tr("Street network (ideally the Walkability output)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.SCORE_FIELD,
             self.tr("Walk-score field 0-100 (empty = all neutral)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ORIGINS, self.tr("Origins"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DESTINATIONS, self.tr("Destinations"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterEnum(
             self.PAIRING, self.tr("Pairing"),
             ["Nearest destination", "All pairs"], defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             self.PENALTY,
             self.tr("Quality penalty (0 = plain shortest path)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0,
             maxValue=10.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.LOW_THRESHOLD,
             self.tr("Low-quality threshold (walk score)"),
-            QgsProcessingParameterNumber.Double, 50.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 50.0, minValue=0.0,
             maxValue=100.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_ROUTES, self.tr("Quality routes")))
@@ -162,7 +162,7 @@ class RouteQualityAlgorithm(PlanXAlgorithm):
             ("low_share", DOUBLE), ("n_edges", INT))
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUT_ROUTES, context, fields,
-            QgsWkbTypes.LineString, crs)
+            QgsWkbTypes.Type.LineString, crs)
 
         def route_geometry(nodes, edges):
             pts = []
@@ -220,7 +220,7 @@ class RouteQualityAlgorithm(PlanXAlgorithm):
                     oi + 1, di + 1, round(length, 2), round(shortest, 2),
                     round(length / shortest, 4) if shortest > 0 else 1.0,
                     round(mean_score, 2), round(low_share, 4), len(edges)])
-                sink.addFeature(out, QgsFeatureSink.FastInsert)
+                sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                 n_routes += 1
                 mean_scores.append(mean_score)
             feedback.setProgress(100.0 * (oi + 1) / len(o_nodes))

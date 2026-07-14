@@ -89,17 +89,17 @@ class SpacematrixDensityAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.LEVELS_FIELD, self.tr("Floor count field (empty = constant)"),
             parentLayerParameterName=self.BUILDINGS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_LEVELS, self.tr("Default floor count"),
-            QgsProcessingParameterNumber.Double, 2.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 2.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BLOCKS, self.tr("Blocks / analysis units (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Spacematrix blocks")))
 
@@ -135,7 +135,7 @@ class SpacematrixDensityAlgorithm(PlanXAlgorithm):
             ("smx_class", STRING), base=blocks.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.MultiPolygon, blocks.sourceCrs())
+            QgsWkbTypes.Type.MultiPolygon, blocks.sourceCrs())
 
         n_src = len(blocks.fields())
         total = blocks.featureCount() or 1
@@ -169,7 +169,7 @@ class SpacematrixDensityAlgorithm(PlanXAlgorithm):
             out.setAttributes(list(f.attributes())[:n_src] + [
                 count, fp, gfa, gsi, fsi, osr, levels,
                 spacematrix_class(fsi, gsi, levels)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
         return {self.OUTPUT: dest}
 
     def createInstance(self):

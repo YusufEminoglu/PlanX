@@ -75,13 +75,13 @@ class StreetComfortAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterMultipleLayers(
             self.POSITIVE, self.tr("Comfort assets (point layers: trees, lamps, benches...)"),
-            QgsProcessing.TypeVectorPoint, optional=True))
+            QgsProcessing.SourceType.TypeVectorPoint, optional=True))
         self.addParameter(QgsProcessingParameterMultipleLayers(
             self.NEGATIVE, self.tr("Comfort barriers (point layers: obstacles, potholes...)"),
-            QgsProcessing.TypeVectorPoint, optional=True))
+            QgsProcessing.SourceType.TypeVectorPoint, optional=True))
         self.addParameter(QgsProcessingParameterString(
             self.WEIGHT_FIELD,
             self.tr("Per-feature weight field name (used when a layer has it; empty or missing field = weight 1)"),
@@ -94,14 +94,14 @@ class StreetComfortAlgorithm(PlanXAlgorithm):
             optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.BANDWIDTH, self.tr("Kernel bandwidth (m)"),
-            QgsProcessingParameterNumber.Double, 50.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 50.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterEnum(
             self.KERNEL, self.tr("Kernel shape"),
             ["Uniform", "Triangular", "Epanechnikov", "Gaussian"],
             defaultValue=2))
         self.addParameter(QgsProcessingParameterNumber(
             self.SAMPLE_STEP, self.tr("Segment sample spacing (m)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterString(
             self.WEIGHTS, self.tr("Component weights 'positive=1, negative=1, raster_plus=1, raster_minus=1' (empty = equal)"),
             defaultValue="", optional=True))
@@ -369,7 +369,7 @@ class StreetComfortAlgorithm(PlanXAlgorithm):
 
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.LineString, network.sourceCrs()
+            QgsWkbTypes.Type.LineString, network.sourceCrs()
         )
 
         def opt(arr, i, digits=4):
@@ -396,7 +396,7 @@ class StreetComfortAlgorithm(PlanXAlgorithm):
                 round(float(comfort_index[s]), 2),
                 int(n_samples[s])
             ])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         return {self.OUTPUT: dest_id}
 

@@ -90,31 +90,31 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand (buildings / address points)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per point)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.CANDIDATES, self.tr("Candidate sites"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.CANDIDATE_ID, self.tr("Candidate ID field"),
             parentLayerParameterName=self.CANDIDATES))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.EXISTING, self.tr("Existing facilities (kept in the solution)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterEnum(
             self.METHOD, self.tr("Objective"), self.METHODS, defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             self.P, self.tr("Number of new facilities to site (p)"),
-            QgsProcessingParameterNumber.Integer, 3, minValue=1))
+            QgsProcessingParameterNumber.Type.Integer, 3, minValue=1))
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("Catchment radius (map units; coverage + screening)"),
-            QgsProcessingParameterNumber.Double, 500.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 500.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SITES, self.tr("Candidate sites (screened + selected)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -215,7 +215,7 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
             ("cand_id", STRING), ("reach_dem", DOUBLE), ("selected", INT),
             ("rank", INT), ("gain", DOUBLE), base=candidates.fields())
         s_sink, s_dest = self.parameterAsSink(
-            parameters, self.OUT_SITES, context, s_fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUT_SITES, context, s_fields, QgsWkbTypes.Type.Point, crs)
         rank_of = {row: i + 1 for i, row in enumerate(sel_rows)}
         gain_of = {row: gains[i] for i, row in enumerate(sel_rows)}
         n_cand_fields = len(candidates.fields())
@@ -228,14 +228,14 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
                 + [c_ids[j], round(float(screening[j]), 2),
                    1 if row in rank_of else 0, rank_of.get(row, 0),
                    round(float(gain_of.get(row, 0.0)), 2)])
-            s_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # -------------------------------------------------- allocation out
         a_fields = self.make_fields(
             ("facility", STRING), ("net_cost", DOUBLE), ("covered", INT),
             base=demand.fields())
         a_sink, a_dest = self.parameterAsSink(
-            parameters, self.OUT_ASSIGN, context, a_fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUT_ASSIGN, context, a_fields, QgsWkbTypes.Type.Point, crs)
         n_dem_fields = len(demand.fields())
         for i, feat in enumerate(d_feats):
             if feedback.isCanceled():
@@ -251,7 +251,7 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
                 + [labels[solution[pos]] if reachable else "",
                    round(c, 3) if reachable else -1.0,
                    1 if covered else 0])
-            a_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            a_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         return {self.OUT_SITES: s_dest, self.OUT_ASSIGN: a_dest}
 

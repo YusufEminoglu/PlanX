@@ -112,42 +112,42 @@ class ScenarioPipelineAlgorithm(PlanXAlgorithm):
             optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEMAND_HA, self.tr("Land demand (hectares)"),
-            QgsProcessingParameterNumber.Double, 50.0, minValue=0.01))
+            QgsProcessingParameterNumber.Type.Double, 50.0, minValue=0.01))
         self.addParameter(QgsProcessingParameterNumber(
             self.ITERATIONS, self.tr("Growth steps"),
-            QgsProcessingParameterNumber.Integer, 5, minValue=1, maxValue=100))
+            QgsProcessingParameterNumber.Type.Integer, 5, minValue=1, maxValue=100))
         self.addParameter(QgsProcessingParameterNumber(
             self.NEIGH_WEIGHT, self.tr("Neighbourhood weight (edge growth)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0, maxValue=10.0))
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0, maxValue=10.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.BASE, self.tr("Base term (leapfrog growth)"),
-            QgsProcessingParameterNumber.Double, 0.1, minValue=0.0, maxValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 0.1, minValue=0.0, maxValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.RNG_SEED, self.tr("Random seed (tie-breaking only)"),
-            QgsProcessingParameterNumber.Integer, 0, minValue=0))
+            QgsProcessingParameterNumber.Type.Integer, 0, minValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             self.POP_GROWTH, self.tr("Population growth to allocate"),
-            QgsProcessingParameterNumber.Integer, 1000, minValue=0))
+            QgsProcessingParameterNumber.Type.Integer, 1000, minValue=0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Existing demand / origins (optional)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field on demand (optional)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterMultipleLayers(
             self.AMENITIES,
             self.tr("Amenity layers for the access score (optional)"),
-            QgsProcessing.TypeVectorAnyGeometry, optional=True))
+            QgsProcessing.SourceType.TypeVectorAnyGeometry, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.THRESHOLD, self.tr("Access threshold (minutes)"),
-            QgsProcessingParameterNumber.Double, 15.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 15.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterVectorLayer(
             self.LANDUSE, self.tr("Land-use polygons (optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.CATEGORY_FIELD, self.tr("Land-use category field (optional)"),
             parentLayerParameterName=self.LANDUSE, optional=True))
@@ -156,7 +156,7 @@ class ScenarioPipelineAlgorithm(PlanXAlgorithm):
             self.tr("JSON files (*.json)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_METRICS, self.tr("Audit metrics"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         import processing
@@ -250,7 +250,7 @@ class ScenarioPipelineAlgorithm(PlanXAlgorithm):
                 nf = QgsFeature(grown_layer.fields())
                 g = f.geometry()
                 if g is not None and not g.isEmpty():
-                    if QgsWkbTypes.flatType(g.wkbType()) == QgsWkbTypes.Point:
+                    if QgsWkbTypes.flatType(g.wkbType()) == QgsWkbTypes.Type.Point:
                         pt = g.asPoint()
                     else:
                         pt = g.centroid().asPoint()
@@ -341,12 +341,12 @@ class ScenarioPipelineAlgorithm(PlanXAlgorithm):
             ("metric", STRING), ("metric_key", STRING), ("value", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_METRICS, context, fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for key in metrics:
             feat = QgsFeature(fields)
             feat.setAttributes([scenario.label_of(key), key,
                                 round(float(metrics[key]), 4)])
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         results = {self.OUTPUT_JSON: json_path, self.OUT_METRICS: dest}
         feedback.pushInfo(self.tr(

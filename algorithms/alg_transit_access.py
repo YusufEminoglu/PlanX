@@ -100,28 +100,28 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
             "", optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEPARTURE, self.tr("Departure time (hour of day)"),
-            QgsProcessingParameterNumber.Double, 8.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 8.0, minValue=0.0,
             maxValue=30.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines, projected CRS)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ORIGINS, self.tr("Origin(s) - one departure place"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Destinations (demand points)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterNumber(
             self.WALK_SPEED, self.tr("Walking speed (km/h)"),
-            QgsProcessingParameterNumber.Double, 4.8, minValue=0.5,
+            QgsProcessingParameterNumber.Type.Double, 4.8, minValue=0.5,
             maxValue=15.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_WALK, self.tr("Max access/egress walk (minutes)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=1.0,
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=1.0,
             maxValue=120.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_TRANSFERS, self.tr("Max transfers"),
-            QgsProcessingParameterNumber.Integer, 2, minValue=0, maxValue=5))
+            QgsProcessingParameterNumber.Type.Integer, 2, minValue=0, maxValue=5))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_DEMAND, self.tr("Destinations with travel times")))
 
@@ -211,7 +211,7 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
             ("transfers_max", INT), base=demand.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_DEMAND, context, fields,
-            QgsWkbTypes.Point, crs)
+            QgsWkbTypes.Type.Point, crs)
         n_base = len(demand.fields())
 
         n_transit = 0
@@ -244,7 +244,7 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
                 None if transit_min is None else round(transit_min, 2),
                 None if best is None else round(best, 2),
                 saved, mode, max_transfers])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"{n_transit} of {len(d_feats)} destination(s) reached faster "

@@ -102,10 +102,10 @@ class LandCoverChangeAlgorithm(PlanXAlgorithm):
             "", optional=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_MATRIX, self.tr("Transitions"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_CLASSES, self.tr("Class summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         lyr1 = self.parameterAsRasterLayer(parameters, self.RASTER_T1, context)
@@ -140,7 +140,7 @@ class LandCoverChangeAlgorithm(PlanXAlgorithm):
             ("area_ha", DOUBLE), ("kind", STRING))
         m_sink, m_dest = self.parameterAsSink(
             parameters, self.OUT_MATRIX, context, m_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         best = (0, "", "")
         for i, cf in enumerate(cm["classes"]):
             for j, ct in enumerate(cm["classes"]):
@@ -153,7 +153,7 @@ class LandCoverChangeAlgorithm(PlanXAlgorithm):
                 feat = QgsFeature(m_fields)
                 feat.setAttributes([lab(cf), lab(ct), n,
                                     round(n * cell_ha, 3), kind])
-                m_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+                m_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         c_fields = self.make_fields(
             ("class", STRING), ("t1_ha", DOUBLE), ("t2_ha", DOUBLE),
@@ -161,7 +161,7 @@ class LandCoverChangeAlgorithm(PlanXAlgorithm):
             ("gained_ha", DOUBLE), ("net_ha", DOUBLE))
         c_sink, c_dest = self.parameterAsSink(
             parameters, self.OUT_CLASSES, context, c_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for i, c in enumerate(cm["classes"]):
             t1_cells = int(cm["matrix"][i, :].sum())
             t2_cells = int(cm["matrix"][:, i].sum())
@@ -173,7 +173,7 @@ class LandCoverChangeAlgorithm(PlanXAlgorithm):
                 round(int(cm["lost"][i]) * cell_ha, 3),
                 round(int(cm["gained"][i]) * cell_ha, 3),
                 round(int(cm["net"][i]) * cell_ha, 3)])
-            c_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            c_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"{len(cm['classes'])} classes over "

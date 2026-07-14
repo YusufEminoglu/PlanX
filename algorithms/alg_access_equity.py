@@ -96,15 +96,15 @@ class AccessEquityAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.INPUT, self.tr("Units (origins / cells with a value)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.VALUE_FIELD, self.tr("Value field (access score, time, distance...)"),
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per unit)"),
             parentLayerParameterName=self.INPUT, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.GROUP_FIELD,
             self.tr("Group field for between/within decomposition (optional)"),
@@ -115,12 +115,12 @@ class AccessEquityAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.POVERTY,
             self.tr("Access-poverty threshold (optional)"),
-            QgsProcessingParameterNumber.Double, optional=True))
+            QgsProcessingParameterNumber.Type.Double, optional=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_POINTS, self.tr("Units (with equity attributes)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Equity summary table"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -200,7 +200,7 @@ class AccessEquityAlgorithm(PlanXAlgorithm):
                 list(feat.attributes())[:n_base]
                 + [round(float(vals[i]), 4), round(float(ranks[i]), 2),
                    round(float(vals[i] - mean_all), 4), poverty_flag(vals[i])])
-            p_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            p_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # ------------------------------------------------------- summary out
         s_fields = self.make_fields(
@@ -210,7 +210,7 @@ class AccessEquityAlgorithm(PlanXAlgorithm):
             ("p90_p10", DOUBLE), ("pov_share", DOUBLE))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
 
         def pov_share(xv, wv):
             if not pov_set:
@@ -241,14 +241,14 @@ class AccessEquityAlgorithm(PlanXAlgorithm):
             t_tot, t_btw, t_wth, per_group = equity.theil_t(vals, pops), 0.0, 0.0, {}
 
         s_sink.addFeature(row("ALL", vals, pops, t_tot, t_btw, t_wth),
-                          QgsFeatureSink.FastInsert)
+                          QgsFeatureSink.Flag.FastInsert)
         if groups is not None:
             for lab in sorted(per_group, key=str):
                 m = groups == lab
                 s_sink.addFeature(
                     row(str(lab), vals[m], pops[m], per_group[lab]["theil"],
                         0.0, 0.0),
-                    QgsFeatureSink.FastInsert)
+                    QgsFeatureSink.Flag.FastInsert)
 
         # ------------------------------------------------------------- report
         feedback.pushInfo(self.tr(

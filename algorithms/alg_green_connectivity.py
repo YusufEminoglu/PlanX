@@ -82,15 +82,15 @@ class GreenConnectivityAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.GREENS, self.tr("Green patches (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_GAP, self.tr("Maximum gap to count as linked (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_PATCHES, self.tr("Patches with connectivity")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Connectivity summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         greens = self.parameterAsSource(parameters, self.GREENS, context)
@@ -148,14 +148,14 @@ class GreenConnectivityAlgorithm(PlanXAlgorithm):
                 int(conn["labels"][i]) + 1, round(float(areas[i]), 1),
                 round(float(conn["component_area"][i]), 1),
                 round(float(conn["dpc"][i]), 3)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         top = int(np.argmax(conn["dpc"]))
         s_fields = self.make_fields(
             ("metric", STRING), ("value", DOUBLE))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for metric, value in (
                 ("Patches", float(len(feats))),
                 ("Links", float(len(edges))),
@@ -166,7 +166,7 @@ class GreenConnectivityAlgorithm(PlanXAlgorithm):
                 ("Top patch dPC", float(conn["dpc"][top]))):
             feat = QgsFeature(s_fields)
             feat.setAttributes([metric, round(value, 4)])
-            s_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"{conn['n_components']} component(s); PC index "

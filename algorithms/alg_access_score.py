@@ -95,23 +95,23 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.ORIGINS, self.tr("Origins"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.ORIGINS, self.tr("Origins"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterMultipleLayers(
             self.AMENITIES, self.tr("Amenity layers (one per category)"),
-            QgsProcessing.TypeVectorAnyGeometry))
+            QgsProcessing.SourceType.TypeVectorAnyGeometry))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD,
             self.tr("Population field on origins (optional, for weighted summary)"),
             parentLayerParameterName=self.ORIGINS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.SPEED, self.tr("Walking speed (km/h)"),
-            QgsProcessingParameterNumber.Double, 4.8, minValue=0.5))
+            QgsProcessingParameterNumber.Type.Double, 4.8, minValue=0.5))
         self.addParameter(QgsProcessingParameterNumber(
             self.THRESHOLD, self.tr("Time threshold (minutes)"),
-            QgsProcessingParameterNumber.Double, 15.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 15.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Access scores")))
 
@@ -156,7 +156,7 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
         specs = [(t, DOUBLE) for t in tokens] + [("n_reach", INT), ("score", DOUBLE)]
         fields = self.make_fields(*specs, base=origins.fields())
         sink, dest = self.parameterAsSink(
-            parameters, self.OUTPUT, context, fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUTPUT, context, fields, QgsWkbTypes.Type.Point, crs)
 
         n_src = len(origins.fields())
         n_cat = len(amenity_layers)
@@ -185,7 +185,7 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
                 list(feat.attributes())[:n_src]
                 + [round(float(v), 2) if v >= 0 else -1.0 for v in col]
                 + [reached, round(score, 1)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
         if p_idx >= 0 and pop_total > 0:
             feedback.pushInfo(self.tr(
                 f"Population {pop_total:,.0f} | weighted mean score "

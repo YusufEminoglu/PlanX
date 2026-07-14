@@ -82,21 +82,21 @@ class AnnualSolarAlgorithm(PlanXAlgorithm):
             self.DSM, self.tr("Digital surface model (terrain + buildings)")))
         self.addParameter(QgsProcessingParameterNumber(
             self.YEAR, self.tr("Year"),
-            QgsProcessingParameterNumber.Integer, 2026, minValue=1901, maxValue=2099))
+            QgsProcessingParameterNumber.Type.Integer, 2026, minValue=1901, maxValue=2099))
         self.addParameter(QgsProcessingParameterNumber(
             self.UTC_OFFSET, self.tr("UTC offset of local time (hours)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=-14.0, maxValue=14.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=-14.0, maxValue=14.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.INTERVAL, self.tr("Time step (minutes)"),
-            QgsProcessingParameterNumber.Double, 60.0, minValue=5.0, maxValue=120.0))
+            QgsProcessingParameterNumber.Type.Double, 60.0, minValue=5.0, maxValue=120.0))
         self.addParameter(QgsProcessingParameterBoolean(
             self.USE_SVF, self.tr("Weight diffuse light by sky view factor"), True))
         self.addParameter(QgsProcessingParameterNumber(
             self.SVF_RADIUS, self.tr("SVF search radius (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=10.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=10.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_SEARCH, self.tr("Maximum shadow length to scan (map units, 0 = auto)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Annual irradiation (kWh/m2/yr)")))
         monthly = QgsProcessingParameterRasterDestination(

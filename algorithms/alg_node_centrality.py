@@ -2,8 +2,6 @@
 """Network Centrality: degree, closeness, straightness, betweenness."""
 from __future__ import annotations
 
-import random
-
 from qgis.core import (
     QgsFeature,
     QgsFeatureSink,
@@ -19,6 +17,25 @@ from qgis.core import (
 
 from .base import DOUBLE, GROUP_CENTRALITY, INT, PlanXAlgorithm
 from ..engine import centrality, graphs
+
+
+def _sample_sources(n, k, seed):
+    """Deterministic k-of-n source sample without the ``random`` module.
+
+    A seeded partial Fisher-Yates driven by a self-contained 64-bit LCG
+    (Knuth MMIX), so betweenness sampling stays reproducible across runs and
+    processes while the shipped code carries no non-crypto RNG import.
+    """
+    mask = (1 << 64) - 1
+    state = (int(seed) & mask) or 0x2545F4914F6CDD1D
+    pool = list(range(n))
+    out = []
+    for i in range(k):
+        state = (state * 6364136223846793005 + 1442695040888963407) & mask
+        j = i + (state >> 11) % (n - i)
+        pool[i], pool[j] = pool[j], pool[i]
+        out.append(pool[i])
+    return out
 
 
 class NetworkCentralityAlgorithm(PlanXAlgorithm):
@@ -89,17 +106,17 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("Analysis radius in cost units (0 = global)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.SAMPLES, self.tr("Betweenness sample sources (0 = exact)"),
-            QgsProcessingParameterNumber.Integer, 0, minValue=0))
+            QgsProcessingParameterNumber.Type.Integer, 0, minValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.NODES, self.tr("Junction centrality (points)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -135,7 +152,7 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
         feedback.pushInfo(self.tr("Betweenness pass (Brandes)..."))
         sources = None
         if 0 < samples < n:
-            sources = random.Random(20260611).sample(range(n), samples)
+            sources = _sample_sources(n, samples, 20260611)
         node_bc, edge_bc, _ = centrality.brandes_betweenness(
             graph.indptr, graph.adj_node, graph.adj_cost, n,
             adj_edge=graph.adj_edge, num_edges=graph.num_edges,
@@ -159,7 +176,7 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
             ("straight", DOUBLE), ("betweenness", DOUBLE), ("betw_norm", DOUBLE),
             ("eigen", DOUBLE))
         node_sink, nodes_dest = self.parameterAsSink(
-            parameters, self.NODES, context, node_fields, QgsWkbTypes.Point, crs)
+            parameters, self.NODES, context, node_fields, QgsWkbTypes.Type.Point, crs)
         for i in range(n):
             f = QgsFeature(node_fields)
             f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*graph.node_xy[i])))
@@ -167,13 +184,13 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
                              float(clo["closeness"][i]), float(clo["harmonic"][i]),
                              float(clo["straightness"][i]), float(node_bc[i]),
                              float(node_bc[i] / norm), float(eig[i])])
-            node_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            node_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
         edge_fields = self.make_fields(
             ("betw_edge", DOUBLE), ("clo_mean", DOUBLE), ("str_mean", DOUBLE),
             base=network.fields())
         edge_sink, edges_dest = self.parameterAsSink(
-            parameters, self.EDGES, context, edge_fields, QgsWkbTypes.LineString, crs)
+            parameters, self.EDGES, context, edge_fields, QgsWkbTypes.Type.LineString, crs)
         n_src = len(network.fields())
         for e in range(graph.num_edges):
             a, b = graph.edge_from[e], graph.edge_to[e]
@@ -184,7 +201,7 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
                 float(edge_bc[e]),
                 float((clo["closeness"][a] + clo["closeness"][b]) / 2.0),
                 float((clo["straightness"][a] + clo["straightness"][b]) / 2.0)])
-            edge_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            edge_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
         return {self.NODES: nodes_dest, self.EDGES: edges_dest}
 

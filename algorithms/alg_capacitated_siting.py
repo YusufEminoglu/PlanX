@@ -86,44 +86,44 @@ class CapacitatedSitingAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand (buildings / address points)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per point)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.CANDIDATES, self.tr("Candidate sites"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.CANDIDATE_ID, self.tr("Candidate ID field"),
             parentLayerParameterName=self.CANDIDATES))
         self.addParameter(QgsProcessingParameterField(
             self.CAPACITY_FIELD, self.tr("Capacity field (persons)"),
             parentLayerParameterName=self.CANDIDATES,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.EXISTING, self.tr("Existing facilities (kept in the solution)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.EXISTING_ID, self.tr("Existing facility ID field"),
             parentLayerParameterName=self.EXISTING, optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.EXISTING_CAP_FIELD, self.tr("Existing facility capacity field"),
             parentLayerParameterName=self.EXISTING, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.P, self.tr("Number of new facilities to site (p)"),
-            QgsProcessingParameterNumber.Integer, 3, minValue=1))
+            QgsProcessingParameterNumber.Type.Integer, 3, minValue=1))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_COST, self.tr("Maximum travel cost (catchment limit, map units)"),
-            QgsProcessingParameterNumber.Double, 500.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 500.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SITES, self.tr("Selected sites")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -264,7 +264,7 @@ class CapacitatedSitingAlgorithm(PlanXAlgorithm):
             ("facility", STRING), ("rank", INT), ("load", DOUBLE),
             ("utilization", DOUBLE), ("gain", DOUBLE), base=candidates.fields())
         s_sink, s_dest = self.parameterAsSink(
-            parameters, self.OUT_SITES, context, s_fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUT_SITES, context, s_fields, QgsWkbTypes.Type.Point, crs)
 
         n_cand_fields = len(candidates.fields())
 
@@ -286,12 +286,12 @@ class CapacitatedSitingAlgorithm(PlanXAlgorithm):
                     round(float(utilization[idx]), 3), round(float(gain_of.get(idx, 0.0)), 2)
                 ]
                 out.setAttributes(attrs)
-            s_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # 2. Output allocation lines
         l_fields = self.make_fields(("facility", STRING), ("net_cost", DOUBLE))
         l_sink, l_dest = self.parameterAsSink(
-            parameters, self.OUT_ALLOCATION, context, l_fields, QgsWkbTypes.LineString, crs)
+            parameters, self.OUT_ALLOCATION, context, l_fields, QgsWkbTypes.Type.LineString, crs)
 
         for i, feat in enumerate(d_feats):
             if feedback.isCanceled():
@@ -302,12 +302,12 @@ class CapacitatedSitingAlgorithm(PlanXAlgorithm):
                 lf = QgsFeature(l_fields)
                 lf.setGeometry(QgsGeometry.fromPolylineXY([QgsPointXY(*d_xy[i]), QgsPointXY(*facility_xy)]))
                 lf.setAttributes([labels[f_idx], round(float(cost[i]), 3)])
-                l_sink.addFeature(lf, QgsFeatureSink.FastInsert)
+                l_sink.addFeature(lf, QgsFeatureSink.Flag.FastInsert)
 
         # 3. Output uncovered demand
         u_fields = demand.fields()
         u_sink, u_dest = self.parameterAsSink(
-            parameters, self.OUT_UNCOVERED, context, u_fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUT_UNCOVERED, context, u_fields, QgsWkbTypes.Type.Point, crs)
 
         for i, feat in enumerate(d_feats):
             if feedback.isCanceled():
@@ -316,7 +316,7 @@ class CapacitatedSitingAlgorithm(PlanXAlgorithm):
                 out = QgsFeature(u_fields)
                 out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*d_xy[i])))
                 out.setAttributes(list(feat.attributes()))
-                u_sink.addFeature(out, QgsFeatureSink.FastInsert)
+                u_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         return {
             self.OUT_SITES: s_dest,

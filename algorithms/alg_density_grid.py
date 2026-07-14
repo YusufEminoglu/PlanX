@@ -73,14 +73,14 @@ class DensityGridAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.INPUT, self.tr("Source features (polygons or points)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.VALUE_FIELD, self.tr("Value field (empty = count features)"),
             parentLayerParameterName=self.INPUT, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL_SIZE, self.tr("Grid cell size (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Density grid")))
 
@@ -103,7 +103,7 @@ class DensityGridAlgorithm(PlanXAlgorithm):
                     value = float(f.attributes()[v_idx])
                 except (TypeError, ValueError):
                     value = 0.0
-            is_poly = QgsWkbTypes.geometryType(g.wkbType()) == QgsWkbTypes.PolygonGeometry
+            is_poly = QgsWkbTypes.geometryType(g.wkbType()) == QgsWkbTypes.GeometryType.PolygonGeometry
             area = g.area() if is_poly else None
             i = len(feats)
             feats.append((g, value, area))
@@ -127,7 +127,7 @@ class DensityGridAlgorithm(PlanXAlgorithm):
                                   ("value", DOUBLE), ("dens_ha", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.Polygon, source.sourceCrs())
+            QgsWkbTypes.Type.Polygon, source.sourceCrs())
         cell_ha = cell * cell / 10000.0
         cid = 0
         for iy in range(ny):
@@ -161,7 +161,7 @@ class DensityGridAlgorithm(PlanXAlgorithm):
                 out.setGeometry(cell_geom)
                 out.setAttributes([cid, count, round(total, 4),
                                    round(total / cell_ha, 4)])
-                sink.addFeature(out, QgsFeatureSink.FastInsert)
+                sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                 cid += 1
             feedback.setProgress(int(100.0 * (iy + 1) / ny))
         feedback.pushInfo(self.tr(f"Wrote {cid} occupied cells."))

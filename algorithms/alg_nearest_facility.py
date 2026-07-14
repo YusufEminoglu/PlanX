@@ -85,21 +85,21 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.DEMAND, self.tr("Demand points"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.DEMAND, self.tr("Demand points"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.FACILITIES, self.tr("Facilities"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.FACILITIES, self.tr("Facilities"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FACILITY_ID, self.tr("Facility ID field"),
             parentLayerParameterName=self.FACILITIES))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.CUTOFF, self.tr("Maximum cost (0 = unlimited)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Allocated demand")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -107,7 +107,7 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.ROUTES, self.tr("Allocation routes (network paths)"), optional=True, createByDefault=False))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.SUMMARY, self.tr("Facility load summary"), type=QgsProcessing.TypeVector))
+            self.SUMMARY, self.tr("Facility load summary"), type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
@@ -153,13 +153,13 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
                                       base=demand.fields())
         sink, out_dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, out_fields,
-            QgsWkbTypes.Point, crs)
+            QgsWkbTypes.Type.Point, crs)
         spider_sink = spider_dest = None
         if parameters.get(self.SPIDER) is not None:
             spider_sink, spider_dest = self.parameterAsSink(
                 parameters, self.SPIDER, context,
                 self.make_fields(("facility", STRING), ("net_cost", DOUBLE)),
-                QgsWkbTypes.LineString, crs)
+                QgsWkbTypes.Type.LineString, crs)
 
         routes_sink = routes_dest = None
         if req_routes:
@@ -167,7 +167,7 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
                 parameters, self.ROUTES, context,
                 self.make_fields(("demand_i", INT), ("facility", STRING),
                                  ("net_cost", DOUBLE), ("length_m", DOUBLE)),
-                QgsWkbTypes.LineString, crs)
+                QgsWkbTypes.Type.LineString, crs)
 
         def route_geometry(nodes, edges):
             pts = []
@@ -203,14 +203,14 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
             out = QgsFeature(out_fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*d_xy[i])))
             out.setAttributes(list(feat.attributes())[:n_dem_fields] + [fac, cost_val])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
             if spider_sink is not None and fac:
                 j = first_pos[lab]
                 lf = QgsFeature()
                 lf.setGeometry(QgsGeometry.fromPolylineXY(
                     [QgsPointXY(*d_xy[i]), QgsPointXY(*f_xy[j])]))
                 lf.setAttributes([fac, cost_val])
-                spider_sink.addFeature(lf, QgsFeatureSink.FastInsert)
+                spider_sink.addFeature(lf, QgsFeatureSink.Flag.FastInsert)
 
             if routes_sink is not None and fac:
                 nodes, edges = paths.path_to_root(pred_node, pred_edge, node)
@@ -219,7 +219,7 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
                     rf = QgsFeature()
                     rf.setGeometry(route_geometry(nodes, edges))
                     rf.setAttributes([i, fac, cost_val, length_val])
-                    routes_sink.addFeature(rf, QgsFeatureSink.FastInsert)
+                    routes_sink.addFeature(rf, QgsFeatureSink.Flag.FastInsert)
                     n_routes += 1
 
         if routes_sink is not None:
@@ -228,7 +228,7 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
         sum_fields = self.make_fields(("facility", STRING), ("demand_n", INT),
                                       ("mean_cost", DOUBLE), ("max_cost", DOUBLE))
         sum_sink, sum_dest = self.parameterAsSink(
-            parameters, self.SUMMARY, context, sum_fields, QgsWkbTypes.NoGeometry, crs)
+            parameters, self.SUMMARY, context, sum_fields, QgsWkbTypes.Type.NoGeometry, crs)
         for fac in f_ids:
             stat = loads.get(fac)
             f = QgsFeature(sum_fields)
@@ -236,7 +236,7 @@ class NearestFacilityAlgorithm(PlanXAlgorithm):
                 f.setAttributes([fac, stat[0], stat[1] / stat[0], stat[2]])
             else:
                 f.setAttributes([fac, 0, 0.0, 0.0])
-            sum_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            sum_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
         feedback.pushInfo(self.tr(
             f"Allocated {sum(s[0] for s in loads.values())} of {len(d_feats)} demand points."))
 

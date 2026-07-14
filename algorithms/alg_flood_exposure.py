@@ -75,14 +75,14 @@ class FloodExposureAlgorithm(PlanXAlgorithm):
             self.INUNDATION, self.tr("Inundation mask raster (projected CRS)")))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings vector layer (optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand points vector layer (optional)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (optional)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Summary table")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -135,7 +135,7 @@ class FloodExposureAlgorithm(PlanXAlgorithm):
         )
         sink_summary, dest_summary = self.parameterAsSink(
             parameters, self.OUTPUT, context, summary_fields,
-            QgsWkbTypes.NoGeometry)
+            QgsWkbTypes.Type.NoGeometry)
 
         row_feat = QgsFeature(summary_fields)
         row_feat.setAttributes([
@@ -146,7 +146,7 @@ class FloodExposureAlgorithm(PlanXAlgorithm):
             res["total_pop"],
             res["pct_pop"]
         ])
-        sink_summary.addFeature(row_feat, QgsFeatureSink.FastInsert)
+        sink_summary.addFeature(row_feat, QgsFeatureSink.Flag.FastInsert)
 
         results = {self.OUTPUT: dest_summary}
 
@@ -154,7 +154,7 @@ class FloodExposureAlgorithm(PlanXAlgorithm):
             demand_fields = self.make_fields(("wet_dry", STRING), base=demand.fields())
             sink_demand, dest_demand = self.parameterAsSink(
                 parameters, self.OUT_DEMAND, context, demand_fields,
-                QgsWkbTypes.Point, crs)
+                QgsWkbTypes.Type.Point, crs)
             if sink_demand is not None:
                 rows, cols = inund.shape
                 n_base = len(demand.fields())
@@ -171,7 +171,7 @@ class FloodExposureAlgorithm(PlanXAlgorithm):
                     out_feat.setGeometry(QgsGeometry.fromPointXY(
                         QgsPointXY(float(x), float(y))))
                     out_feat.setAttributes(list(feat.attributes())[:n_base] + [status_str])
-                    sink_demand.addFeature(out_feat, QgsFeatureSink.FastInsert)
+                    sink_demand.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
                 results[self.OUT_DEMAND] = dest_demand
 
         return results

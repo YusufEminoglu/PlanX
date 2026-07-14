@@ -77,28 +77,28 @@ class HousingNeedsAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterNumber(
             self.POP_FUTURE, self.tr("Horizon population"),
-            QgsProcessingParameterNumber.Double, 10000.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 10000.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.HH_SIZE, self.tr("Household size at the horizon"),
-            QgsProcessingParameterNumber.Double, 2.5, minValue=0.5,
+            QgsProcessingParameterNumber.Type.Double, 2.5, minValue=0.5,
             maxValue=15.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.EXISTING, self.tr("Existing dwellings"),
-            QgsProcessingParameterNumber.Double, 3500.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 3500.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.VACANCY, self.tr("Vacancy allowance (share, e.g. 0.05)"),
-            QgsProcessingParameterNumber.Double, 0.05, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 0.05, minValue=0.0,
             maxValue=0.5))
         self.addParameter(QgsProcessingParameterNumber(
             self.REPLACEMENT,
             self.tr("Replacement losses over the period (units)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.BACKLOG, self.tr("Backlog to absorb (units)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Housing needs summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         pop_future = self.parameterAsDouble(parameters, self.POP_FUTURE, context)
@@ -115,7 +115,7 @@ class HousingNeedsAlgorithm(PlanXAlgorithm):
         fields = self.make_fields(("metric", STRING), ("value", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         rows = [
             ("Horizon population", pop_future),
             ("Household size", hh_size),
@@ -130,7 +130,7 @@ class HousingNeedsAlgorithm(PlanXAlgorithm):
         for metric, value in rows:
             feat = QgsFeature(fields)
             feat.setAttributes([metric, round(float(value), 2)])
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         verdict = ("surplus" if res["need"] < 0 else "to deliver")
         feedback.pushInfo(self.tr(

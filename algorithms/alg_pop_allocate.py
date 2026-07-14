@@ -67,18 +67,18 @@ class PopAllocateAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.PARCELS, self.tr("Parcels or zones layer"),
-            [QgsProcessing.TypeVectorPolygon, QgsProcessing.TypeVectorPoint]))
+            [QgsProcessing.SourceType.TypeVectorPolygon, QgsProcessing.SourceType.TypeVectorPoint]))
         self.addParameter(QgsProcessingParameterNumber(
             self.INCREMENT, self.tr("Population increment to allocate"),
-            QgsProcessingParameterNumber.Integer, defaultValue=100, minValue=0))
+            QgsProcessingParameterNumber.Type.Integer, defaultValue=100, minValue=0))
         self.addParameter(QgsProcessingParameterField(
             self.CAPACITY_FIELD, self.tr("Capacity field (optional)"),
             parentLayerParameterName=self.PARCELS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.WEIGHT_FIELD, self.tr("Weight field (optional)"),
             parentLayerParameterName=self.PARCELS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Allocated parcels or zones")))
 
@@ -128,13 +128,13 @@ class PopAllocateAlgorithm(PlanXAlgorithm):
                 return QgsGeometry(g)
             wkb = g.wkbType()
             flat = QgsWkbTypes.flatType(wkb)
-            if flat == QgsWkbTypes.Point:
+            if flat == QgsWkbTypes.Type.Point:
                 pt = g.asPoint()
                 return QgsGeometry.fromPointXY(QgsPointXY(pt.x(), pt.y()))
-            elif flat == QgsWkbTypes.LineString:
+            elif flat == QgsWkbTypes.Type.LineString:
                 pts = g.asPolyline()
                 return QgsGeometry.fromPolylineXY([QgsPointXY(p.x(), p.y()) for p in pts])
-            elif flat == QgsWkbTypes.Polygon:
+            elif flat == QgsWkbTypes.Type.Polygon:
                 rings = g.asPolygon()
                 new_rings = []
                 for ring in rings:
@@ -150,7 +150,7 @@ class PopAllocateAlgorithm(PlanXAlgorithm):
             out_feat = QgsFeature(out_fields)
             out_feat.setGeometry(rebuild_geom(f.geometry()))
             out_feat.setAttributes(list(f.attributes())[:n_base] + [int(allocated[i])])
-            sink.addFeature(out_feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
 
         return {self.OUTPUT: dest}
 

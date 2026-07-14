@@ -91,39 +91,39 @@ class PopulationProjectionAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.INPUT, self.tr("Age-group table (youngest to oldest)"),
-            [QgsProcessing.TypeVector]))
+            [QgsProcessing.SourceType.TypeVector]))
         self.addParameter(QgsProcessingParameterField(
             self.AGE_FIELD, self.tr("Age-group label field"),
             parentLayerParameterName=self.INPUT))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field"),
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.SURVIVAL_FIELD, self.tr("Survival rate field (per step)"),
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.FERTILITY_FIELD, self.tr("Fertility field (births per person per step)"),
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.MIGRATION_FIELD,
             self.tr("Net migration field (per step, optional)"),
             parentLayerParameterName=self.INPUT, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.STEPS, self.tr("Projection steps"),
-            QgsProcessingParameterNumber.Integer, 4, minValue=1, maxValue=40))
+            QgsProcessingParameterNumber.Type.Integer, 4, minValue=1, maxValue=40))
         self.addParameter(QgsProcessingParameterNumber(
             self.STEP_YEARS, self.tr("Years per step (labels only)"),
-            QgsProcessingParameterNumber.Integer, 5, minValue=1, maxValue=25))
+            QgsProcessingParameterNumber.Type.Integer, 5, minValue=1, maxValue=25))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_PROJECTION, self.tr("Projection (step x age group)"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_TOTALS, self.tr("Per-step totals"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -177,20 +177,20 @@ class PopulationProjectionAlgorithm(PlanXAlgorithm):
             ("population", DOUBLE))
         p_sink, p_dest = self.parameterAsSink(
             parameters, self.OUT_PROJECTION, context, p_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for s in range(proj.shape[0]):
             for a, lab in enumerate(labels):
                 feat = QgsFeature(p_fields)
                 feat.setAttributes([s, s * step_years, lab,
                                     round(float(proj[s, a]), 2)])
-                p_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+                p_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         t_fields = self.make_fields(
             ("step", INT), ("year_offset", INT), ("population", DOUBLE),
             ("growth_pct", DOUBLE), ("net_migration", DOUBLE))
         t_sink, t_dest = self.parameterAsSink(
             parameters, self.OUT_TOTALS, context, t_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         totals = proj.sum(axis=1)
         mig_total = float(migration.sum()) if migration is not None else 0.0
         for s in range(proj.shape[0]):
@@ -201,7 +201,7 @@ class PopulationProjectionAlgorithm(PlanXAlgorithm):
                                 round(float(totals[s]), 2),
                                 round(growth, 3),
                                 mig_total if s > 0 else 0.0])
-            t_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            t_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"{len(labels)} age groups projected {steps} step(s) "

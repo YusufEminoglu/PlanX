@@ -102,49 +102,49 @@ class PlanAuditAlgorithm(PlanXAlgorithm):
             self.NAME, self.tr("Scenario name"), "Plan"))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand / origins (points or buildings)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per point)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterMultipleLayers(
             self.AMENITIES,
             self.tr("Amenity layers for the access score (optional)"),
-            QgsProcessing.TypeVectorAnyGeometry, optional=True))
+            QgsProcessing.SourceType.TypeVectorAnyGeometry, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.THRESHOLD, self.tr("Access threshold (minutes)"),
-            QgsProcessingParameterNumber.Double, 15.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 15.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterVectorLayer(
             self.LANDUSE, self.tr("Land-use polygons (optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.CATEGORY_FIELD, self.tr("Land-use category field"),
             parentLayerParameterName=self.LANDUSE, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.POPULATION, self.tr("Planned population (for the standards)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterString(
             self.STANDARDS, self.tr("Per-capita standards"),
             "green=10, school=4", optional=True))
         self.addParameter(QgsProcessingParameterVectorLayer(
             self.FACILITIES, self.tr("Facilities with capacity (optional)"),
-            [QgsProcessing.TypeVectorPoint], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPoint], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.FACILITY_ID, self.tr("Facility ID field"),
             parentLayerParameterName=self.FACILITIES, optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.CAPACITY_FIELD, self.tr("Facility capacity field"),
             parentLayerParameterName=self.FACILITIES, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_COST, self.tr("Facility catchment (map units)"),
-            QgsProcessingParameterNumber.Double, 500.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 500.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterVectorLayer(
             self.GREENS, self.tr("Public green spaces (optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterString(
             self.HIERARCHY, self.tr("Green hierarchy 'min_ha=max_dist, ...'"),
             "0.5=300, 2=800", optional=True))
@@ -157,7 +157,7 @@ class PlanAuditAlgorithm(PlanXAlgorithm):
             createByDefault=False))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_METRICS, self.tr("Audit metrics"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         import processing
@@ -317,12 +317,12 @@ class PlanAuditAlgorithm(PlanXAlgorithm):
             ("metric", STRING), ("metric_key", STRING), ("value", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_METRICS, context, fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for key in metrics:
             feat = QgsFeature(fields)
             feat.setAttributes([scenario.label_of(key), key,
                                 round(float(metrics[key]), 4)])
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         results = {self.OUTPUT_JSON: json_path, self.OUT_METRICS: dest}
         if html_path:

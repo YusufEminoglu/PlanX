@@ -75,19 +75,19 @@ class LandUseBalanceAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.LANDUSE, self.tr("Land-use plan (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.CATEGORY_FIELD, self.tr("Land-use category field"),
             parentLayerParameterName=self.LANDUSE))
         self.addParameter(QgsProcessingParameterNumber(
             self.POPULATION, self.tr("Planned population"),
-            QgsProcessingParameterNumber.Double, 10000.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 10000.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterString(
             self.STANDARDS, self.tr("Per-capita standards (keyword=m2, ...)"),
             DEFAULT_STANDARDS))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Land-use balance table"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.LANDUSE, context)
@@ -118,7 +118,7 @@ class LandUseBalanceAlgorithm(PlanXAlgorithm):
             ("balance_m2", DOUBLE), ("status", STRING))
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.NoGeometry, source.sourceCrs())
+            QgsWkbTypes.Type.NoGeometry, source.sourceCrs())
         deficits = 0
         for row in rows:
             f = QgsFeature(fields)
@@ -127,7 +127,7 @@ class LandUseBalanceAlgorithm(PlanXAlgorithm):
                 round(row["m2_per_capita"], 3), row["standard_key"],
                 row["std_m2_capita"], round(row["required_m2"], 1),
                 round(row["balance_m2"], 1), row["status"]])
-            sink.addFeature(f, QgsFeatureSink.FastInsert)
+            sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
             mark = ""
             if row["status"] == "Deficit":
                 deficits += 1

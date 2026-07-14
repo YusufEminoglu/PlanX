@@ -91,7 +91,7 @@ class ScenarioCompareAlgorithm(PlanXAlgorithm):
             extension="json"))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_TABLE, self.tr("Scenario comparison"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFileDestination(
             self.OUTPUT_HTML, self.tr("Comparison report (HTML)"),
             self.tr("HTML files (*.html)"), optional=True,
@@ -121,7 +121,7 @@ class ScenarioCompareAlgorithm(PlanXAlgorithm):
             ("delta", DOUBLE), ("delta_pct", DOUBLE), ("better", STRING))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_TABLE, context, fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
 
         def num(v):
             return None if v is None else round(float(v), 4)
@@ -131,7 +131,7 @@ class ScenarioCompareAlgorithm(PlanXAlgorithm):
             feat.setAttributes([
                 r["label"], r["key"], num(r["a"]), num(r["b"]),
                 num(r["delta"]), num(r["delta_pct"]), r["better"]])
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"Compared '{name_a}' ({snap_a['generated']}) with "

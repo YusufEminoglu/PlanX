@@ -113,40 +113,40 @@ class ParetoAllocationAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.PARCELS, self.tr("Parcels / cells"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.SUIT_FIELDS, self.tr("Suitability fields (one per land use)"),
             parentLayerParameterName=self.PARCELS, allowMultiple=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterString(
             self.TARGETS, self.tr("Target area per use (name=area, ...)"),
             self.tr("s_residential=50000, s_commercial=20000, s_green=30000")))
         self.addParameter(QgsProcessingParameterField(
             self.AREA_FIELD, self.tr("Area field (optional; default = geometry area)"),
             parentLayerParameterName=self.PARCELS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.LOCK_FIELD, self.tr("Lock field (optional; pre-assigned use name)"),
             parentLayerParameterName=self.PARCELS, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.N_POINTS, self.tr("Number of weights to sample along the front"),
-            QgsProcessingParameterNumber.Integer, 9, minValue=2, maxValue=25))
+            QgsProcessingParameterNumber.Type.Integer, 9, minValue=2, maxValue=25))
         self.addParameter(QgsProcessingParameterNumber(
             self.W_MAX,
             self.tr("Maximum compactness weight (0 = auto-scale to the data)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterEnum(
             self.SOLUTION, self.tr("Solution to export as the parcel map"),
             options=[self.tr(s) for s in self._SOLUTIONS], defaultValue=0))
         w_suit = QgsProcessingParameterNumber(
             self.W_SUITABILITY,
             self.tr("Suitability weight (relative to compactness)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0)
-        w_suit.setFlags(w_suit.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0)
+        w_suit.setFlags(w_suit.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(w_suit)
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_FRONT, self.tr("Pareto front"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_PARCELS, self.tr("Allocated parcels (selected solution)")))
 
@@ -320,7 +320,7 @@ class ParetoAllocationAlgorithm(PlanXAlgorithm):
             ("selected", INT), ("n_swaps", INT), ("n_reassign", INT))
         f_sink, f_dest = self.parameterAsSink(
             parameters, self.OUT_FRONT, context, f_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for k in range(len(weights)):
             feat = QgsFeature(f_fields)
             feat.setAttributes([
@@ -332,7 +332,7 @@ class ParetoAllocationAlgorithm(PlanXAlgorithm):
                 1 if k == knee else 0,
                 1 if k == sel else 0,
                 int(res["swaps"][k]), int(res["reassigned"][k])])
-            f_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            f_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         # --------------------------------------------- selected parcel map
         p_fields = self.make_fields(
@@ -351,7 +351,7 @@ class ParetoAllocationAlgorithm(PlanXAlgorithm):
             out.setAttributes(list(feat.attributes())[:n_base]
                               + [use, round(s, 4), round(float(area[i]), 2),
                                  round(sel_weight, 6)])
-            p_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            p_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # ----------------------------------------------------------- log
         n_front = int(on_front.sum())

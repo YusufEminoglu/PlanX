@@ -83,7 +83,7 @@ class SpaceSyntaxAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines, prepared)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterString(
             self.RADII, self.tr("Metric radii (comma separated, 'n' = global)"),
             "800, n"))
@@ -128,7 +128,7 @@ class SpaceSyntaxAlgorithm(PlanXAlgorithm):
 
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.LineString, network.sourceCrs())
+            QgsWkbTypes.Type.LineString, network.sourceCrs())
         n_src = len(network.fields())
         for s in range(seg_graph.n):
             f = QgsFeature(fields)
@@ -141,7 +141,7 @@ class SpaceSyntaxAlgorithm(PlanXAlgorithm):
                           float(res["md"][s]), float(res["nain"][s]),
                           float(res["choice"][s]), float(res["nach"][s])]
             f.setAttributes(attrs)
-            sink.addFeature(f, QgsFeatureSink.FastInsert)
+            sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
         return {self.OUTPUT: dest}
 
     def createInstance(self):

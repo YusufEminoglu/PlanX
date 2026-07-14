@@ -75,10 +75,10 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.INPUT, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         p = QgsProcessingParameterNumber(
             self.MIN_LENGTH, self.tr("Drop segments shorter than (map units)"),
-            QgsProcessingParameterNumber.Double, 0.05, minValue=0.0)
+            QgsProcessingParameterNumber.Type.Double, 0.05, minValue=0.0)
         self.addParameter(p)
         self.addParameter(QgsProcessingParameterCrs(
             self.TARGET_CRS, self.tr("Reproject result to (empty = keep network CRS)"),
@@ -128,7 +128,7 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                                   base=source.fields())
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.LineString, out_crs)
+            QgsWkbTypes.Type.LineString, out_crs)
 
         seg_id = 0
         kept = 0
@@ -150,14 +150,14 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                 out.setGeometry(g)
             attrs = list(f.attributes())[:len(source.fields())]
             out.setAttributes(attrs + [seg_id, float(length)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
             seg_id += 1
             kept += 1
 
         if create_index:
             out_layer = QgsProcessingUtils.mapLayerFromString(dest_id, context)
             if out_layer is not None:
-                if out_layer.dataProvider().capabilities() & QgsVectorDataProvider.CreateSpatialIndex:
+                if out_layer.dataProvider().capabilities() & QgsVectorDataProvider.Capability.CreateSpatialIndex:
                     out_layer.dataProvider().createSpatialIndex()
                     feedback.pushInfo(self.tr("Spatial index created."))
                 else:

@@ -71,10 +71,12 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.FLOWS, self.tr("OD flows layer"), [QgsProcessing.TypeVectorLine, QgsProcessing.TypeVectorPoint]))
+            self.FLOWS, self.tr("OD flows layer"),
+            [QgsProcessing.SourceType.TypeVectorLine,
+             QgsProcessing.SourceType.TypeVectorPoint]))
         self.addParameter(QgsProcessingParameterField(
             self.FLOW_FIELD, self.tr("Total flow field"), parentLayerParameterName=self.FLOWS,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterString(
             self.MODE_TIMES, self.tr("Mode travel time fields (comma-separated)"),
             defaultValue="time_car,time_transit"))
@@ -161,13 +163,13 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
                 return QgsGeometry(g)
             wkb = g.wkbType()
             flat = QgsWkbTypes.flatType(wkb)
-            if flat == QgsWkbTypes.Point:
+            if flat == QgsWkbTypes.Type.Point:
                 pt = g.asPoint()
                 return QgsGeometry.fromPointXY(QgsPointXY(pt.x(), pt.y()))
-            elif flat == QgsWkbTypes.LineString:
+            elif flat == QgsWkbTypes.Type.LineString:
                 pts = g.asPolyline()
                 return QgsGeometry.fromPolylineXY([QgsPointXY(p.x(), p.y()) for p in pts])
-            elif flat == QgsWkbTypes.Polygon:
+            elif flat == QgsWkbTypes.Type.Polygon:
                 rings = g.asPolygon()
                 new_rings = []
                 for ring in rings:
@@ -190,7 +192,7 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
                 extra_attrs.extend([round(sh, 4), round(fl, 2)])
 
             out_feat.setAttributes(list(f.attributes())[:n_base] + extra_attrs)
-            sink.addFeature(out_feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
 
         return {self.OUTPUT: dest}
 

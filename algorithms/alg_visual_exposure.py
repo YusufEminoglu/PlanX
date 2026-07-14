@@ -88,22 +88,22 @@ class VisualExposureAlgorithm(PlanXAlgorithm):
             self.DSM, self.tr("Surface model (DSM, projected CRS)")))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.LANDMARKS, self.tr("Landmark footprint(s) (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterNumber(
             self.EXTRA_HEIGHT,
             self.tr("Extra height above the DSM at the landmark (m)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0,
             maxValue=1000.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.SAMPLE_STEP, self.tr("Outline sample step (map units)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=0.5))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=0.5))
         self.addParameter(QgsProcessingParameterNumber(
             self.EYE_HEIGHT, self.tr("Observer eye height (m)"),
-            QgsProcessingParameterNumber.Double, 1.6, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 1.6, minValue=0.0,
             maxValue=100.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("Exposure radius (map units, 0 = unlimited)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Landmark visibility count")))
 

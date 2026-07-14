@@ -97,29 +97,29 @@ class InequalityCurvesAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.INPUT, self.tr("Units (origins / cells with a value)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.VALUE_FIELD, self.tr("Value field (a non-negative good)"),
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per unit)"),
             parentLayerParameterName=self.INPUT, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.RANK_FIELD,
             self.tr("Rank field for a concentration curve (optional)"),
             parentLayerParameterName=self.INPUT, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.EPSILON, self.tr("Atkinson inequality-aversion (epsilon)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_CURVE, self.tr("Lorenz / concentration curve"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Inequality summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -188,24 +188,24 @@ class InequalityCurvesAlgorithm(PlanXAlgorithm):
             ("equality", DOUBLE), ("gap", DOUBLE))
         c_sink, c_dest = self.parameterAsSink(
             parameters, self.OUT_CURVE, context, c_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for k in range(len(pop_share)):
             ps, vs = float(pop_share[k]), float(val_share[k])
             feat = QgsFeature(c_fields)
             feat.setAttributes([int(k), round(ps, 6), round(vs, 6),
                                 round(ps, 6), round(ps - vs, 6)])
-            c_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            c_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         # -------------------------------------------------------- summary out
         s_fields = self.make_fields(("metric", STRING), ("value", DOUBLE))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
 
         def srow(metric, value):
             f = QgsFeature(s_fields)
             f.setAttributes([metric, round(float(value), 6)])
-            s_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
         gini_val = equity.gini(vals, pops)
         srow("Units (n)", float(len(vals)))

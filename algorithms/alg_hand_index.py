@@ -71,10 +71,10 @@ class HandIndexAlgorithm(PlanXAlgorithm):
             self.ACCUM, self.tr("Flow accumulation raster")))
         self.addParameter(QgsProcessingParameterNumber(
             self.THRESHOLD, self.tr("Drainage accumulation threshold (cells)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEPTH, self.tr("Inundation depth (m)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT_HAND, self.tr("HAND index")))
         self.addParameter(QgsProcessingParameterRasterDestination(

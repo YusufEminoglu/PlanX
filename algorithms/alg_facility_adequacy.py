@@ -78,26 +78,26 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand (buildings / address points)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per point)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.FACILITIES, self.tr("Facilities"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.FACILITIES, self.tr("Facilities"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FACILITY_ID, self.tr("Facility ID field"),
             parentLayerParameterName=self.FACILITIES))
         self.addParameter(QgsProcessingParameterField(
             self.CAPACITY_FIELD, self.tr("Capacity field (persons)"),
             parentLayerParameterName=self.FACILITIES,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_COST, self.tr("Maximum network cost (catchment, map units)"),
-            QgsProcessingParameterNumber.Double, 500.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 500.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_FACILITIES, self.tr("Facility adequacy")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -142,7 +142,7 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
         d_fields = self.make_fields(("covered", INT), ("facility", STRING),
                                     ("net_cost", DOUBLE), base=demand.fields())
         d_sink, d_dest = self.parameterAsSink(
-            parameters, self.OUT_DEMAND, context, d_fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUT_DEMAND, context, d_fields, QgsWkbTypes.Type.Point, crs)
         covered_pop = total_pop = 0.0
         n_dem = len(demand.fields())
         for i, feat in enumerate(d_feats):
@@ -166,13 +166,13 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*d_xy[i])))
             out.setAttributes(list(feat.attributes())[:n_dem] +
                               [1 if covered else 0, fac, cost_val])
-            d_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            d_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         f_fields = self.make_fields(
             ("facility", STRING), ("capacity", DOUBLE), ("assigned", DOUBLE),
             ("utilization", DOUBLE), ("status", STRING))
         f_sink, f_dest = self.parameterAsSink(
-            parameters, self.OUT_FACILITIES, context, f_fields, QgsWkbTypes.Point, crs)
+            parameters, self.OUT_FACILITIES, context, f_fields, QgsWkbTypes.Type.Point, crs)
         overloaded = 0
         for j, feat in enumerate(f_feats):
             try:
@@ -191,7 +191,7 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
             out = QgsFeature(f_fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*f_xy[j])))
             out.setAttributes([f_ids[j], cap, load, round(util, 3), status])
-            f_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            f_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         share = covered_pop / total_pop if total_pop > 0 else 0.0
         feedback.pushInfo(self.tr(

@@ -78,36 +78,38 @@ class GravityModelAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.ZONES, self.tr("Zone layer"), [QgsProcessing.TypeVectorPolygon, QgsProcessing.TypeVectorPoint]))
+            self.ZONES, self.tr("Zone layer"),
+            [QgsProcessing.SourceType.TypeVectorPolygon,
+             QgsProcessing.SourceType.TypeVectorPoint]))
         self.addParameter(QgsProcessingParameterField(
             self.ZONE_ID, self.tr("Zone ID field"), parentLayerParameterName=self.ZONES))
         self.addParameter(QgsProcessingParameterField(
             self.PRODUCTION_FIELD, self.tr("Productions field"), parentLayerParameterName=self.ZONES,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.ATTRACTION_FIELD, self.tr("Attractions field"), parentLayerParameterName=self.ZONES,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.BETA, self.tr("Deterrence coefficient (beta)"),
-            QgsProcessingParameterNumber.Double, defaultValue=0.1, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, defaultValue=0.1, minValue=0.0))
         self.addParameter(QgsProcessingParameterEnum(
             self.KIND, self.tr("Deterrence function type"), self.KINDS,
             defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_ITER, self.tr("Maximum balancing iterations"),
-            QgsProcessingParameterNumber.Integer, defaultValue=100, minValue=1))
+            QgsProcessingParameterNumber.Type.Integer, defaultValue=100, minValue=1))
         self.addParameter(QgsProcessingParameterNumber(
             self.TOL, self.tr("Convergence tolerance"),
-            QgsProcessingParameterNumber.Double, defaultValue=1e-4, minValue=1e-12))
+            QgsProcessingParameterNumber.Type.Double, defaultValue=1e-4, minValue=1e-12))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("OD matrix (table)"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.LINES, self.tr("Desire lines"), optional=True,
             createByDefault=False))
@@ -183,13 +185,13 @@ class GravityModelAlgorithm(PlanXAlgorithm):
 
         sink, dest_matrix = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.NoGeometry, crs)
+            QgsWkbTypes.Type.NoGeometry, crs)
 
         line_sink = line_dest = None
         if parameters.get(self.LINES) is not None:
             line_sink, line_dest = self.parameterAsSink(
                 parameters, self.LINES, context, fields,
-                QgsWkbTypes.LineString, crs)
+                QgsWkbTypes.Type.LineString, crs)
 
         N = len(o_ids)
         flat_flows = []
@@ -210,7 +212,7 @@ class GravityModelAlgorithm(PlanXAlgorithm):
                 attrs = [o_ids[i], o_ids[j], cost_val, flow_val]
                 f = QgsFeature(fields)
                 f.setAttributes(attrs)
-                sink.addFeature(f, QgsFeatureSink.FastInsert)
+                sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
                 if line_sink is not None:
                     lf = QgsFeature(fields)
@@ -218,7 +220,7 @@ class GravityModelAlgorithm(PlanXAlgorithm):
                     lf.setGeometry(QgsGeometry.fromPolylineXY([
                         QgsPointXY(*o_xy[i]), QgsPointXY(*o_xy[j])
                     ]))
-                    line_sink.addFeature(lf, QgsFeatureSink.FastInsert)
+                    line_sink.addFeature(lf, QgsFeatureSink.Flag.FastInsert)
 
         flat_flows.sort(key=lambda x: x[0], reverse=True)
         feedback.pushInfo(self.tr("Top 10 travel demand flows:"))

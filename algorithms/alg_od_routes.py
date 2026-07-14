@@ -85,27 +85,27 @@ class ODRoutesAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.ORIGINS, self.tr("Origins"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.ORIGINS, self.tr("Origins"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.ORIGIN_ID, self.tr("Origin ID field"), parentLayerParameterName=self.ORIGINS))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DESTINATIONS, self.tr("Destinations (empty = origins)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.DEST_ID, self.tr("Destination ID field"),
             parentLayerParameterName=self.DESTINATIONS, optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.CUTOFF, self.tr("Maximum cost (0 = unlimited)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.K_NEAREST, self.tr("Keep only the k nearest destinations per origin (0 = all)"),
-            QgsProcessingParameterNumber.Integer, 0, minValue=0))
+            QgsProcessingParameterNumber.Type.Integer, 0, minValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_ROUTES, self.tr("OD routes")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -163,11 +163,11 @@ class ODRoutesAlgorithm(PlanXAlgorithm):
         )
 
         sink, routes_dest = self.parameterAsSink(
-            parameters, self.OUT_ROUTES, context, fields, QgsWkbTypes.LineString, crs)
+            parameters, self.OUT_ROUTES, context, fields, QgsWkbTypes.Type.LineString, crs)
         line_sink = line_dest = None
         if parameters.get(self.OUT_LINES) is not None:
             line_sink, line_dest = self.parameterAsSink(
-                parameters, self.OUT_LINES, context, fields, QgsWkbTypes.LineString, crs)
+                parameters, self.OUT_LINES, context, fields, QgsWkbTypes.Type.LineString, crs)
 
         def route_geometry(nodes, edges):
             pts = []
@@ -223,7 +223,7 @@ class ODRoutesAlgorithm(PlanXAlgorithm):
                 rf = QgsFeature(fields)
                 rf.setGeometry(route_geometry(nodes, edges))
                 rf.setAttributes(attrs)
-                sink.addFeature(rf, QgsFeatureSink.FastInsert)
+                sink.addFeature(rf, QgsFeatureSink.Flag.FastInsert)
                 n_routes += 1
 
                 if line_sink is not None:
@@ -231,7 +231,7 @@ class ODRoutesAlgorithm(PlanXAlgorithm):
                     lf.setGeometry(QgsGeometry.fromPolylineXY(
                         [QgsPointXY(*o_xy[i]), QgsPointXY(*d_xy[j])]))
                     lf.setAttributes(attrs)
-                    line_sink.addFeature(lf, QgsFeatureSink.FastInsert)
+                    line_sink.addFeature(lf, QgsFeatureSink.Flag.FastInsert)
                     n_lines += 1
 
         feedback.pushInfo(self.tr(f"Created {n_routes} route(s)."))

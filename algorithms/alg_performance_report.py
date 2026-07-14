@@ -104,34 +104,34 @@ class PlanPerformanceReportAlgorithm(PlanXAlgorithm):
             self.TITLE, self.tr("Report title"), "Urban Plan"))
         self.addParameter(QgsProcessingParameterNumber(
             self.POPULATION, self.tr("Planned population (0 = omit)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ACCESS, self.tr("Access scores (from Multi-Amenity Access Score)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.ACCESS_SCORE, self.tr("Score field"),
             parentLayerParameterName=self.ACCESS, optional=True,
-            type=QgsProcessingParameterField.Numeric, defaultValue="score"))
+            type=QgsProcessingParameterField.DataType.Numeric, defaultValue="score"))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BALANCE, self.tr("Land-use balance table (from Land-Use Balance)"),
-            [QgsProcessing.TypeVector], optional=True))
+            [QgsProcessing.SourceType.TypeVector], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.FACILITIES, self.tr("Facility adequacy (from Facility Adequacy)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand coverage (from Facility Adequacy)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.DEMAND_POP, self.tr("Demand population field (empty = 1 per point)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DENSITY, self.tr("Density grid (from Density Grid)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.DENSITY_FIELD, self.tr("Density field"),
             parentLayerParameterName=self.DENSITY, optional=True,
-            type=QgsProcessingParameterField.Numeric, defaultValue="dens_ha"))
+            type=QgsProcessingParameterField.DataType.Numeric, defaultValue="dens_ha"))
         self.addParameter(QgsProcessingParameterFileDestination(
             self.OUTPUT, self.tr("Plan Performance Report"),
             self.tr("HTML files (*.html)")))

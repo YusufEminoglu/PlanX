@@ -87,32 +87,32 @@ class ResidentialCapacityAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.PARCELS, self.tr("Parcels (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.FAR_FIELD, self.tr("FAR / floor-area-ratio field"),
             parentLayerParameterName=self.PARCELS,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.EXISTING_FIELD,
             self.tr("Existing floorspace field (m2, optional)"),
             parentLayerParameterName=self.PARCELS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.DISTRICT_FIELD, self.tr("District field for the roll-up (optional)"),
             parentLayerParameterName=self.PARCELS, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.UNIT_SIZE, self.tr("Average dwelling size (m2)"),
-            QgsProcessingParameterNumber.Double, 90.0, minValue=10.0,
+            QgsProcessingParameterNumber.Type.Double, 90.0, minValue=10.0,
             maxValue=1000.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.EFFICIENCY, self.tr("Net-to-gross efficiency"),
-            QgsProcessingParameterNumber.Double, 0.85, minValue=0.1,
+            QgsProcessingParameterNumber.Type.Double, 0.85, minValue=0.1,
             maxValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_PARCELS, self.tr("Parcel capacity")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_DISTRICTS, self.tr("District roll-up"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         parcels = self.parameterAsSource(parameters, self.PARCELS, context)
@@ -176,7 +176,7 @@ class ResidentialCapacityAlgorithm(PlanXAlgorithm):
             out.setGeometry(f.geometry())
             out.setAttributes(list(f.attributes())[:n_base] + [
                 round(float(buildable[i]), 1), int(units[i])])
-            p_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            p_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         rollup = {}
         for i, d in enumerate(dists):
@@ -189,13 +189,13 @@ class ResidentialCapacityAlgorithm(PlanXAlgorithm):
             ("buildable_m2", DOUBLE), ("cap_units", INT))
         d_sink, d_dest = self.parameterAsSink(
             parameters, self.OUT_DISTRICTS, context, d_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for d in sorted(rollup):
             area_sum, build_sum, unit_sum = rollup[d]
             feat = QgsFeature(d_fields)
             feat.setAttributes([d, round(area_sum, 1), round(build_sum, 1),
                                 unit_sum])
-            d_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            d_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         total_units = int(units.sum())
         feedback.pushInfo(self.tr(

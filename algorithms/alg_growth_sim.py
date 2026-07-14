@@ -94,22 +94,22 @@ class GrowthSimAlgorithm(PlanXAlgorithm):
             optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEMAND_HA, self.tr("Land demand (hectares)"),
-            QgsProcessingParameterNumber.Double, 50.0, minValue=0.01))
+            QgsProcessingParameterNumber.Type.Double, 50.0, minValue=0.01))
         self.addParameter(QgsProcessingParameterNumber(
             self.ITERATIONS, self.tr("Growth steps"),
-            QgsProcessingParameterNumber.Integer, 5, minValue=1,
+            QgsProcessingParameterNumber.Type.Integer, 5, minValue=1,
             maxValue=100))
         self.addParameter(QgsProcessingParameterNumber(
             self.NEIGH_WEIGHT, self.tr("Neighbourhood weight (edge growth)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0,
             maxValue=10.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.BASE, self.tr("Base term (leapfrog growth)"),
-            QgsProcessingParameterNumber.Double, 0.1, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 0.1, minValue=0.0,
             maxValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.RNG_SEED, self.tr("Random seed (tie-breaking only)"),
-            QgsProcessingParameterNumber.Integer, 0, minValue=0))
+            QgsProcessingParameterNumber.Type.Integer, 0, minValue=0))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Year of conversion")))
 

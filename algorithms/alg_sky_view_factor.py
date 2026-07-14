@@ -67,10 +67,10 @@ class SkyViewFactorAlgorithm(PlanXAlgorithm):
             self.DSM, self.tr("Digital surface model (terrain + buildings)")))
         self.addParameter(QgsProcessingParameterNumber(
             self.DIRECTIONS, self.tr("Horizon scan directions"),
-            QgsProcessingParameterNumber.Integer, 16, minValue=4, maxValue=64))
+            QgsProcessingParameterNumber.Type.Integer, 16, minValue=4, maxValue=64))
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("Search radius (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Sky view factor")))
 

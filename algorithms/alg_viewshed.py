@@ -82,21 +82,21 @@ class ViewshedAlgorithm(PlanXAlgorithm):
             self.DSM, self.tr("Surface model (DSM, projected CRS)")))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.OBSERVERS, self.tr("Observer points"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterNumber(
             self.OBSERVER_HEIGHT, self.tr("Observer height above surface (m)"),
-            QgsProcessingParameterNumber.Double, 1.6, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 1.6, minValue=0.0,
             maxValue=500.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.TARGET_HEIGHT, self.tr("Target height above surface (m)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0,
             maxValue=500.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("View radius (map units, 0 = unlimited)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.DIRECTIONS, self.tr("Sweep directions"),
-            QgsProcessingParameterNumber.Integer, 720, minValue=90,
+            QgsProcessingParameterNumber.Type.Integer, 720, minValue=90,
             maxValue=3600))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Visibility count")))

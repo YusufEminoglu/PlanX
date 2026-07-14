@@ -87,17 +87,17 @@ class TransitFrequencyAlgorithm(PlanXAlgorithm):
             "", optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.START, self.tr("Window start (hour of day)"),
-            QgsProcessingParameterNumber.Double, 7.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 7.0, minValue=0.0,
             maxValue=30.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.END, self.tr("Window end (hour of day)"),
-            QgsProcessingParameterNumber.Double, 9.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 9.0, minValue=0.0,
             maxValue=30.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_STOPS, self.tr("Stop frequencies")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_ROUTES, self.tr("Route trips in window"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         path = self.parameterAsFile(parameters, self.FILE, context)
@@ -117,7 +117,7 @@ class TransitFrequencyAlgorithm(PlanXAlgorithm):
             ("per_hour", DOUBLE), ("headway_min", DOUBLE), ("n_routes", INT))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_STOPS, context, s_fields,
-            QgsWkbTypes.Point, crs)
+            QgsWkbTypes.Type.Point, crs)
         for i, sid in enumerate(gtfs["stop_ids"]):
             feat = QgsFeature(s_fields)
             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(
@@ -127,19 +127,19 @@ class TransitFrequencyAlgorithm(PlanXAlgorithm):
                 round(float(freq["per_hour"][i]), 3),
                 round(float(freq["headway_min"][i]), 2),
                 int(freq["n_routes"][i])])
-            s_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         r_fields = self.make_fields(
             ("route_id", STRING), ("name", STRING), ("trips_in_window", INT))
         r_sink, r_dest = self.parameterAsSink(
             parameters, self.OUT_ROUTES, context, r_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for rid in sorted(freq["route_trips"]):
             info = gtfs["routes"].get(rid, {"short": "", "long": ""})
             feat = QgsFeature(r_fields)
             feat.setAttributes([rid, info["short"] or info["long"] or rid,
                                 int(freq["route_trips"][rid])])
-            r_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            r_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         served = freq["departures"] > 0
         if np.any(served):

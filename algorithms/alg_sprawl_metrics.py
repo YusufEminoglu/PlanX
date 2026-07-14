@@ -88,13 +88,13 @@ class SprawlMetricsAlgorithm(PlanXAlgorithm):
             self.URBAN_T2, self.tr("Urban extent at time 2 (nonzero = urban)")))
         self.addParameter(QgsProcessingParameterNumber(
             self.POP_T1, self.tr("Population at time 1"),
-            QgsProcessingParameterNumber.Double, 100000.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 100000.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.POP_T2, self.tr("Population at time 2"),
-            QgsProcessingParameterNumber.Double, 120000.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 120000.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Sprawl metrics"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         lyr1 = self.parameterAsRasterLayer(parameters, self.URBAN_T1, context)
@@ -122,7 +122,7 @@ class SprawlMetricsAlgorithm(PlanXAlgorithm):
         fields = self.make_fields(("metric", STRING), ("value", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         rows = [
             ("Urban area t1 (ha)", sm["area_t1"] / 10000.0),
             ("Urban area t2 (ha)", sm["area_t2"] / 10000.0),
@@ -144,7 +144,7 @@ class SprawlMetricsAlgorithm(PlanXAlgorithm):
             feat.setAttributes([
                 metric,
                 None if not math.isfinite(value) else round(float(value), 4)])
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         if math.isfinite(sm["lcrpgr"]):
             verdict = ("land outpaces people - sprawl signature"

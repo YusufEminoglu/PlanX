@@ -89,20 +89,20 @@ class IsovistFieldAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterExtent(
             self.EXTENT, self.tr("Study extent (empty = buildings extent)"),
             optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL, self.tr("Grid cell size (map units)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=0.5))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=0.5))
         self.addParameter(QgsProcessingParameterNumber(
             self.N_RAYS, self.tr("Rays per point"),
-            QgsProcessingParameterNumber.Integer, 180, minValue=36,
+            QgsProcessingParameterNumber.Type.Integer, 180, minValue=36,
             maxValue=1440))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_DIST, self.tr("Max sight distance (map units)"),
-            QgsProcessingParameterNumber.Double, 200.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 200.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_POINTS, self.tr("Isovist points")))
 
@@ -171,7 +171,7 @@ class IsovistFieldAlgorithm(PlanXAlgorithm):
             ("occlus", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_POINTS, context, fields,
-            QgsWkbTypes.Point, crs)
+            QgsWkbTypes.Type.Point, crs)
         for i, rc in enumerate(points):
             if feedback.isCanceled():
                 break
@@ -185,7 +185,7 @@ class IsovistFieldAlgorithm(PlanXAlgorithm):
                 round(float(fld["mean_rad"][i]), 2),
                 round(float(fld["circularity"][i]), 4),
                 round(float(fld["occlusivity"][i]), 4)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"{len(points)} isovist points; mean visible area "

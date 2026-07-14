@@ -111,16 +111,16 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.FACILITIES, self.tr("Facilities"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.FACILITIES, self.tr("Facilities"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.FACILITY_ID, self.tr("Facility label field (optional)"),
             parentLayerParameterName=self.FACILITIES, optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterString(
             self.BREAKS,
             self.tr("Catchment distances / cost breaks (comma separated)"),
@@ -138,11 +138,11 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             defaultValue=0))
         self.addParameter(QgsProcessingParameterNumber(
             self.BUFFER, self.tr("Street buffer width (map units)"),
-            QgsProcessingParameterNumber.Double, 30.0, minValue=0.1))
+            QgsProcessingParameterNumber.Type.Double, 30.0, minValue=0.1))
         self.addParameter(QgsProcessingParameterNumber(
             self.HULL_DETAIL,
             self.tr("Concave hull detail (0 = tight, 1 = convex)"),
-            QgsProcessingParameterNumber.Double, 0.3,
+            QgsProcessingParameterNumber.Type.Double, 0.3,
             minValue=0.01, maxValue=1.0))
         self.addParameter(QgsProcessingParameterBoolean(
             self.RINGS, self.tr("Output bands as rings (differences)"), False))
@@ -154,7 +154,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             self.CIRCLES, self.tr("Straight-line catchments (circles)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.SUMMARY, self.tr("Catchment summary (pedshed)"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     # ------------------------------------------------------------------ #
     @staticmethod
@@ -320,7 +320,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             ("len_m", DOUBLE), base=network.fields())
         edge_sink, edges_dest = self.parameterAsSink(
             parameters, self.EDGES, context, edge_fields,
-            QgsWkbTypes.LineString, crs)
+            QgsWkbTypes.Type.LineString, crs)
         n_src_fields = len(network.fields())
         n_pieces = 0
         for bi, brk in enumerate(breaks):
@@ -344,7 +344,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                     out.setAttributes(
                         list(line_feats[e].attributes())[:n_src_fields]
                         + [fac_lab, float(brk), float(prev or 0.0), piece_len])
-                    edge_sink.addFeature(out, QgsFeatureSink.FastInsert)
+                    edge_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                     n_pieces += 1
         feedback.pushInfo(self.tr(f"Reached street pieces: {n_pieces}."))
         feedback.setProgress(70)
@@ -355,7 +355,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             ("area", DOUBLE))
         area_sink, areas_dest = self.parameterAsSink(
             parameters, self.AREAS, context, area_fields,
-            QgsWkbTypes.MultiPolygon, crs)
+            QgsWkbTypes.Type.MultiPolygon, crs)
         warned_concave = False
         cum_area = {}  # (label, break) -> cumulative catchment area
         for lab, dist, ent, fi in scopes:
@@ -398,7 +398,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                 f = QgsFeature(area_fields)
                 f.setGeometry(out_geom)
                 f.setAttributes([lab, float(brk), bi + 1, float(out_geom.area())])
-                area_sink.addFeature(f, QgsFeatureSink.FastInsert)
+                area_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
                 prev_geom = geom
         feedback.setProgress(85)
 
@@ -407,7 +407,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             ("facility", STRING), ("break", DOUBLE), ("area", DOUBLE))
         circle_sink, circles_dest = self.parameterAsSink(
             parameters, self.CIRCLES, context, circle_fields,
-            QgsWkbTypes.MultiPolygon, crs)
+            QgsWkbTypes.Type.MultiPolygon, crs)
         circle_area = {}  # (label, break) -> area
         for brk in breaks:
             discs = []
@@ -420,13 +420,13 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                     f = QgsFeature(circle_fields)
                     f.setGeometry(disc)
                     f.setAttributes([labels[i], float(brk), float(disc.area())])
-                    circle_sink.addFeature(f, QgsFeatureSink.FastInsert)
+                    circle_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
             merged = QgsGeometry.unaryUnion(discs)
             circle_area[(ALL_LABEL, brk)] = float(merged.area())
             f = QgsFeature(circle_fields)
             f.setGeometry(merged)
             f.setAttributes([ALL_LABEL, float(brk), float(merged.area())])
-            circle_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            circle_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
         if not cost_is_length:
             feedback.pushInfo(self.tr(
                 "Cost field in use: circles read the breaks as map-unit "
@@ -439,7 +439,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             ("net_area", DOUBLE), ("pedshed", DOUBLE), ("street_len", DOUBLE))
         sum_sink, summary_dest = self.parameterAsSink(
             parameters, self.SUMMARY, context, sum_fields,
-            QgsWkbTypes.NoGeometry, crs)
+            QgsWkbTypes.Type.NoGeometry, crs)
         scope_labels = [lab for lab, _, _, _ in scopes]
         for lab in scope_labels:
             for brk in breaks:
@@ -449,7 +449,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                 f = QgsFeature(sum_fields)
                 f.setAttributes([lab, float(brk), c_area, n_area,
                                  float(ratio), street_len(lab, brk)])
-                sum_sink.addFeature(f, QgsFeatureSink.FastInsert)
+                sum_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
                 if lab == ALL_LABEL:
                     feedback.pushInfo(self.tr(
                         f"Break {brk:g}: {street_len(lab, brk):.0f} map "

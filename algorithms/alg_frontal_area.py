@@ -79,20 +79,20 @@ class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.HEIGHT_FIELD, self.tr("Height field, metres (empty = default)"),
             parentLayerParameterName=self.BUILDINGS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_HEIGHT, self.tr("Default building height (m)"),
-            QgsProcessingParameterNumber.Double, 6.0, minValue=0.1))
+            QgsProcessingParameterNumber.Type.Double, 6.0, minValue=0.1))
         self.addParameter(QgsProcessingParameterNumber(
             self.WIND_DIR, self.tr("Wind direction (degrees from north, wind FROM)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0, maxValue=360.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0, maxValue=360.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL_SIZE, self.tr("Grid cell size (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=10.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=10.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Roughness grid")))
 
@@ -136,7 +136,7 @@ class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
                                   ("lambda_f", DOUBLE), ("lambda_p", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.Polygon, source.sourceCrs())
+            QgsWkbTypes.Type.Polygon, source.sourceCrs())
 
         x0 = math.floor(extent.xMinimum() / cell) * cell
         y0 = math.floor(extent.yMinimum() / cell) * cell
@@ -173,7 +173,7 @@ class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
                 out = QgsFeature(fields)
                 out.setGeometry(cell_geom)
                 out.setAttributes([cid, count, lam_f, lam_p])
-                sink.addFeature(out, QgsFeatureSink.FastInsert)
+                sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                 cid += 1
             feedback.setProgress(int(100.0 * (iy + 1) * nx / total))
         feedback.pushInfo(self.tr(f"Wrote {cid} built grid cells."))

@@ -99,48 +99,48 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ROADS, self.tr("Roads (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.VOLUME_FIELD, self.tr("Traffic volume field"),
             parentLayerParameterName=self.ROADS,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.HOURLY_FACTOR,
             self.tr("Hourly factor (multiply the volume field, 1/24 for AADT)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0001,
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0001,
             maxValue=10.0))
         self.addParameter(QgsProcessingParameterField(
             self.HEAVY_FIELD,
             self.tr("Heavy-vehicle share field (percent, optional)"),
             parentLayerParameterName=self.ROADS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.HEAVY_PCT, self.tr("Default heavy share (percent)"),
-            QgsProcessingParameterNumber.Double, 5.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 5.0, minValue=0.0,
             maxValue=100.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings for screening (optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.SCREEN_DB, self.tr("Insertion loss behind buildings (dB)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=0.0,
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=0.0,
             maxValue=30.0))
         self.addParameter(QgsProcessingParameterExtent(
             self.EXTENT, self.tr("Grid extent (empty = roads extent + cutoff)"),
             optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL, self.tr("Grid cell size (map units)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CUTOFF, self.tr("Source cutoff distance (map units)"),
-            QgsProcessingParameterNumber.Double, 300.0, minValue=25.0))
+            QgsProcessingParameterNumber.Type.Double, 300.0, minValue=25.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.RECEIVERS, self.tr("Receiver points (optional, e.g. dwellings)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Receiver population field (optional)"),
             parentLayerParameterName=self.RECEIVERS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Noise level grid dB(A)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -311,7 +311,7 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
                 ("db", DOUBLE), ("band", STRING), base=receivers.fields())
             sink, dest = self.parameterAsSink(
                 parameters, self.OUT_RECEIVERS, context, fields,
-                QgsWkbTypes.Point, crs)
+                QgsWkbTypes.Type.Point, crs)
             if sink is not None:
                 levels, pops = [], []
                 for i, feat in enumerate(r_feats):
@@ -341,7 +341,7 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
                         QgsPointXY(*r_xy[i])))
                     out.setAttributes(list(feat.attributes())[:n_base] + [
                         round(levels[i], 1), band_lab])
-                    sink.addFeature(out, QgsFeatureSink.FastInsert)
+                    sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                 results[self.OUT_RECEIVERS] = dest
                 arr = np.asarray(levels)
                 w = np.asarray(pops)

@@ -88,14 +88,14 @@ class ScenarioSnapshotAlgorithm(PlanXAlgorithm):
                 (self.DEMAND, "Demand coverage layer (empty = auto-detect)"),
                 (self.DENSITY, "Density grid (empty = auto-detect)")):
             self.addParameter(QgsProcessingParameterVectorLayer(
-                key, self.tr(label), [QgsProcessing.TypeVector],
+                key, self.tr(label), [QgsProcessing.SourceType.TypeVector],
                 optional=True))
         self.addParameter(QgsProcessingParameterFileDestination(
             self.OUTPUT_JSON, self.tr("Scenario snapshot (JSON)"),
             self.tr("JSON files (*.json)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_METRICS, self.tr("Snapshot metrics"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         name = self.parameterAsString(parameters, self.NAME, context)
@@ -149,12 +149,12 @@ class ScenarioSnapshotAlgorithm(PlanXAlgorithm):
             ("metric", STRING), ("metric_key", STRING), ("value", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_METRICS, context, fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for key in metrics:
             feat = QgsFeature(fields)
             feat.setAttributes([scenario.label_of(key), key,
                                 round(float(metrics[key]), 4)])
-            sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         if overall is not None:
             feedback.pushInfo(self.tr(

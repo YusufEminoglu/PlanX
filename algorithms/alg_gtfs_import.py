@@ -107,7 +107,7 @@ class GtfsImportAlgorithm(PlanXAlgorithm):
             self.OUT_STOPS, self.tr("Transit stops")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_ROUTES, self.tr("Route summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         path = self.parameterAsFile(parameters, self.FILE, context)
@@ -122,7 +122,7 @@ class GtfsImportAlgorithm(PlanXAlgorithm):
             ("n_routes", INT))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_STOPS, context, s_fields,
-            QgsWkbTypes.Point, crs)
+            QgsWkbTypes.Type.Point, crs)
         for i, sid in enumerate(gtfs["stop_ids"]):
             feat = QgsFeature(s_fields)
             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(
@@ -130,7 +130,7 @@ class GtfsImportAlgorithm(PlanXAlgorithm):
             feat.setAttributes([sid, gtfs["stop_names"][i],
                                 int(freq["departures"][i]),
                                 int(freq["n_routes"][i])])
-            s_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         # per-route day stats
         stats = {}
@@ -157,7 +157,7 @@ class GtfsImportAlgorithm(PlanXAlgorithm):
             ("n_stops", INT))
         r_sink, r_dest = self.parameterAsSink(
             parameters, self.OUT_ROUTES, context, r_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for rid in sorted(stats):
             info = gtfs["routes"].get(rid, {"short": "", "long": "", "type": -1})
             label = info["short"] or info["long"] or rid
@@ -169,7 +169,7 @@ class GtfsImportAlgorithm(PlanXAlgorithm):
                 rid, label, transit.ROUTE_TYPES.get(info["type"], "Other"),
                 rec["trips"], hhmm(rec["first"]), hhmm(rec["last"]),
                 rec["stops"]])
-            r_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            r_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"Feed OK: {len(gtfs['stop_ids'])} stops, {len(stats)} route(s) "

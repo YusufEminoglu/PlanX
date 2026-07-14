@@ -81,7 +81,7 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
 
         self.addParameter(QgsProcessingParameterFile(
             self.FOLDER, self.tr("Snapshot folder (contains *.json)"),
-            behavior=QgsProcessingParameterFile.Folder, optional=True))
+            behavior=QgsProcessingParameterFile.Behavior.Folder, optional=True))
 
         self.addParameter(QgsProcessingParameterString(
             self.WEIGHTS, self.tr("Metric weights 'key=weight, ...' (empty = equal)"),
@@ -89,11 +89,11 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
 
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_TABLE, self.tr("Ranking"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_DETAIL, self.tr("Metric detail"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
         self.addParameter(QgsProcessingParameterFileDestination(
             self.OUTPUT_HTML, self.tr("Ranking board (HTML)"),
@@ -179,7 +179,7 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
         )
         sink_table, dest_table = self.parameterAsSink(
             parameters, self.OUT_TABLE, context, fields_table,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem()
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem()
         )
 
         for sc in result["scenarios"]:
@@ -188,7 +188,7 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
                 int(sc["rank"]), str(sc["name"]), float(sc["score"]),
                 int(sc["wins"]), int(sc["n_metrics"])
             ])
-            sink_table.addFeature(feat, QgsFeatureSink.FastInsert)
+            sink_table.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         fields_detail = self.make_fields(
             ("metric", STRING), ("label", STRING), ("direction", INT),
@@ -197,7 +197,7 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
         )
         sink_detail, dest_detail = self.parameterAsSink(
             parameters, self.OUT_DETAIL, context, fields_detail,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem()
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem()
         )
 
         for mr in result["metrics"]:
@@ -209,7 +209,7 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
                     float(mr["weight"]), str(name), float(mr["values"][name]),
                     float(mr["norms"][name])
                 ])
-                sink_detail.addFeature(feat, QgsFeatureSink.FastInsert)
+                sink_detail.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         results = {
             self.OUT_TABLE: dest_table,

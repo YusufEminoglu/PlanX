@@ -88,23 +88,23 @@ class LinkCriticalityAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ORIGINS, self.tr("Origins"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DESTINATIONS, self.tr("Destinations (empty = origins)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.CUTOFF, self.tr("Maximum cost (0 = unlimited)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.CRITICAL, self.tr("Segment criticality"),
-            type=QgsProcessing.TypeVectorLine))
+            type=QgsProcessing.SourceType.TypeVectorLine))
 
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
@@ -150,7 +150,7 @@ class LinkCriticalityAlgorithm(PlanXAlgorithm):
             ("n_disconnected", LONG), ("used_by", LONG), ("length_m", DOUBLE))
         sink, dest = self.parameterAsSink(
             parameters, self.CRITICAL, context, fields,
-            QgsWkbTypes.LineString, crs)
+            QgsWkbTypes.Type.LineString, crs)
 
         crit = res["criticality"]
         extra = res["extra_cost"]
@@ -165,7 +165,7 @@ class LinkCriticalityAlgorithm(PlanXAlgorithm):
                 [QgsPointXY(float(x), float(y)) for x, y in polylines[e]]))
             f.setAttributes([int(e), float(crit[e]), float(extra[e]),
                              int(ndisc[e]), int(usedby[e]), float(edge_len[e])])
-            sink.addFeature(f, QgsFeatureSink.FastInsert)
+            sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
         return {self.CRITICAL: dest}
 

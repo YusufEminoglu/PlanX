@@ -106,30 +106,30 @@ class HeatRiskGridAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Building footprints (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.HEIGHT_FIELD, self.tr("Building height field (m, empty = ignore height)"),
             parentLayerParameterName=self.BUILDINGS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.GREEN, self.tr("Green / vegetated areas (polygons, optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.WATER, self.tr("Water bodies (polygons, optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL_SIZE, self.tr("Grid cell size (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=10.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=10.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.H_REF, self.tr("Reference height for full height effect (m)"),
-            QgsProcessingParameterNumber.Double, 20.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 20.0, minValue=1.0))
         for key, label, default in (
                 (self.W_BUILT, "Weight: built fraction", 0.4),
                 (self.W_HEIGHT, "Weight: building height", 0.2),
                 (self.W_GREEN, "Weight: green cooling", 0.3),
                 (self.W_WATER, "Weight: water cooling", 0.1)):
             self.addParameter(QgsProcessingParameterNumber(
-                key, self.tr(label), QgsProcessingParameterNumber.Double,
+                key, self.tr(label), QgsProcessingParameterNumber.Type.Double,
                 default, minValue=0.0, maxValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Heat risk grid")))
@@ -225,7 +225,7 @@ class HeatRiskGridAlgorithm(PlanXAlgorithm):
             ("risk_class", STRING))
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.Polygon, buildings.sourceCrs())
+            QgsWkbTypes.Type.Polygon, buildings.sourceCrs())
         for i, (geom, bf, gf, wf, mh) in enumerate(cells):
             r = float(risk[i])
             klass = ("Low" if r < 25.0 else "Moderate" if r < 50.0
@@ -234,7 +234,7 @@ class HeatRiskGridAlgorithm(PlanXAlgorithm):
             f.setGeometry(geom)
             f.setAttributes([i, round(bf, 4), round(gf, 4), round(wf, 4),
                              round(mh, 2), round(r, 2), klass])
-            sink.addFeature(f, QgsFeatureSink.FastInsert)
+            sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
         share_hot = float((risk >= 75.0).mean())
         feedback.pushInfo(self.tr(
             f"{len(cells)} cells | mean risk {float(risk.mean()):.1f} | "

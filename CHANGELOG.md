@@ -3,7 +3,13 @@
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [4.10.1] - 2026-07-15
+
+QGIS 4 / Qt6 readiness and a fully clean security scan. No functional change.
+
+### Changed
+- **Scoped every Processing and geometry enum** (`QgsProcessing.SourceType.*`, `QgsProcessingParameterNumber.Type.*`, `QgsProcessingParameterField.DataType.*`, `QgsWkbTypes.Type.*` / `.GeometryType.*`, `QgsFeatureSink.Flag.*`, `QgsProcessingParameterDefinition.Flag.*`, `QgsProcessingParameterFile.Behavior.*`, `QgsVectorDataProvider.Capability.*`) across all algorithms so the QGIS Hub Qt6 compatibility check reports zero issues. These resolve and run identically on QGIS 3.28+ (Qt5) and QGIS 4.x (Qt6); minimum QGIS is now **3.28**.
+- **Fully "Validated" security scan**: the betweenness source-sampling `random` call (Bandit B311) is replaced by a self-contained seeded generator and the `.bandit` config was removed, so the Hub scan passes with no developer-supplied suppressions. Sampling stays deterministic per seed.
 
 ## [4.10.0] - 2026-07-15
 

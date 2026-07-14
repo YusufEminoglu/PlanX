@@ -66,19 +66,21 @@ class TripGenerationAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.ZONES, self.tr("Zone layer"), [QgsProcessing.TypeVectorPolygon, QgsProcessing.TypeVectorPoint]))
+            self.ZONES, self.tr("Zone layer"),
+            [QgsProcessing.SourceType.TypeVectorPolygon,
+             QgsProcessing.SourceType.TypeVectorPoint]))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field"), parentLayerParameterName=self.ZONES,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.JOBS_FIELD, self.tr("Jobs field"), parentLayerParameterName=self.ZONES,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.P_RATE, self.tr("Production rate (trips per capita)"),
-            QgsProcessingParameterNumber.Double, defaultValue=1.5, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, defaultValue=1.5, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.A_RATE, self.tr("Attraction rate (trips per job)"),
-            QgsProcessingParameterNumber.Double, defaultValue=2.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, defaultValue=2.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Trip generation table")))
 
@@ -100,7 +102,7 @@ class TripGenerationAlgorithm(PlanXAlgorithm):
 
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, out_fields,
-            QgsWkbTypes.NoGeometry)
+            QgsWkbTypes.Type.NoGeometry)
 
         pop_vals = []
         jobs_vals = []
@@ -130,7 +132,7 @@ class TripGenerationAlgorithm(PlanXAlgorithm):
                 break
             out_feat = QgsFeature(out_fields)
             out_feat.setAttributes(list(f.attributes())[:n_base] + [round(P[i], 2), round(A[i], 2)])
-            sink.addFeature(out_feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
 
         return {self.OUTPUT: dest}
 

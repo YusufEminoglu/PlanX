@@ -67,12 +67,12 @@ class WalkingSlopeAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterRasterLayer(
             self.DEM, self.tr("DEM (elevation)")))
         self.addParameter(QgsProcessingParameterNumber(
             self.SAMPLE_STEP, self.tr("Profile sample spacing (m)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=0.5))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=0.5))
         self.addParameter(QgsProcessingParameterString(
             self.BREAKS, self.tr("Comfort class breakpoints, mean |slope| % (ILLUSTRATIVE defaults)"),
             defaultValue="5,8,12"))
@@ -108,7 +108,7 @@ class WalkingSlopeAlgorithm(PlanXAlgorithm):
 
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.LineString, network.sourceCrs()
+            QgsWkbTypes.Type.LineString, network.sourceCrs()
         )
 
         bad_dem_count = 0
@@ -211,7 +211,7 @@ class WalkingSlopeAlgorithm(PlanXAlgorithm):
                 time_fwd, time_rev,
                 comfort_class_val, class_label
             ])
-            sink.addFeature(out_feat, QgsFeatureSink.FastInsert)
+            sink.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
 
         if bad_dem_count > 0:
             feedback.pushWarning(self.tr(

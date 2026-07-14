@@ -83,17 +83,17 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DEMAND, self.tr("Demand (buildings / blocks / addresses)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per point)"),
             parentLayerParameterName=self.DEMAND, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.GREENS, self.tr("Public green spaces (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterString(
             self.HIERARCHY,
             self.tr("Hierarchy classes 'min_ha=max_dist, ...'"),
@@ -102,7 +102,7 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
             self.OUT_DEMAND, self.tr("Demand with green access")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Coverage per class"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
@@ -164,7 +164,7 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
         fields = self.make_fields(*specs, base=demand.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_DEMAND, context, fields,
-            QgsWkbTypes.Point, crs)
+            QgsWkbTypes.Type.Point, crs)
         n_base = len(demand.fields())
         met_pop = np.zeros(len(classes))
         for i, feat in enumerate(d_feats):
@@ -185,7 +185,7 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
             out = QgsFeature(fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*d_xy[i])))
             out.setAttributes(list(feat.attributes())[:n_base] + extra)
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         s_fields = self.make_fields(
             ("class", INT), ("min_ha", DOUBLE), ("max_dist", DOUBLE),
@@ -193,7 +193,7 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
             ("n_greens", INT))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         total_pop = float(pops.sum()) or 1.0
         for k, (min_ha, max_dist) in enumerate(classes):
             n_q = int((g_area >= min_ha * 10000.0).sum())
@@ -201,7 +201,7 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
             feat.setAttributes([
                 k + 1, min_ha, max_dist, round(float(met_pop[k]), 1),
                 round(100.0 * met_pop[k] / total_pop, 2), n_q])
-            s_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
             feedback.pushInfo(self.tr(
                 f"Class {k + 1} ({min_ha:g} ha within {max_dist:g}): "
                 f"{100.0 * met_pop[k] / total_pop:.1f} percent covered."))

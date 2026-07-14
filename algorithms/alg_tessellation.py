@@ -70,19 +70,19 @@ class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.STUDY_AREA, self.tr("Study area (polygon, optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.SHRINK, self.tr("Footprint shrink (map units)"),
-            QgsProcessingParameterNumber.Double, 0.4, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.4, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.DENSIFY, self.tr("Boundary densify spacing (map units)"),
-            QgsProcessingParameterNumber.Double, 2.0, minValue=0.1))
+            QgsProcessingParameterNumber.Type.Double, 2.0, minValue=0.1))
         self.addParameter(QgsProcessingParameterNumber(
             self.LIMIT, self.tr("Hull buffer when no study area (map units)"),
-            QgsProcessingParameterNumber.Double, 100.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 100.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Tessellation cells")))
 
@@ -174,7 +174,7 @@ class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
                                   base=source.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.MultiPolygon, crs)
+            QgsWkbTypes.Type.MultiPolygon, crs)
         n_src = len(source.fields())
         written = 0
         for key, cell_list in per_building.items():
@@ -191,7 +191,7 @@ class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
             out.setGeometry(merged)
             out.setAttributes(list(feats[key].attributes())[:n_src] +
                               [key, float(merged.area())])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
             written += 1
         feedback.pushInfo(self.tr(f"Wrote {written} tessellation cells."))
         return {self.OUTPUT: dest}

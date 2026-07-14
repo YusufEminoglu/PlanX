@@ -70,11 +70,11 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.NODES, self.tr("Junction typology (points)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
-            self.SUMMARY, self.tr("Network summary (table)"), type=QgsProcessing.TypeVector))
+            self.SUMMARY, self.tr("Network summary (table)"), type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
@@ -100,14 +100,14 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
         crs = network.sourceCrs()
         node_fields = self.make_fields(("node_id", INT), ("degree", INT), ("node_type", STRING))
         node_sink, nodes_dest = self.parameterAsSink(
-            parameters, self.NODES, context, node_fields, QgsWkbTypes.Point, crs)
+            parameters, self.NODES, context, node_fields, QgsWkbTypes.Type.Point, crs)
         for i in range(n):
             d = int(degrees[i])
             ntype = "cul-de-sac" if d == 1 else ("continuation" if d == 2 else "intersection")
             f = QgsFeature(node_fields)
             f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*graph.node_xy[i])))
             f.setAttributes([i, d, ntype])
-            node_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            node_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
         rows = [
             ("nodes", n), ("edges", e), ("components", components),
@@ -126,11 +126,11 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
         ]
         sum_fields = self.make_fields(("metric", STRING), ("value", DOUBLE))
         sum_sink, sum_dest = self.parameterAsSink(
-            parameters, self.SUMMARY, context, sum_fields, QgsWkbTypes.NoGeometry, crs)
+            parameters, self.SUMMARY, context, sum_fields, QgsWkbTypes.Type.NoGeometry, crs)
         for name, value in rows:
             f = QgsFeature(sum_fields)
             f.setAttributes([name, float(value)])
-            sum_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            sum_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
             feedback.pushInfo(f"  {name} = {value}")
 
         return {self.NODES: nodes_dest, self.SUMMARY: sum_dest}

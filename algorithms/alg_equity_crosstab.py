@@ -99,11 +99,11 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.INPUT, self.tr("Units (origins / cells with a value)"),
-            [QgsProcessing.TypeVectorAnyGeometry]))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.VALUE_FIELD, self.tr("Value field"),
             parentLayerParameterName=self.INPUT,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.GROUP_FIELD, self.tr("Group field (demographic subgroup)"),
             parentLayerParameterName=self.INPUT))
@@ -114,23 +114,23 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per unit)"),
             parentLayerParameterName=self.INPUT, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.N_CLASSES, self.tr("Value classes (weighted quantiles)"),
-            QgsProcessingParameterNumber.Integer, 5, minValue=2, maxValue=10))
+            QgsProcessingParameterNumber.Type.Integer, 5, minValue=2, maxValue=10))
         self.addParameter(QgsProcessingParameterString(
             self.BREAKS,
             self.tr("Fixed class breaks instead (e.g. '50, 100, 150')"),
             "", optional=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_CELLS, self.tr("Cross-tab cells"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_GROUPS, self.tr("Group summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_UNITS, self.tr("Units with class"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)
@@ -235,7 +235,7 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
             ("pop", DOUBLE), ("class_share", DOUBLE), ("rep_ratio", DOUBLE))
         c_sink, c_dest = self.parameterAsSink(
             parameters, self.OUT_CELLS, context, c_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         col_pop = xt["cells"].sum(axis=0)
         for gi, gname in enumerate(group_names):
             for k in range(n_q):
@@ -247,7 +247,7 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
                     gname, int(k + 1), class_label(k), round(cell_pop, 3),
                     round(share, 4),
                     None if not np.isfinite(rr) else round(float(rr), 4)])
-                c_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+                c_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         # ------------------------------------------------------ groups out
         g_fields = self.make_fields(
@@ -257,7 +257,7 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
             ("dissim", DOUBLE))
         g_sink, g_dest = self.parameterAsSink(
             parameters, self.OUT_GROUPS, context, g_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for gi, gname in enumerate(group_names):
             feat = QgsFeature(g_fields)
             feat.setAttributes([
@@ -270,7 +270,7 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
                 round(float(xt["p90"][gi]), 4),
                 round(float(xt["gini"][gi]), 4),
                 round(float(xt["dissimilarity"][gi]), 4)])
-            g_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            g_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         # ------------------------------------------------------- units out
         u_fields = self.make_fields(
@@ -290,7 +290,7 @@ class EquityCrosstabAlgorithm(PlanXAlgorithm):
             out.setAttributes(list(f.attributes())[:n_base] + [
                 int(k + 1), class_label(k),
                 None if not np.isfinite(rr) else round(float(rr), 4)])
-            u_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            u_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # -------------------------------------------------------- headline
         feedback.pushInfo(self.tr(

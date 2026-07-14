@@ -139,13 +139,13 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.BUILDINGS, self.tr("Buildings (polygon)"), [QgsProcessing.TypeVectorPolygon]))
+            self.BUILDINGS, self.tr("Buildings (polygon)"), [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.FLOOR_FIELD, self.tr("Floor count field"),
-            parentLayerParameterName=self.BUILDINGS, type=QgsProcessingParameterField.Numeric, optional=True))
+            parentLayerParameterName=self.BUILDINGS, type=QgsProcessingParameterField.DataType.Numeric, optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.YEAR_FIELD, self.tr("Construction year field"),
-            parentLayerParameterName=self.BUILDINGS, type=QgsProcessingParameterField.Numeric, optional=True))
+            parentLayerParameterName=self.BUILDINGS, type=QgsProcessingParameterField.DataType.Numeric, optional=True))
 
         self.addParameter(QgsProcessingParameterEnum(
             self.NETWORK_MODE, self.tr("Network source (four alternatives - see help)"),
@@ -157,10 +157,10 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             ], defaultValue=0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("A: Road / open-space polygons (used as-is)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK_LINES, self.tr("B, C: Road centerlines (e.g. a QuickOSM 'highway' download)"),
-            [QgsProcessing.TypeVectorLine], optional=True))
+            [QgsProcessing.SourceType.TypeVectorLine], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.HIGHWAY_FIELD, self.tr("B: Highway class field (blank = auto-detect 'highway')"),
             parentLayerParameterName=self.NETWORK_LINES, optional=True))
@@ -170,30 +170,30 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_WIDTH,
             self.tr("B, C: Fallback road width (m); D: expansion of the automatic ROI hull"),
-            type=QgsProcessingParameterNumber.Double, minValue=0.5, defaultValue=8.0))
+            type=QgsProcessingParameterNumber.Type.Double, minValue=0.5, defaultValue=8.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ROI, self.tr("D: Region of interest (blank = convex hull of the blocks, expanded)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BLOCKS, self.tr("D: Urban blocks or parcels (dissolved internally)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
 
         param_mag = QgsProcessingParameterNumber(
             self.MAGNITUDE, self.tr("Scenario moment magnitude (Mw)"),
-            type=QgsProcessingParameterNumber.Double, minValue=4.0, maxValue=9.0, defaultValue=7.0)
+            type=QgsProcessingParameterNumber.Type.Double, minValue=4.0, maxValue=9.0, defaultValue=7.0)
         self.addParameter(param_mag)
         self.addParameter(QgsProcessingParameterNumber(
             self.FLOOR_HEIGHT, self.tr("Average floor height (m)"),
-            type=QgsProcessingParameterNumber.Double, minValue=1.0, defaultValue=3.0))
+            type=QgsProcessingParameterNumber.Type.Double, minValue=1.0, defaultValue=3.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEBRIS_FACTOR, self.tr("Debris spread coefficient (k, fraction of height)"),
-            type=QgsProcessingParameterNumber.Double, minValue=0.0, maxValue=1.0, defaultValue=0.4))
+            type=QgsProcessingParameterNumber.Type.Double, minValue=0.0, maxValue=1.0, defaultValue=0.4))
         self.addParameter(QgsProcessingParameterNumber(
             self.SOLID_VOLUME_RATIO, self.tr("Void/solid volume ratio (for debris volume)"),
-            type=QgsProcessingParameterNumber.Double, minValue=0.1, maxValue=1.0, defaultValue=0.3))
+            type=QgsProcessingParameterNumber.Type.Double, minValue=0.1, maxValue=1.0, defaultValue=0.3))
         self.addParameter(QgsProcessingParameterNumber(
             self.SEED, self.tr("Random seed (Monte Carlo reproducibility)"),
-            type=QgsProcessingParameterNumber.Integer, minValue=0, defaultValue=42))
+            type=QgsProcessingParameterNumber.Type.Integer, minValue=0, defaultValue=42))
 
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_BUILDINGS, self.tr("Annotated buildings (collapse risk and debris)")))
@@ -381,7 +381,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             base=buildings.fields(),
         )
         sink_buildings, dest_buildings = self.parameterAsSink(
-            parameters, self.OUT_BUILDINGS, context, out_fields, QgsWkbTypes.Point, target_crs)
+            parameters, self.OUT_BUILDINGS, context, out_fields, QgsWkbTypes.Type.Point, target_crs)
 
         debris_geoms = []
         n_base = len(buildings.fields())
@@ -395,7 +395,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
                 float(heights[i]), float(p_collapse[i]), int(collapsed[i]),
                 float(radius[i]), float(volume[i]),
             ])
-            sink_buildings.addFeature(out_feat, QgsFeatureSink.FastInsert)
+            sink_buildings.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
 
             if collapsed[i]:
                 debris = geoms[i].buffer(
@@ -408,23 +408,23 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         results = {self.OUT_BUILDINGS: dest_buildings}
 
         sink_envelope, dest_envelope = self.parameterAsSink(
-            parameters, self.OUT_ENVELOPE, context, QgsFields(), QgsWkbTypes.MultiPolygon, target_crs)
+            parameters, self.OUT_ENVELOPE, context, QgsFields(), QgsWkbTypes.Type.MultiPolygon, target_crs)
         sink_blocked, dest_blocked = self.parameterAsSink(
-            parameters, self.OUT_BLOCKED, context, QgsFields(), QgsWkbTypes.MultiPolygon, target_crs)
+            parameters, self.OUT_BLOCKED, context, QgsFields(), QgsWkbTypes.Type.MultiPolygon, target_crs)
         sink_corridors, dest_corridors = self.parameterAsSink(
-            parameters, self.OUT_CORRIDORS, context, QgsFields(), QgsWkbTypes.MultiPolygon, target_crs)
+            parameters, self.OUT_CORRIDORS, context, QgsFields(), QgsWkbTypes.Type.MultiPolygon, target_crs)
 
         if debris_geoms:
             envelope = QgsGeometry.unaryUnion(debris_geoms).makeValid()
             env_feat = QgsFeature()
             env_feat.setGeometry(envelope)
-            sink_envelope.addFeature(env_feat, QgsFeatureSink.FastInsert)
+            sink_envelope.addFeature(env_feat, QgsFeatureSink.Flag.FastInsert)
 
             blocked = network_union.intersection(envelope).makeValid()
             if not blocked.isEmpty():
                 blk_feat = QgsFeature()
                 blk_feat.setGeometry(blocked)
-                sink_blocked.addFeature(blk_feat, QgsFeatureSink.FastInsert)
+                sink_blocked.addFeature(blk_feat, QgsFeatureSink.Flag.FastInsert)
 
             corridors = network_union.difference(blocked).makeValid()
         else:
@@ -433,7 +433,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         if not corridors.isEmpty():
             cor_feat = QgsFeature()
             cor_feat.setGeometry(corridors)
-            sink_corridors.addFeature(cor_feat, QgsFeatureSink.FastInsert)
+            sink_corridors.addFeature(cor_feat, QgsFeatureSink.Flag.FastInsert)
 
         results[self.OUT_ENVELOPE] = dest_envelope
         results[self.OUT_BLOCKED] = dest_blocked

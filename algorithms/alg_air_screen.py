@@ -94,52 +94,52 @@ class AirScreenAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ROADS, self.tr("Roads with emissions (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.EMISSION_FIELD, self.tr("Emission rate field (g/km/day)"),
             "emission", parentLayerParameterName=self.ROADS,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.WIND_SPEED, self.tr("Wind speed (m/s)"),
-            QgsProcessingParameterNumber.Double, 2.0, minValue=0.1))
+            QgsProcessingParameterNumber.Type.Double, 2.0, minValue=0.1))
         self.addParameter(QgsProcessingParameterNumber(
             self.ALPHA, self.tr("Decay exponent (alpha)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.1, maxValue=3.0))
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.1, maxValue=3.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings for canyon effect (optional)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.HEIGHT_FIELD, self.tr("Building height field (optional)"),
             parentLayerParameterName=self.BUILDINGS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_HEIGHT, self.tr("Default building height (m)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CANYON_WIDTH, self.tr("Canyon street width (m)"),
-            QgsProcessingParameterNumber.Double, 20.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 20.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CANYON_SEARCH, self.tr("Canyon search distance (m)"),
-            QgsProcessingParameterNumber.Double, 30.0, minValue=5.0))
+            QgsProcessingParameterNumber.Type.Double, 30.0, minValue=5.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CANYON_BUFFER, self.tr("Canyon buffer distance (m)"),
-            QgsProcessingParameterNumber.Double, 15.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 15.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterExtent(
             self.EXTENT, self.tr("Grid extent (empty = roads extent + cutoff)"),
             optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.CELL, self.tr("Grid cell size (map units)"),
-            QgsProcessingParameterNumber.Double, 10.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 10.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.CUTOFF, self.tr("Source cutoff distance (map units)"),
-            QgsProcessingParameterNumber.Double, 300.0, minValue=25.0))
+            QgsProcessingParameterNumber.Type.Double, 300.0, minValue=25.0))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.RECEIVERS, self.tr("Receiver points (optional, e.g. dwellings)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Receiver population field (optional)"),
             parentLayerParameterName=self.RECEIVERS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Air pollution index grid")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -348,7 +348,7 @@ class AirScreenAlgorithm(PlanXAlgorithm):
                 ("index", DOUBLE), ("band", STRING), base=receivers.fields())
             sink, dest = self.parameterAsSink(
                 parameters, self.OUT_RECEIVERS, context, fields,
-                QgsWkbTypes.Point, crs)
+                QgsWkbTypes.Type.Point, crs)
             if sink is not None:
                 levels, pops = [], []
                 for i, feat in enumerate(r_feats):
@@ -379,7 +379,7 @@ class AirScreenAlgorithm(PlanXAlgorithm):
                         QgsPointXY(*r_xy[i])))
                     out.setAttributes(list(feat.attributes())[:n_base] + [
                         round(levels[i], 3), band_lab])
-                    sink.addFeature(out, QgsFeatureSink.FastInsert)
+                    sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                 results[self.OUT_RECEIVERS] = dest
                 arr = np.asarray(levels)
                 w = np.asarray(pops)

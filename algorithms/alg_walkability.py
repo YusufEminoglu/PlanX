@@ -115,21 +115,21 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.LANDUSE, self.tr("Land-use polygons (optional, for the mix)"),
-            [QgsProcessing.TypeVectorPolygon], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPolygon], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.CATEGORY_FIELD, self.tr("Land-use category field"),
             parentLayerParameterName=self.LANDUSE, optional=True))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.POIS, self.tr("Destinations / POIs (optional)"),
-            [QgsProcessing.TypeVectorPoint], optional=True))
+            [QgsProcessing.SourceType.TypeVectorPoint], optional=True))
         self.addParameter(QgsProcessingParameterRasterLayer(
             self.DEM, self.tr("DEM for slope (optional)"), optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("Audit radius around each segment (map units)"),
-            QgsProcessingParameterNumber.Double, 400.0, minValue=10.0))
+            QgsProcessingParameterNumber.Type.Double, 400.0, minValue=10.0))
         self.addParameter(QgsProcessingParameterString(
             self.WEIGHTS, self.tr("Component weights"),
             "intersections=0.3, mix=0.25, destinations=0.25, "
@@ -261,7 +261,7 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
             base=network.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_SEGMENTS, context, fields,
-            QgsWkbTypes.LineString, crs)
+            QgsWkbTypes.Type.LineString, crs)
         n_base = len(network.fields())
 
         def opt(arr, i, digits=2):
@@ -287,7 +287,7 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
                     round(float(block_len[s]), 2),
                     opt(slope_pct, s, 3),
                 ])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         mean_score = float(total.mean()) if n_seg else 0.0
         low = float((total < 50.0).sum()) / n_seg * 100.0 if n_seg else 0.0

@@ -79,27 +79,27 @@ class ODCostMatrixAlgorithm(PlanXAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.TypeVectorLine]))
+            self.NETWORK, self.tr("Street network (lines)"), [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterFeatureSource(
-            self.ORIGINS, self.tr("Origins"), [QgsProcessing.TypeVectorAnyGeometry]))
+            self.ORIGINS, self.tr("Origins"), [QgsProcessing.SourceType.TypeVectorAnyGeometry]))
         self.addParameter(QgsProcessingParameterField(
             self.ORIGIN_ID, self.tr("Origin ID field"), parentLayerParameterName=self.ORIGINS))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DESTINATIONS, self.tr("Destinations (empty = origins)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.DEST_ID, self.tr("Destination ID field"),
             parentLayerParameterName=self.DESTINATIONS, optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.COST_FIELD, self.tr("Cost field on network (empty = length)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.CUTOFF, self.tr("Maximum cost (0 = unlimited)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.MATRIX, self.tr("OD matrix (table)"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.LINES, self.tr("Desire lines"), optional=True,
             createByDefault=False))
@@ -147,11 +147,11 @@ class ODCostMatrixAlgorithm(PlanXAlgorithm):
                                   ("net_cost", DOUBLE), ("euclid_m", DOUBLE),
                                   ("detour", DOUBLE))
         sink, matrix_dest = self.parameterAsSink(
-            parameters, self.MATRIX, context, fields, QgsWkbTypes.NoGeometry, crs)
+            parameters, self.MATRIX, context, fields, QgsWkbTypes.Type.NoGeometry, crs)
         line_sink = line_dest = None
         if parameters.get(self.LINES) is not None:
             line_sink, line_dest = self.parameterAsSink(
-                parameters, self.LINES, context, fields, QgsWkbTypes.LineString, crs)
+                parameters, self.LINES, context, fields, QgsWkbTypes.Type.LineString, crs)
 
         dist = paths.many_to_many(graph.indptr, graph.adj_node, graph.adj_cost,
                                   graph.num_nodes, o_nodes, cutoff=cutoff,
@@ -173,13 +173,13 @@ class ODCostMatrixAlgorithm(PlanXAlgorithm):
                 attrs = [o_ids[i], d_ids[j], float(d), eu, detour]
                 f = QgsFeature(fields)
                 f.setAttributes(attrs)
-                sink.addFeature(f, QgsFeatureSink.FastInsert)
+                sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
                 if line_sink is not None:
                     lf = QgsFeature(fields)
                     lf.setAttributes(attrs)
                     lf.setGeometry(QgsGeometry.fromPolylineXY(
                         [QgsPointXY(*o_xy[i]), QgsPointXY(*d_xy[j])]))
-                    line_sink.addFeature(lf, QgsFeatureSink.FastInsert)
+                    line_sink.addFeature(lf, QgsFeatureSink.Flag.FastInsert)
 
         results = {self.MATRIX: matrix_dest}
         if line_dest is not None:

@@ -72,13 +72,13 @@ class SunHoursAlgorithm(PlanXAlgorithm):
             self.DATE, self.tr("Date (time of day is ignored)")))
         self.addParameter(QgsProcessingParameterNumber(
             self.UTC_OFFSET, self.tr("UTC offset of local time (hours)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=-14.0, maxValue=14.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=-14.0, maxValue=14.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.INTERVAL, self.tr("Time step (minutes)"),
-            QgsProcessingParameterNumber.Double, 30.0, minValue=5.0, maxValue=120.0))
+            QgsProcessingParameterNumber.Type.Double, 30.0, minValue=5.0, maxValue=120.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_SEARCH, self.tr("Maximum shadow length to scan (map units, 0 = auto)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Sun hours raster")))
 

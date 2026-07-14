@@ -65,20 +65,20 @@ class RoadEmissionsAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ROADS, self.tr("Roads (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.VOLUME_FIELD, self.tr("Traffic volume field (e.g. AADT)"),
             parentLayerParameterName=self.ROADS,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.HOURLY_FACTOR,
             self.tr("Volume multiplier (to daily volume, e.g. 24.0 if volume is hourly, 1.0 if AADT)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0001,
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0001,
             maxValue=1000.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.EF_GKM,
             self.tr("Emission factor (g/km per vehicle, default is generic NOx-proxy)"),
-            QgsProcessingParameterNumber.Double, 0.5, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.5, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Roads with emissions (g/km/day)")))
 
@@ -98,7 +98,7 @@ class RoadEmissionsAlgorithm(PlanXAlgorithm):
 
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, out_fields,
-            QgsWkbTypes.LineString, roads.sourceCrs())
+            QgsWkbTypes.Type.LineString, roads.sourceCrs())
 
         polylines, feats = self.source_polylines(roads, feedback)
         n_base = len(fields_in)
@@ -119,7 +119,7 @@ class RoadEmissionsAlgorithm(PlanXAlgorithm):
                 [QgsPointXY(float(x), float(y)) for x, y in polylines[e]]))
             out.setAttributes(list(attrs)[:n_base] + [
                 round(em, 2), round(m, 1)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         return {self.OUTPUT: dest}
 

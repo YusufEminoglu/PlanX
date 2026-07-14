@@ -91,32 +91,32 @@ class CyclingStressAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.SPEED_FIELD, self.tr("Speed field (empty = default speed)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.LANES_FIELD, self.tr("Lane count field (empty = default lanes)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.AADT_FIELD, self.tr("AADT field (empty = default AADT)"),
             parentLayerParameterName=self.NETWORK, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.INFRA_FIELD,
             self.tr("Cycling infrastructure field (path / lane / mixed)"),
             parentLayerParameterName=self.NETWORK, optional=True))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_SPEED, self.tr("Default speed"),
-            QgsProcessingParameterNumber.Double, 50.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 50.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_LANES, self.tr("Default lane count"),
-            QgsProcessingParameterNumber.Double, 2.0, minValue=1.0))
+            QgsProcessingParameterNumber.Type.Double, 2.0, minValue=1.0))
         self.addParameter(QgsProcessingParameterNumber(
             self.DEFAULT_AADT, self.tr("Default AADT"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterString(
             self.DEFAULT_INFRA,
             self.tr("Default cycling infrastructure (path / lane / mixed)"),
@@ -128,7 +128,7 @@ class CyclingStressAlgorithm(PlanXAlgorithm):
             self.OUTPUT, self.tr("Segments with LTS")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.SUMMARY, self.tr("LTS length share"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
@@ -187,7 +187,7 @@ class CyclingStressAlgorithm(PlanXAlgorithm):
             ("infra_used", STRING), base=fields_in)
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, out_fields,
-            QgsWkbTypes.LineString, network.sourceCrs())
+            QgsWkbTypes.Type.LineString, network.sourceCrs())
         n_base = len(fields_in)
         for e, feat in enumerate(feats):
             if feedback.isCanceled():
@@ -199,14 +199,14 @@ class CyclingStressAlgorithm(PlanXAlgorithm):
                 int(lts[e]), labels[int(lts[e])], round(float(graph.edge_len[e]), 2),
                 round(float(speeds[e]), 2), round(float(lanes[e]), 2),
                 round(float(aadts[e]), 1), str(infra[e]).lower()])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         s_fields = self.make_fields(
             ("lts", INT), ("label", STRING), ("length_m", DOUBLE),
             ("share_len", DOUBLE), ("segments", INT))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         total_len = float(graph.edge_len.sum()) or 1.0
         for cls in range(1, 5):
             m = lts == cls
@@ -215,7 +215,7 @@ class CyclingStressAlgorithm(PlanXAlgorithm):
             feat.setAttributes([
                 cls, labels[cls], round(length, 2),
                 round(length / total_len, 4), int(m.sum())])
-            s_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
         feedback.pushInfo(self.tr(
             f"{len(feats)} segment(s) classified; "
             f"{100.0 * float(graph.edge_len[lts <= 2].sum()) / total_len:.1f} percent "

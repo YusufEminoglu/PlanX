@@ -87,7 +87,7 @@ class BuildingFormMetricsAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.BUILDINGS, self.tr("Buildings (polygons)"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Building metrics")))
 
@@ -103,7 +103,7 @@ class BuildingFormMetricsAlgorithm(PlanXAlgorithm):
             base=source.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
-            QgsWkbTypes.MultiPolygon, source.sourceCrs())
+            QgsWkbTypes.Type.MultiPolygon, source.sourceCrs())
 
         feats = [f for f in source.getFeatures()
                  if f.geometry() is not None and not f.geometry().isEmpty()]
@@ -149,7 +149,7 @@ class BuildingFormMetricsAlgorithm(PlanXAlgorithm):
                 m["courtyard_area"], m["courtyard_index"],
                 m["fractal_dimension"], int(m["corners"]),
                 min(1.0, ratio)])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
         return {self.OUTPUT: dest}
 
     def createInstance(self):

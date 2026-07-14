@@ -112,18 +112,18 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.PARCELS, self.tr("Parcels / cells"),
-            [QgsProcessing.TypeVectorPolygon]))
+            [QgsProcessing.SourceType.TypeVectorPolygon]))
         self.addParameter(QgsProcessingParameterField(
             self.SUIT_FIELDS, self.tr("Suitability fields (one per land use)"),
             parentLayerParameterName=self.PARCELS, allowMultiple=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterString(
             self.TARGETS, self.tr("Target area per use (name=area, ...)"),
             self.tr("s_residential=50000, s_commercial=20000, s_green=30000")))
         self.addParameter(QgsProcessingParameterField(
             self.AREA_FIELD, self.tr("Area field (optional; default = geometry area)"),
             parentLayerParameterName=self.PARCELS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterField(
             self.LOCK_FIELD, self.tr("Lock field (optional; pre-assigned use name)"),
             parentLayerParameterName=self.PARCELS, optional=True))
@@ -131,7 +131,7 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
             self.W_COMPACT,
             self.tr("Compactness weight (reward per unit of shared same-use "
                     "boundary; 0 = off)"),
-            QgsProcessingParameterNumber.Double, 0.0, minValue=0.0))
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterString(
             self.ADJACENCY,
             self.tr("Adjacency rules (useA|useB=value, ...; + attract, - repel)"),
@@ -143,14 +143,14 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
         w_suit = QgsProcessingParameterNumber(
             self.W_SUITABILITY,
             self.tr("Suitability weight (relative to the spatial terms)"),
-            QgsProcessingParameterNumber.Double, 1.0, minValue=0.0)
-        w_suit.setFlags(w_suit.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0)
+        w_suit.setFlags(w_suit.flags() | QgsProcessingParameterDefinition.Flag.FlagAdvanced)
         self.addParameter(w_suit)
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_PARCELS, self.tr("Allocated parcels")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SUMMARY, self.tr("Allocation summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.PARCELS, context)
@@ -337,7 +337,7 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
             out.setAttributes(list(feat.attributes())[:n_base]
                               + [use, round(s, 4), round(float(area[i]), 2),
                                  1 if int(lvec[i]) >= 0 else 0])
-            p_sink.addFeature(out, QgsFeatureSink.FastInsert)
+            p_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # ----------------------------------------------------- summary out
         s_fields = self.make_fields(
@@ -346,7 +346,7 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
             ("status", STRING))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
         for u, name in enumerate(use_names):
             alloc = float(allocated[u])
             target = float(tvec[u])
@@ -356,13 +356,13 @@ class LandUseAllocationAlgorithm(PlanXAlgorithm):
             f.setAttributes([name, round(target, 2), round(alloc, 2),
                              round(alloc - target, 2), int(counts[u]),
                              round(mean_s, 4), status])
-            s_sink.addFeature(f, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
         unassigned_area = float(area[assign < 0].sum())
         unassigned_n = int((assign < 0).sum())
         f = QgsFeature(s_fields)
         f.setAttributes(["(unassigned)", 0.0, round(unassigned_area, 2),
                          0.0, unassigned_n, 0.0, ""])
-        s_sink.addFeature(f, QgsFeatureSink.FastInsert)
+        s_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
 
         total_target = float(tvec.sum())
         total_alloc = float(allocated.sum())

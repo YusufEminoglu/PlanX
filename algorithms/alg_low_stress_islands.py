@@ -81,29 +81,29 @@ class LowStressIslandsAlgorithm(PlanXAlgorithm):
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.NETWORK, self.tr("Street network with LTS (lines)"),
-            [QgsProcessing.TypeVectorLine]))
+            [QgsProcessing.SourceType.TypeVectorLine]))
         self.addParameter(QgsProcessingParameterField(
             self.LTS_FIELD, self.tr("LTS field"),
             parentLayerParameterName=self.NETWORK,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterNumber(
             self.THRESHOLD, self.tr("Maximum LTS for low-stress network"),
-            QgsProcessingParameterNumber.Integer, 2, minValue=1, maxValue=4))
+            QgsProcessingParameterNumber.Type.Integer, 2, minValue=1, maxValue=4))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.ORIGINS, self.tr("Origins with population (optional)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterField(
             self.POP_FIELD, self.tr("Population field (empty = 1 per origin)"),
             parentLayerParameterName=self.ORIGINS, optional=True,
-            type=QgsProcessingParameterField.Numeric))
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSource(
             self.DESTINATIONS, self.tr("Destination layer (optional)"),
-            [QgsProcessing.TypeVectorAnyGeometry], optional=True))
+            [QgsProcessing.SourceType.TypeVectorAnyGeometry], optional=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Segments with low-stress islands")))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.SUMMARY, self.tr("Low-stress connectivity summary"),
-            type=QgsProcessing.TypeVector))
+            type=QgsProcessing.SourceType.TypeVector))
 
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
@@ -141,7 +141,7 @@ class LowStressIslandsAlgorithm(PlanXAlgorithm):
             base=network.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, out_fields,
-            QgsWkbTypes.LineString, network.sourceCrs())
+            QgsWkbTypes.Type.LineString, network.sourceCrs())
         n_base = len(network.fields())
         for e, feat in enumerate(feats):
             if feedback.isCanceled():
@@ -153,7 +153,7 @@ class LowStressIslandsAlgorithm(PlanXAlgorithm):
             out.setAttributes(list(feat.attributes())[:n_base] + [
                 1 if c >= 0 else 0, c + 1 if c >= 0 else 0,
                 round(float(comp_len[c]), 2) if c >= 0 else 0.0])
-            sink.addFeature(out, QgsFeatureSink.FastInsert)
+            sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         reachable_pop = None
         total_pop = None
@@ -187,7 +187,7 @@ class LowStressIslandsAlgorithm(PlanXAlgorithm):
             ("metric", STRING), ("value", DOUBLE), ("note", STRING))
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.SUMMARY, context, s_fields,
-            QgsWkbTypes.NoGeometry, QgsCoordinateReferenceSystem())
+            QgsWkbTypes.Type.NoGeometry, QgsCoordinateReferenceSystem())
 
         rows = [
             ("Threshold LTS", float(threshold), ""),
@@ -208,7 +208,7 @@ class LowStressIslandsAlgorithm(PlanXAlgorithm):
         for metric, value, note in rows:
             feat = QgsFeature(s_fields)
             feat.setAttributes([metric, round(float(value), 6), note])
-            s_sink.addFeature(feat, QgsFeatureSink.FastInsert)
+            s_sink.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(
             f"{islands['n_components']} low-stress island(s); "
