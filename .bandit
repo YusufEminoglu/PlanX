@@ -1,0 +1,6 @@
+[bandit]
+# QGIS Plugin Hub security scan — reviewed-safe, skippable warning-level rules.
+# See ../SECURITY_SCANNING.md. Fix in code (contextlib.suppress / a local PRNG)
+# to remove these instead of skipping.
+#   B311 = seeded, reproducible non-cryptographic RNG
+skips = B311

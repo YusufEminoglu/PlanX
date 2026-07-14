@@ -15,7 +15,17 @@ multiple sources; nearest-facility allocation tracks the winning source
 per node. Nearest-facility routes and OD routes rebuild the actual path
 geometry from predecessor-tracking Dijkstra trees (node and edge ids
 walked back to the source, oriented in travel order), with k-nearest
-destination limits and cost cutoffs.
+destination limits and cost cutoffs. Link criticality screens
+road-network vulnerability (Network Robustness Index; Scott et al. 2006 /
+Jenelius et al. 2006): over a fixed origin-destination demand it routes the
+intact network, then removes each segment and re-routes, reporting
+`extra_cost` (the rise in total OD travel cost, clipped at zero since a
+removal can only lengthen a path), `criticality = extra_cost / base_total`
+(that rise relative to the whole demand's baseline cost) and
+`n_disconnected` (OD pairs a removal severs). Only segments on at least one
+shortest path are re-tested — an edge on none cannot change any shortest
+cost — which both prunes the work and gives `used_by` (shortest paths over
+each segment); edge removal is a CSR adjacency mask, no graph rebuild.
 
 ## Centrality & Space Syntax
 

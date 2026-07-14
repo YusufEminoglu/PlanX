@@ -49,6 +49,7 @@ planx/
 | Network Analysis | OD Cost Matrix | many-to-many network Dijkstra, detour ratio, desire lines |
 | Network Analysis | Service Areas (Isochrones) | multi-source min-cost bands, edge classes + band polygons |
 | Network Analysis | Nearest Facility Allocation | multi-source Dijkstra with source tracking + facility load |
+| Network Analysis | Link Criticality (v4.10) | remove each segment over an OD demand, measure the extra travel forced / demand severed (Network Robustness Index) |
 | Centrality & Space Syntax | Network Centrality | degree, closeness, straightness, Brandes betweenness (node + edge), radius-limited |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | angular cost dual graph, integration/choice, NACH/NAIN per radius |
 | Urban Morphology | Building Form Metrics | area/perimeter/IPQ/convexity/rectangularity/elongation/orientation/courtyards/fractal dim/shared walls |
@@ -365,7 +366,9 @@ planx/
 
 ### The v4 series (in progress)
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-F have shipped: 50 -> 63 algorithms across 18 groups.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-F have shipped: 50 -> 63 algorithms across 18 groups. Follow-on releases added Scenario Ranking, Seismic Risk and the Network Routing & Walking Comfort battery.
+
+- **v4.10 — Link Criticality:** a Network Analysis tool that ranks the street segments whose loss most raises network-wide travel cost or severs demand over a supplied origin-destination set (Network Robustness Index; Scott et al. 2006 / Jenelius et al. 2006). New pure-NumPy `engine/robustness.py` reusing the embedded predecessor-tracking Dijkstra; edge removal is a CSR mask. 69 algorithms across 19 groups.
 
 ## Quality gates (every release)
 

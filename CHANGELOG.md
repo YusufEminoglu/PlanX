@@ -5,6 +5,15 @@ All notable changes to PlanX are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.10.0] - 2026-07-15
+
+Network resilience: Link Criticality tool.
+
+### Added
+- **Link Criticality (Network Robustness) algorithm** (`planx:linkcriticality` / `algorithms/alg_link_criticality.py`): ranks every street segment by how badly the network would suffer if it were lost - the road-network vulnerability view (Network Robustness Index; Scott et al. 2006 / Jenelius et al. 2006). Over a supplied origin-destination demand (or all pairs among the origins), it routes the intact network, removes each segment in turn and re-routes, and reports the extra travel cost forced (`criticality` as a fraction of baseline, `extra_cost` in absolute units), the demand it severs (`n_disconnected`) and how many shortest paths run over it (`used_by`); only segments carrying a shortest path are re-tested. Outputs a per-segment criticality map to style for a network-vulnerability picture.
+- **Network robustness engine** (`engine/robustness.py`): pure NumPy on the embedded predecessor-tracking Dijkstra; edge-removal is a CSR mask so no external routing plugin or graph rebuild is needed.
+- **New tool icon**: `tool_linkcriticality.png`.
+
 ### Improved
 - OD Routes, OD Cost Matrix and Nearest Facility Allocation help now spells out the cost-field contract: the router minimises the SUM of the chosen network-layer column, so it must be an additive per-segment quantity (a time or weighted length, never a speed - conversion formula included); net_cost, CUTOFF and k-nearest inherit the column's units; NULL costs read as 0 (free segments) and values must be non-negative; Walking Slope Comfort's time_fwd_min is the ready-made slope-aware cost; the detour ratio is a pure ratio only under the default length cost.
 

@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from planx.engine import (  # noqa: E402
     HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, graphs, hydro, isochrone, morphology,
-    optimize, paths, report, scenario, seismic, solar, standards, syntax, walkability,
+    optimize, paths, report, robustness, scenario, seismic, solar, standards, syntax, walkability,
 )
 
 CHECKS = []
@@ -2155,6 +2155,72 @@ try:
 except ValueError:
     cc_empty = True
 check("combine_components: ValueError empty dict", cc_empty)
+
+# --------------------------------------------------------------------------- #
+# Link criticality (network robustness)
+# --------------------------------------------------------------------------- #
+# Diamond + tail with integer costs (costs override lengths):
+#   A-B(e0,1) B-D(e1,1) | A-C(e2,1) C-D(e3,2) | D-E(e4,1)
+# Shortest A->D uses the B route (2 < 3); E hangs off D by the lone edge e4.
+_rob_lines = [np.array([[0.0, 0.0], [10.0, 0.0]]),      # e0 A-B
+              np.array([[10.0, 0.0], [20.0, 0.0]]),     # e1 B-D
+              np.array([[0.0, 0.0], [10.0, -10.0]]),    # e2 A-C
+              np.array([[10.0, -10.0], [20.0, 0.0]]),   # e3 C-D
+              np.array([[20.0, 0.0], [30.0, 0.0]])]     # e4 D-E
+_rg = graphs.build_node_graph(_rob_lines, costs=[1.0, 1.0, 1.0, 2.0, 1.0])
+
+
+def _rn(xy):
+    return int(graphs.nearest_nodes(_rg, np.array([xy]))[0])
+
+
+_A, _D, _E = _rn([0, 0]), _rn([20, 0]), _rn([30, 0])
+
+
+def _crit(o, d, same):
+    return robustness.edge_criticality(
+        _rg.indptr, _rg.adj_node, _rg.adj_edge, _rg.adj_cost,
+        _rg.num_nodes, _rg.num_edges, o, d, same_layer=same)
+
+
+# One origin A to destinations {D, E}: base A->D=2, A->E=3 (total 5).
+_r1 = _crit([_A], [_D, _E], False)
+check("linkcriticality: base_total == 5 over 2 reachable pairs",
+      close(_r1["base_total"], 5.0) and _r1["n_pairs"] == 2 and _r1["n_reachable"] == 2)
+# Losing e0 or e1 forces the C route (+1 on each pair) -> extra 2, criticality 2/5.
+check("linkcriticality: bridge e0/e1 extra_cost == 2, criticality == 0.4",
+      close(_r1["extra_cost"][0], 2.0) and close(_r1["extra_cost"][1], 2.0)
+      and close(_r1["criticality"][0], 0.4) and close(_r1["criticality"][1], 0.4))
+# e4 is the only link to E: removing it disconnects the A->E pair, no detour cost.
+check("linkcriticality: cut edge e4 disconnects 1 pair, zero extra cost",
+      _r1["n_disconnected"][4] == 1 and close(_r1["extra_cost"][4], 0.0)
+      and close(_r1["criticality"][4], 0.0))
+# Edges on no shortest path (e2, e3) are never critical.
+check("linkcriticality: off-path edges e2/e3 score zero",
+      close(_r1["criticality"][2], 0.0) and _r1["used_by"][2] == 0
+      and close(_r1["criticality"][3], 0.0) and _r1["used_by"][3] == 0)
+check("linkcriticality: used_by counts shortest paths (e0/e1 == 2, e4 == 1)",
+      _r1["used_by"][0] == 2 and _r1["used_by"][1] == 2 and _r1["used_by"][4] == 1)
+
+# All-pairs among {A, D, E} (same_layer): 6 ordered pairs, base cost 12.
+_r2 = _crit([_A, _D, _E], [_A, _D, _E], True)
+check("linkcriticality: same_layer 6 pairs, base_total == 12",
+      _r2["n_pairs"] == 6 and _r2["n_reachable"] == 6 and close(_r2["base_total"], 12.0))
+check("linkcriticality: same_layer bridge criticality == 4/12",
+      close(_r2["criticality"][0], 4.0 / 12.0) and close(_r2["extra_cost"][0], 4.0))
+check("linkcriticality: same_layer cut edge severs 4 pairs (all with E)",
+      _r2["n_disconnected"][4] == 4 and close(_r2["extra_cost"][4], 0.0))
+
+# SciPy fast path and pure-Python fallback must agree exactly.
+_orig_scipy = paths.HAS_SCIPY
+paths.HAS_SCIPY = False
+_r3 = _crit([_A], [_D, _E], False)
+paths.HAS_SCIPY = _orig_scipy
+check("linkcriticality: scipy == pure fallback",
+      np.allclose(_r1["criticality"], _r3["criticality"])
+      and np.allclose(_r1["extra_cost"], _r3["extra_cost"])
+      and _r1["n_disconnected"].tolist() == _r3["n_disconnected"].tolist()
+      and _r1["used_by"].tolist() == _r3["used_by"].tolist())
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

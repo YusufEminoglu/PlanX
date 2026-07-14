@@ -12,6 +12,7 @@ from .algorithms.alg_od_matrix import ODCostMatrixAlgorithm
 from .algorithms.alg_od_routes import ODRoutesAlgorithm
 from .algorithms.alg_service_areas import ServiceAreasAlgorithm
 from .algorithms.alg_nearest_facility import NearestFacilityAlgorithm
+from .algorithms.alg_link_criticality import LinkCriticalityAlgorithm
 from .algorithms.alg_node_centrality import NetworkCentralityAlgorithm
 from .algorithms.alg_space_syntax import SpaceSyntaxAlgorithm
 from .algorithms.alg_building_metrics import BuildingFormMetricsAlgorithm
@@ -101,6 +102,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(ODRoutesAlgorithm())
         self.addAlgorithm(ServiceAreasAlgorithm())
         self.addAlgorithm(NearestFacilityAlgorithm())
+        self.addAlgorithm(LinkCriticalityAlgorithm())
         # 2 | Centrality & Space Syntax
         self.addAlgorithm(NetworkCentralityAlgorithm())
         self.addAlgorithm(SpaceSyntaxAlgorithm())

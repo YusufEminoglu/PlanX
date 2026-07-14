@@ -19,7 +19,7 @@
 
 ## Why PlanX?
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-eight Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-nine Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## ✨ Features
 
@@ -47,7 +47,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the sixty-eight tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Interpretation built in** — every one of the sixty-nine tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
 - **Verified math** — 503 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio dock** — browse and launch the whole toolset from one panel, every tool with its own icon.
 
@@ -77,6 +77,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Network Analysis | OD Routes (Shortest Paths) | Shortest routing path lines, desire lines, k-nearest destinations |
 | Network Analysis | Service Areas (Isochrones) | Exact trimmed isochrones (street buffer / concave / convex), straight-line circles + pedshed ratio |
 | Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary and path routes |
+| Network Analysis | Link Criticality (Network Robustness) | Remove each segment over an OD demand → extra travel forced, demand severed, shortest-path usage; road-network vulnerability map |
 | Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, eigenvector, Brandes betweenness (nodes + edges) |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |
 | Urban Morphology | Building Form Metrics | Area, IPQ, convexity, elongation, orientation, courtyards, shared walls… |
