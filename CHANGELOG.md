@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.10.4] - 2026-08-07
+
+- 3-5x content depth expansion: 14.7K lines, ~600 refs, 285 equations, MathJax, icons, group colors, per-algorithm helpUrl, GitHub Pages
+
 ## [4.10.3] - 2026-08-07
 
 - MathJax equations, per-algorithm icons in sidebar, group color coding, Studio Dock documentation button, per-algorithm helpUrl, GitHub Pages with redirect
