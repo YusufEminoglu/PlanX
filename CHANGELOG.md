@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.10.2] - 2026-08-07
+
+- Add comprehensive 69-algorithm academic reference manual (standalone HTML with KaTeX equations, DOI-verified references, appendices)
+
 All notable changes to PlanX are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
