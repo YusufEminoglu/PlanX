@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import (
     QDockWidget,
+    QHBoxLayout,
     QLabel,
+    QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -17,6 +19,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.core import QgsApplication
 
 PLUGIN_DIR = os.path.dirname(__file__)
+DOC_BASE_URL = "https://yusufeminoglu.github.io/PlanX/PLANX_REFERENCE_MANUAL.html"
 
 _HEADER_QSS = """
 QLabel#planxHeader {
@@ -43,13 +46,27 @@ class PlanXStudioDock(QDockWidget):
         header = QLabel("PlanX - Urban Analytics Studio")
         header.setObjectName("planxHeader")
         layout.addWidget(header)
-        hint = QLabel("Double-click a tool to run it. All tools are also in "
-                      "the Processing toolbox under 'PlanX'.")
+        hint = QLabel("Double-click a tool to run it. Right-click for documentation.")
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
+        # Documentation button row
+        btn_row = QHBoxLayout()
+        doc_btn = QPushButton("📖 Open Reference Manual")
+        doc_btn.setToolTip("Open the comprehensive academic reference manual (GitHub Pages)")
+        doc_btn.clicked.connect(lambda: QDesktopServices.openUrl(
+            QUrl(DOC_BASE_URL)))
+        doc_btn.setStyleSheet(
+            "QPushButton { background: #13a0a0; color: white; padding: 6px 12px; "
+            "border: none; border-radius: 4px; font-weight: bold; }"
+            "QPushButton:hover { background: #0d7a7a; }")
+        btn_row.addWidget(doc_btn)
+        layout.addLayout(btn_row)
+
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._context_menu)
         layout.addWidget(self.tree)
         body.setStyleSheet(_HEADER_QSS)
         self.setWidget(body)
@@ -91,3 +108,18 @@ class PlanXStudioDock(QDockWidget):
             processing.execAlgorithmDialog(alg_id, {})
         except Exception as exc:
             self.iface.messageBar().pushWarning("PlanX", f"Could not open tool: {exc}")
+
+    def _context_menu(self, pos):
+        item = self.tree.itemAt(pos)
+        if not item:
+            return
+        alg_id = item.data(0, Qt.ItemDataRole.UserRole)
+        if not alg_id:
+            return
+        from qgis.PyQt.QtWidgets import QMenu
+        menu = QMenu(self)
+        help_action = menu.addAction("📖 View Documentation")
+        help_action.triggered.connect(
+            lambda: QDesktopServices.openUrl(
+                QUrl(DOC_BASE_URL + "#" + alg_id.split(":")[-1])))
+        menu.exec_(self.tree.viewport().mapToGlobal(pos))

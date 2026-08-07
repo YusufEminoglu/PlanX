@@ -3216,13 +3216,25 @@ btt.addEventListener('click', () => {
 
 </script>
 <script>
-  renderMathInElement(document.getElementById('content'), {
-    delimiters: [
-      {left: "$$", right: "$$", display: true},
-      {left: "$", right: "$", display: false},
-    ],
-    throwOnError: false
-  });
+(function() {
+  var content = document.getElementById('content');
+  if (!content) return;
+  try {
+    renderMathInElement(content, {
+      delimiters: [
+        {left: "$$", right: "$$", display: true},
+        {left: "$", right: "$", display: false},
+      ],
+      throwOnError: false,
+      errorCallback: function(msg, err) {
+        console.warn('KaTeX error:', msg, err);
+      }
+    });
+    console.log('KaTeX rendered ' + content.querySelectorAll('.katex').length + ' equations');
+  } catch(e) {
+    console.error('KaTeX render failed:', e);
+  }
+})();
 </script>
 </body>
 </html>
