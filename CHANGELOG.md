@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.10.5] - 2026-08-07
+
+- Added online user manual link (https://yusufeminoglu.github.io/PlanX/) and GitHub repository star call-to-action.
+
 ## [4.10.4] - 2026-08-07
 
 - 3-5x content depth expansion: 14.7K lines, ~600 refs, 285 equations, MathJax, icons, group colors, per-algorithm helpUrl, GitHub Pages
