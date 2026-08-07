@@ -150,12 +150,17 @@ tr:nth-child(even) td { background: var(--table-stripe); }
   @page { margin: 2cm 2.2cm; }
 }
 
+
+.alg-icon { width: 18px; height: 18px; vertical-align: middle; margin-right: 6px; opacity: 0.7; }
+.toc-algs li a:hover .alg-icon { opacity: 1; }
+.toc-algs li a.active .alg-icon { opacity: 1; }
+.toc-group-btn { transition: border-color 0.2s; }
 </style>
 </head>
 <body>
 <nav id="sidebar">
 <div id="sidebar-header">
-<span class="logo">🏙️ PlanX</span>
+<span class="logo"><img src="icons/plugin_icon.png" alt="" style="width:28px;height:28px;vertical-align:middle;margin-right:8px">PlanX</span>
 <span class="subtitle">Reference Manual</span>
 </div>
 <div id="search-wrap">
@@ -163,187 +168,187 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 </div>
 <ul id="toc">
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #13a0a0">
 <span class="arrow">▼</span> 1. Network Analysis
 </button>
 <ul class="toc-algs">
-<li><a href="#linkcriticality" data-name="linkcriticality" data-display="link criticality (network robustness)">Link Criticality (Network Robustness)</a></li>
-<li><a href="#nearestfacility" data-name="nearestfacility" data-display="nearest facility allocation">Nearest Facility Allocation</a></li>
-<li><a href="#odmatrix" data-name="odmatrix" data-display="od cost matrix">OD Cost Matrix</a></li>
-<li><a href="#odroutes" data-name="odroutes" data-display="od routes (shortest paths)">OD Routes (Shortest Paths)</a></li>
-<li><a href="#preparenetwork" data-name="preparenetwork" data-display="prepare network">Prepare Network</a></li>
-<li><a href="#serviceareas" data-name="serviceareas" data-display="service areas (isochrones)">Service Areas (Isochrones)</a></li>
+<li><a href="#linkcriticality" data-name="linkcriticality" data-display="link criticality (network robustness)"><img src="icons/tool_linkcriticality.png" alt="" class="alg-icon">Link Criticality (Network Robustness)</a></li>
+<li><a href="#nearestfacility" data-name="nearestfacility" data-display="nearest facility allocation"><img src="icons/tool_nearestfacility.png" alt="" class="alg-icon">Nearest Facility Allocation</a></li>
+<li><a href="#odmatrix" data-name="odmatrix" data-display="od cost matrix"><img src="icons/tool_odmatrix.png" alt="" class="alg-icon">OD Cost Matrix</a></li>
+<li><a href="#odroutes" data-name="odroutes" data-display="od routes (shortest paths)"><img src="icons/tool_odroutes.png" alt="" class="alg-icon">OD Routes (Shortest Paths)</a></li>
+<li><a href="#preparenetwork" data-name="preparenetwork" data-display="prepare network"><img src="icons/tool_preparenetwork.png" alt="" class="alg-icon">Prepare Network</a></li>
+<li><a href="#serviceareas" data-name="serviceareas" data-display="service areas (isochrones)"><img src="icons/tool_serviceareas.png" alt="" class="alg-icon">Service Areas (Isochrones)</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #1e88e5">
 <span class="arrow">▼</span> 2. Centrality & Space Syntax
 </button>
 <ul class="toc-algs">
-<li><a href="#networkcentrality" data-name="networkcentrality" data-display="network centrality">Network Centrality</a></li>
-<li><a href="#spacesyntax" data-name="spacesyntax" data-display="space syntax (segment angular analysis)">Space Syntax (Segment Angular Analysis)</a></li>
+<li><a href="#networkcentrality" data-name="networkcentrality" data-display="network centrality"><img src="icons/tool_networkcentrality.png" alt="" class="alg-icon">Network Centrality</a></li>
+<li><a href="#spacesyntax" data-name="spacesyntax" data-display="space syntax (segment angular analysis)"><img src="icons/tool_spacesyntax.png" alt="" class="alg-icon">Space Syntax (Segment Angular Analysis)</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #8e24aa">
 <span class="arrow">▼</span> 3. Urban Morphology
 </button>
 <ul class="toc-algs">
-<li><a href="#buildingmetrics" data-name="buildingmetrics" data-display="building form metrics">Building Form Metrics</a></li>
-<li><a href="#spacematrix" data-name="spacematrix" data-display="spacematrix density">Spacematrix Density</a></li>
-<li><a href="#streetmorphology" data-name="streetmorphology" data-display="street network morphology">Street Network Morphology</a></li>
-<li><a href="#tessellation" data-name="tessellation" data-display="morphological tessellation">Morphological Tessellation</a></li>
+<li><a href="#buildingmetrics" data-name="buildingmetrics" data-display="building form metrics"><img src="icons/tool_buildingmetrics.png" alt="" class="alg-icon">Building Form Metrics</a></li>
+<li><a href="#spacematrix" data-name="spacematrix" data-display="spacematrix density"><img src="icons/tool_spacematrix.png" alt="" class="alg-icon">Spacematrix Density</a></li>
+<li><a href="#streetmorphology" data-name="streetmorphology" data-display="street network morphology"><img src="icons/tool_streetmorphology.png" alt="" class="alg-icon">Street Network Morphology</a></li>
+<li><a href="#tessellation" data-name="tessellation" data-display="morphological tessellation"><img src="icons/tool_tessellation.png" alt="" class="alg-icon">Morphological Tessellation</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #43a047">
 <span class="arrow">▼</span> 4. Accessibility
 </button>
 <ul class="toc-algs">
-<li><a href="#accessscore" data-name="accessscore" data-display="multi-amenity access score (15-minute city)">Multi-Amenity Access Score (15-Minute City)</a></li>
+<li><a href="#accessscore" data-name="accessscore" data-display="multi-amenity access score (15-minute city)"><img src="icons/tool_accessscore.png" alt="" class="alg-icon">Multi-Amenity Access Score (15-Minute City)</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #fb8c00">
 <span class="arrow">▼</span> 5. Microclimate
 </button>
 <ul class="toc-algs">
-<li><a href="#airscreen" data-name="airscreen" data-display="air quality screening">Air Quality Screening</a></li>
-<li><a href="#annualsolar" data-name="annualsolar" data-display="annual solar potential (dsm)">Annual Solar Potential (DSM)</a></li>
-<li><a href="#frontalarea" data-name="frontalarea" data-display="frontal area index">Frontal Area Index</a></li>
-<li><a href="#heatriskgrid" data-name="heatriskgrid" data-display="heat island risk grid">Heat Island Risk Grid</a></li>
-<li><a href="#noisescreen" data-name="noisescreen" data-display="road noise screening">Road Noise Screening</a></li>
-<li><a href="#roademissions" data-name="roademissions" data-display="road emissions">Road Emissions</a></li>
-<li><a href="#shadowcasting" data-name="shadowcasting" data-display="shadow casting (dsm)">Shadow Casting (DSM)</a></li>
-<li><a href="#skyviewfactor" data-name="skyviewfactor" data-display="sky view factor (dsm)">Sky View Factor (DSM)</a></li>
-<li><a href="#solarirradiation" data-name="solarirradiation" data-display="solar irradiation (dsm)">Solar Irradiation (DSM)</a></li>
-<li><a href="#sunhours" data-name="sunhours" data-display="sun hours (dsm)">Sun Hours (DSM)</a></li>
+<li><a href="#airscreen" data-name="airscreen" data-display="air quality screening"><img src="icons/tool_airscreen.png" alt="" class="alg-icon">Air Quality Screening</a></li>
+<li><a href="#annualsolar" data-name="annualsolar" data-display="annual solar potential (dsm)"><img src="icons/tool_annualsolar.png" alt="" class="alg-icon">Annual Solar Potential (DSM)</a></li>
+<li><a href="#frontalarea" data-name="frontalarea" data-display="frontal area index"><img src="icons/tool_frontalarea.png" alt="" class="alg-icon">Frontal Area Index</a></li>
+<li><a href="#heatriskgrid" data-name="heatriskgrid" data-display="heat island risk grid"><img src="icons/tool_heatriskgrid.png" alt="" class="alg-icon">Heat Island Risk Grid</a></li>
+<li><a href="#noisescreen" data-name="noisescreen" data-display="road noise screening"><img src="icons/tool_noisescreen.png" alt="" class="alg-icon">Road Noise Screening</a></li>
+<li><a href="#roademissions" data-name="roademissions" data-display="road emissions"><img src="icons/tool_roademissions.png" alt="" class="alg-icon">Road Emissions</a></li>
+<li><a href="#shadowcasting" data-name="shadowcasting" data-display="shadow casting (dsm)"><img src="icons/tool_shadowcasting.png" alt="" class="alg-icon">Shadow Casting (DSM)</a></li>
+<li><a href="#skyviewfactor" data-name="skyviewfactor" data-display="sky view factor (dsm)"><img src="icons/tool_skyviewfactor.png" alt="" class="alg-icon">Sky View Factor (DSM)</a></li>
+<li><a href="#solarirradiation" data-name="solarirradiation" data-display="solar irradiation (dsm)"><img src="icons/tool_solarirradiation.png" alt="" class="alg-icon">Solar Irradiation (DSM)</a></li>
+<li><a href="#sunhours" data-name="sunhours" data-display="sun hours (dsm)"><img src="icons/tool_sunhours.png" alt="" class="alg-icon">Sun Hours (DSM)</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #6d4c41">
 <span class="arrow">▼</span> 6. Plan Standards and QA
 </button>
 <ul class="toc-algs">
-<li><a href="#densitygrid" data-name="densitygrid" data-display="density grid">Density Grid</a></li>
-<li><a href="#facilityadequacy" data-name="facilityadequacy" data-display="facility adequacy (capacity + distance)">Facility Adequacy (Capacity + Distance)</a></li>
-<li><a href="#landusebalance" data-name="landusebalance" data-display="land-use balance (per-capita standards)">Land-Use Balance (Per-Capita Standards)</a></li>
+<li><a href="#densitygrid" data-name="densitygrid" data-display="density grid"><img src="icons/tool_densitygrid.png" alt="" class="alg-icon">Density Grid</a></li>
+<li><a href="#facilityadequacy" data-name="facilityadequacy" data-display="facility adequacy (capacity + distance)"><img src="icons/tool_facilityadequacy.png" alt="" class="alg-icon">Facility Adequacy (Capacity + Distance)</a></li>
+<li><a href="#landusebalance" data-name="landusebalance" data-display="land-use balance (per-capita standards)"><img src="icons/tool_landusebalance.png" alt="" class="alg-icon">Land-Use Balance (Per-Capita Standards)</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #00897b">
 <span class="arrow">▼</span> 7. Reporting and Dashboard
 </button>
 <ul class="toc-algs">
-<li><a href="#democity" data-name="democity" data-display="generate demo city">Generate Demo City</a></li>
-<li><a href="#performancereport" data-name="performancereport" data-display="plan performance report (html)">Plan Performance Report (HTML)</a></li>
-<li><a href="#planaudit" data-name="planaudit" data-display="batch plan auditor">Batch Plan Auditor</a></li>
-<li><a href="#scenariocompare" data-name="scenariocompare" data-display="scenario compare (a/b)">Scenario Compare (A/B)</a></li>
-<li><a href="#scenariopipeline" data-name="scenariopipeline" data-display="scenario pipeline (luti-lite)">Scenario Pipeline (LUTI-lite)</a></li>
-<li><a href="#scenariorank" data-name="scenariorank" data-display="scenario ranking">Scenario Ranking</a></li>
-<li><a href="#scenariosnapshot" data-name="scenariosnapshot" data-display="scenario snapshot">Scenario Snapshot</a></li>
+<li><a href="#democity" data-name="democity" data-display="generate demo city"><img src="icons/tool_democity.png" alt="" class="alg-icon">Generate Demo City</a></li>
+<li><a href="#performancereport" data-name="performancereport" data-display="plan performance report (html)"><img src="icons/tool_performancereport.png" alt="" class="alg-icon">Plan Performance Report (HTML)</a></li>
+<li><a href="#planaudit" data-name="planaudit" data-display="batch plan auditor"><img src="icons/tool_planaudit.png" alt="" class="alg-icon">Batch Plan Auditor</a></li>
+<li><a href="#scenariocompare" data-name="scenariocompare" data-display="scenario compare (a/b)"><img src="icons/tool_scenariocompare.png" alt="" class="alg-icon">Scenario Compare (A/B)</a></li>
+<li><a href="#scenariopipeline" data-name="scenariopipeline" data-display="scenario pipeline (luti-lite)"><img src="icons/tool_scenariopipeline.png" alt="" class="alg-icon">Scenario Pipeline (LUTI-lite)</a></li>
+<li><a href="#scenariorank" data-name="scenariorank" data-display="scenario ranking"><img src="icons/tool_scenariorank.png" alt="" class="alg-icon">Scenario Ranking</a></li>
+<li><a href="#scenariosnapshot" data-name="scenariosnapshot" data-display="scenario snapshot"><img src="icons/tool_scenariosnapshot.png" alt="" class="alg-icon">Scenario Snapshot</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #c62828">
 <span class="arrow">▼</span> 8. Optimization
 </button>
 <ul class="toc-algs">
-<li><a href="#capacitatedallocation" data-name="capacitatedallocation" data-display="capacitated allocation (nearest with capacity)">Capacitated Allocation (Nearest with Capacity)</a></li>
-<li><a href="#capacitatedsiting" data-name="capacitatedsiting" data-display="capacitated facility siting">Capacitated Facility Siting</a></li>
-<li><a href="#facilitylocation" data-name="facilitylocation" data-display="facility location optimizer (coverage / p-median)">Facility Location Optimizer (Coverage / P-Median)</a></li>
-<li><a href="#landallocation" data-name="landallocation" data-display="land-use allocation optimizer">Land-Use Allocation Optimizer</a></li>
-<li><a href="#paretoallocation" data-name="paretoallocation" data-display="land-use pareto front">Land-Use Pareto Front</a></li>
+<li><a href="#capacitatedallocation" data-name="capacitatedallocation" data-display="capacitated allocation (nearest with capacity)"><img src="icons/tool_capacitatedallocation.png" alt="" class="alg-icon">Capacitated Allocation (Nearest with Capacity)</a></li>
+<li><a href="#capacitatedsiting" data-name="capacitatedsiting" data-display="capacitated facility siting"><img src="icons/tool_capacitatedsiting.png" alt="" class="alg-icon">Capacitated Facility Siting</a></li>
+<li><a href="#facilitylocation" data-name="facilitylocation" data-display="facility location optimizer (coverage / p-median)"><img src="icons/tool_facilitylocation.png" alt="" class="alg-icon">Facility Location Optimizer (Coverage / P-Median)</a></li>
+<li><a href="#landallocation" data-name="landallocation" data-display="land-use allocation optimizer"><img src="icons/tool_landallocation.png" alt="" class="alg-icon">Land-Use Allocation Optimizer</a></li>
+<li><a href="#paretoallocation" data-name="paretoallocation" data-display="land-use pareto front"><img src="icons/tool_paretoallocation.png" alt="" class="alg-icon">Land-Use Pareto Front</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #5c6bc0">
 <span class="arrow">▼</span> 9. Equity
 </button>
 <ul class="toc-algs">
-<li><a href="#accessequity" data-name="accessequity" data-display="accessibility equity (gini / theil)">Accessibility Equity (Gini / Theil)</a></li>
-<li><a href="#equitycrosstab" data-name="equitycrosstab" data-display="demographic equity cross-tabs">Demographic Equity Cross-Tabs</a></li>
-<li><a href="#inequalitycurves" data-name="inequalitycurves" data-display="inequality curves (lorenz & atkinson)">Inequality Curves (Lorenz & Atkinson)</a></li>
+<li><a href="#accessequity" data-name="accessequity" data-display="accessibility equity (gini / theil)"><img src="icons/tool_accessequity.png" alt="" class="alg-icon">Accessibility Equity (Gini / Theil)</a></li>
+<li><a href="#equitycrosstab" data-name="equitycrosstab" data-display="demographic equity cross-tabs"><img src="icons/tool_equitycrosstab.png" alt="" class="alg-icon">Demographic Equity Cross-Tabs</a></li>
+<li><a href="#inequalitycurves" data-name="inequalitycurves" data-display="inequality curves (lorenz & atkinson)"><img src="icons/tool_inequalitycurves.png" alt="" class="alg-icon">Inequality Curves (Lorenz & Atkinson)</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #2e7d32">
 <span class="arrow">▼</span> 10. Walkability
 </button>
 <ul class="toc-algs">
-<li><a href="#routequality" data-name="routequality" data-display="pedestrian route quality">Pedestrian Route Quality</a></li>
-<li><a href="#streetcomfort" data-name="streetcomfort" data-display="street environment comfort">Street Environment Comfort</a></li>
-<li><a href="#walkability" data-name="walkability" data-display="walkability audit">Walkability Audit</a></li>
-<li><a href="#walkingslope" data-name="walkingslope" data-display="walking slope comfort">Walking Slope Comfort</a></li>
+<li><a href="#routequality" data-name="routequality" data-display="pedestrian route quality"><img src="icons/tool_routequality.png" alt="" class="alg-icon">Pedestrian Route Quality</a></li>
+<li><a href="#streetcomfort" data-name="streetcomfort" data-display="street environment comfort"><img src="icons/tool_streetcomfort.png" alt="" class="alg-icon">Street Environment Comfort</a></li>
+<li><a href="#walkability" data-name="walkability" data-display="walkability audit"><img src="icons/tool_walkability.png" alt="" class="alg-icon">Walkability Audit</a></li>
+<li><a href="#walkingslope" data-name="walkingslope" data-display="walking slope comfort"><img src="icons/tool_walkingslope.png" alt="" class="alg-icon">Walking Slope Comfort</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #ef6c00">
 <span class="arrow">▼</span> 11. Transit
 </button>
 <ul class="toc-algs">
-<li><a href="#gtfsimport" data-name="gtfsimport" data-display="gtfs import and service stats">GTFS Import and Service Stats</a></li>
-<li><a href="#transitaccess" data-name="transitaccess" data-display="transit travel-time access">Transit Travel-Time Access</a></li>
-<li><a href="#transitfrequency" data-name="transitfrequency" data-display="transit frequency map">Transit Frequency Map</a></li>
+<li><a href="#gtfsimport" data-name="gtfsimport" data-display="gtfs import and service stats"><img src="icons/tool_gtfsimport.png" alt="" class="alg-icon">GTFS Import and Service Stats</a></li>
+<li><a href="#transitaccess" data-name="transitaccess" data-display="transit travel-time access"><img src="icons/tool_transitaccess.png" alt="" class="alg-icon">Transit Travel-Time Access</a></li>
+<li><a href="#transitfrequency" data-name="transitfrequency" data-display="transit frequency map"><img src="icons/tool_transitfrequency.png" alt="" class="alg-icon">Transit Frequency Map</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #4527a0">
 <span class="arrow">▼</span> 12. Visibility
 </button>
 <ul class="toc-algs">
-<li><a href="#isovistfield" data-name="isovistfield" data-display="isovist field">Isovist Field</a></li>
-<li><a href="#viewshed" data-name="viewshed" data-display="viewshed (dsm)">Viewshed (DSM)</a></li>
-<li><a href="#visualexposure" data-name="visualexposure" data-display="visual exposure of landmarks">Visual Exposure of Landmarks</a></li>
+<li><a href="#isovistfield" data-name="isovistfield" data-display="isovist field"><img src="icons/tool_isovistfield.png" alt="" class="alg-icon">Isovist Field</a></li>
+<li><a href="#viewshed" data-name="viewshed" data-display="viewshed (dsm)"><img src="icons/tool_viewshed.png" alt="" class="alg-icon">Viewshed (DSM)</a></li>
+<li><a href="#visualexposure" data-name="visualexposure" data-display="visual exposure of landmarks"><img src="icons/tool_visualexposure.png" alt="" class="alg-icon">Visual Exposure of Landmarks</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #ad1457">
 <span class="arrow">▼</span> 13. Population and Housing
 </button>
 <ul class="toc-algs">
-<li><a href="#housingneeds" data-name="housingneeds" data-display="housing needs assessment">Housing Needs Assessment</a></li>
-<li><a href="#popallocate" data-name="popallocate" data-display="allocate population growth">Allocate Population Growth</a></li>
-<li><a href="#populationprojection" data-name="populationprojection" data-display="population projection (cohort-component)">Population Projection (Cohort-Component)</a></li>
-<li><a href="#residentialcapacity" data-name="residentialcapacity" data-display="residential capacity">Residential Capacity</a></li>
+<li><a href="#housingneeds" data-name="housingneeds" data-display="housing needs assessment"><img src="icons/tool_housingneeds.png" alt="" class="alg-icon">Housing Needs Assessment</a></li>
+<li><a href="#popallocate" data-name="popallocate" data-display="allocate population growth"><img src="icons/tool_popallocate.png" alt="" class="alg-icon">Allocate Population Growth</a></li>
+<li><a href="#populationprojection" data-name="populationprojection" data-display="population projection (cohort-component)"><img src="icons/tool_populationprojection.png" alt="" class="alg-icon">Population Projection (Cohort-Component)</a></li>
+<li><a href="#residentialcapacity" data-name="residentialcapacity" data-display="residential capacity"><img src="icons/tool_residentialcapacity.png" alt="" class="alg-icon">Residential Capacity</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #2e7d32">
 <span class="arrow">▼</span> 14. Green Infrastructure
 </button>
 <ul class="toc-algs">
-<li><a href="#greenaccess" data-name="greenaccess" data-display="green space access">Green Space Access</a></li>
-<li><a href="#greenconnectivity" data-name="greenconnectivity" data-display="urban green connectivity">Urban Green Connectivity</a></li>
+<li><a href="#greenaccess" data-name="greenaccess" data-display="green space access"><img src="icons/tool_greenaccess.png" alt="" class="alg-icon">Green Space Access</a></li>
+<li><a href="#greenconnectivity" data-name="greenconnectivity" data-display="urban green connectivity"><img src="icons/tool_greenconnectivity.png" alt="" class="alg-icon">Urban Green Connectivity</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #f9a825">
 <span class="arrow">▼</span> 15. Urban Growth
 </button>
 <ul class="toc-algs">
-<li><a href="#growthsim" data-name="growthsim" data-display="urban growth simulation (ca)">Urban Growth Simulation (CA)</a></li>
-<li><a href="#landcoverchange" data-name="landcoverchange" data-display="land-cover change analysis">Land-Cover Change Analysis</a></li>
-<li><a href="#sprawlmetrics" data-name="sprawlmetrics" data-display="urban sprawl metrics">Urban Sprawl Metrics</a></li>
+<li><a href="#growthsim" data-name="growthsim" data-display="urban growth simulation (ca)"><img src="icons/tool_growthsim.png" alt="" class="alg-icon">Urban Growth Simulation (CA)</a></li>
+<li><a href="#landcoverchange" data-name="landcoverchange" data-display="land-cover change analysis"><img src="icons/tool_landcoverchange.png" alt="" class="alg-icon">Land-Cover Change Analysis</a></li>
+<li><a href="#sprawlmetrics" data-name="sprawlmetrics" data-display="urban sprawl metrics"><img src="icons/tool_sprawlmetrics.png" alt="" class="alg-icon">Urban Sprawl Metrics</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #0277bd">
 <span class="arrow">▼</span> 16. Cycling
 </button>
 <ul class="toc-algs">
-<li><a href="#cyclingstress" data-name="cyclingstress" data-display="cycling stress (lts)">Cycling Stress (LTS)</a></li>
-<li><a href="#lowstressislands" data-name="lowstressislands" data-display="low-stress connectivity">Low-Stress Connectivity</a></li>
+<li><a href="#cyclingstress" data-name="cyclingstress" data-display="cycling stress (lts)"><img src="icons/tool_cyclingstress.png" alt="" class="alg-icon">Cycling Stress (LTS)</a></li>
+<li><a href="#lowstressislands" data-name="lowstressislands" data-display="low-stress connectivity"><img src="icons/tool_lowstressislands.png" alt="" class="alg-icon">Low-Stress Connectivity</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #d84315">
 <span class="arrow">▼</span> 17. Hazard Screening
 </button>
 <ul class="toc-algs">
-<li><a href="#floodexposure" data-name="floodexposure" data-display="flood exposure">Flood Exposure</a></li>
-<li><a href="#flowaccumulation" data-name="flowaccumulation" data-display="flow accumulation">Flow Accumulation</a></li>
-<li><a href="#handindex" data-name="handindex" data-display="hand and inundation">HAND and Inundation</a></li>
+<li><a href="#floodexposure" data-name="floodexposure" data-display="flood exposure"><img src="icons/tool_floodexposure.png" alt="" class="alg-icon">Flood Exposure</a></li>
+<li><a href="#flowaccumulation" data-name="flowaccumulation" data-display="flow accumulation"><img src="icons/tool_flowaccumulation.png" alt="" class="alg-icon">Flow Accumulation</a></li>
+<li><a href="#handindex" data-name="handindex" data-display="hand and inundation"><img src="icons/tool_handindex.png" alt="" class="alg-icon">HAND and Inundation</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #6a1b9a">
 <span class="arrow">▼</span> 18. Travel Demand
 </button>
 <ul class="toc-algs">
-<li><a href="#gravitymodel" data-name="gravitymodel" data-display="gravity distribution">Gravity Distribution</a></li>
-<li><a href="#modesplit" data-name="modesplit" data-display="mode split">Mode Split</a></li>
-<li><a href="#tripgeneration" data-name="tripgeneration" data-display="trip generation">Trip Generation</a></li>
+<li><a href="#gravitymodel" data-name="gravitymodel" data-display="gravity distribution"><img src="icons/tool_gravitymodel.png" alt="" class="alg-icon">Gravity Distribution</a></li>
+<li><a href="#modesplit" data-name="modesplit" data-display="mode split"><img src="icons/tool_modesplit.png" alt="" class="alg-icon">Mode Split</a></li>
+<li><a href="#tripgeneration" data-name="tripgeneration" data-display="trip generation"><img src="icons/tool_tripgeneration.png" alt="" class="alg-icon">Trip Generation</a></li>
 </ul></li>
 <li class="toc-group">
-<button class="toc-group-btn" aria-expanded="true">
+<button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #b71c1c">
 <span class="arrow">▼</span> 19. Seismic Risk
 </button>
 <ul class="toc-algs">
-<li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
+<li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)"><img src="icons/tool_seismicdebris.png" alt="" class="alg-icon">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
 </ul></li>
 </ul>
 <div id="sidebar-footer">
