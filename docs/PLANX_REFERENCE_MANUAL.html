@@ -398,7 +398,7 @@ conference proceedings or journals that do not assign DOIs are marked
 <li><code>monospace</code> — parameter names, field names, code identifiers</li>
 <li><strong>bold</strong> — key concepts on first introduction</li>
 <li><em>italic</em> — journal names, book titles, emphasis</li>
-<li>Math is rendered with KaTeX: $E = mc^2$ for inline, $$E = mc^2$$ for display</li>
+<li>Math is rendered with KaTeX: $E = mc^2$ for inline, $$E = mc^2 \tag{1}$$ for display</li>
 </ul>
 
 <div class="note"><strong>Note on CRS.</strong> Unless otherwise stated, all tools that
@@ -547,17 +547,17 @@ y_{k_i})\}$, the algorithm constructs:</p>
 
 <p><strong>Node set $V$</strong> — unique spatial locations after snapping.
 Two endpoints $p, q$ are snapped together when:</p>
-$$\|p - q\|_2 \leq \varepsilon$$
+$$\|p - q\|_2 \leq \varepsilon \tag{3}$$
 
 <p>where $\varepsilon$ is the snapping tolerance (default: 1.0 map unit).</p>
 
 <p><strong>Edge set $E$</strong> — the polyline segments between consecutive
 nodes after intersection splitting. Each edge $e = (u, v)$ carries a weight:</p>
-$$w(e) = \ell_e \quad \text{or} \quad w(e) = f_{\text{cost}}(e)$$
+$$w(e) = \ell_e \quad \text{or} \quad w(e) = f_{\text{cost}}(e) \tag{2}$$
 
 <p>where $\ell_e$ is the Euclidean length of the segment in map units, computed
 as the sum of distances between consecutive vertices:</p>
-$$\ell_e = \sum_{t=1}^{k-1} \sqrt{(x_{t+1} - x_t)^2 + (y_{t+1} - y_t)^2}$$
+$$\ell_e = \sum_{t=1}^{k-1} \sqrt{(x_{t+1} - x_t)^2 + (y_{t+1} - y_t)^2} \tag{1}$$
 
 <p><strong>Adjacency</strong> — the compressed sparse row (CSR) representation
 $(indptr, indices, data)$ where $data[j]$ is the weight of the edge from node
@@ -700,7 +700,7 @@ are central (Bonacich, 1972).</li>
 <h3>Mathematical Formulation</h3>
 
 <p><strong>Closeness (Wasserman–Faust):</strong></p>
-$$C_C(i) = \frac{N_r(i) - 1}{N - 1} \cdot \frac{N_r(i) - 1}{\sum_{j \in V_r(i)} d(i, j)}$$
+$$C_C(i) = \frac{N_r(i) - 1}{N - 1} \cdot \frac{N_r(i) - 1}{\sum_{j \in V_r(i)} d(i, j)} \tag{4}$$
 
 <p>where $d(i,j)$ is the shortest-path distance, $V_r(i)$ is the set of nodes
 reachable from $i$ within radius $r$, and $N_r(i) = |V_r(i)|$. The first factor
@@ -708,16 +708,16 @@ is the Wasserman–Faust correction for partial reachability; the second is the
 raw closeness (inverse mean distance).</p>
 
 <p><strong>Betweenness (Brandes, 2001):</strong></p>
-$$C_B(v) = \sum_{\substack{s,t \in V \\ s \neq v \neq t \\ d(s,t) \leq r}} \frac{\sigma_{st}(v)}{\sigma_{st}}$$
+$$C_B(v) = \sum_{\substack{s,t \in V \\ s \neq v \neq t \\ d(s,t) \leq r}} \frac{\sigma_{st}(v)}{\sigma_{st}} \tag{3}$$
 
 <p>where $\sigma_{st}$ is the number of shortest paths from $s$ to $t$, and
 $\sigma_{st}(v)$ is the number of those paths that pass through $v$.</p>
 
 <p><strong>Straightness:</strong></p>
-$$C_S(i) = \frac{1}{N_r(i) - 1} \sum_{j \in V_r(i),\, j \neq i} \frac{\|p_i - p_j\|_2}{d(i, j)}$$
+$$C_S(i) = \frac{1}{N_r(i) - 1} \sum_{j \in V_r(i),\, j \neq i} \frac{\|p_i - p_j\|_2}{d(i, j)} \tag{2}$$
 
 <p><strong>Eigenvector centrality:</strong></p>
-$$C_E(i) = \frac{1}{\lambda} \sum_{j \in \mathcal{N}(i)} C_E(j)$$
+$$C_E(i) = \frac{1}{\lambda} \sum_{j \in \mathcal{N}(i)} C_E(j) \tag{1}$$
 
 <p>where $\lambda$ is the largest eigenvalue of the adjacency matrix $A + I$,
 and $\mathcal{N}(i)$ is the set of neighbours of node $i$. The power iteration
@@ -868,7 +868,7 @@ coordinates, the segment graph is built by the engine
 (<code>engine/graphs.py</code>). Two segments $(u, v)$ are adjacent if they
 share an endpoint. The angular cost of turning from segment $u$ to segment $v$
 is:</p>
-$$c(u, v) = \frac{\theta_{uv}}{90^\circ}$$
+$$c(u, v) = \frac{\theta_{uv}}{90^\circ} \tag{6}$$
 
 <p>where $\theta_{uv} \in [0^\circ, 180^\circ]$ is the deflection angle between
 the last direction vector of $u$ and the first direction vector of $v$ (taking
@@ -883,13 +883,13 @@ other segment $t$ within metric radius $r$ (if specified). The result is the
 angular distance matrix $d_{ang}(s, t)$.</p>
 
 <p><strong>Angular total depth (TD) and node count (NC):</strong></p>
-$$TD(s) = \sum_{t \in V_r(s)} d_{ang}(s, t) \qquad NC(s) = |V_r(s)|$$
+$$TD(s) = \sum_{t \in V_r(s)} d_{ang}(s, t) \qquad NC(s) = |V_r(s)| \tag{5}$$
 
 <p><strong>Angular mean depth (MD):</strong></p>
-$$MD(s) = \frac{TD(s)}{\max(NC(s) - 1, 1)}$$
+$$MD(s) = \frac{TD(s)}{\max(NC(s) - 1, 1)} \tag{4}$$
 
 <p><strong>Angular choice (CH) — raw betweenness:</strong></p>
-$$CH(s) = \sum_{u \neq s \neq v} \frac{\sigma_{uv}^{ang}(s)}{\sigma_{uv}^{ang}}$$
+$$CH(s) = \sum_{u \neq s \neq v} \frac{\sigma_{uv}^{ang}(s)}{\sigma_{uv}^{ang}} \tag{3}$$
 
 <p>where $\sigma_{uv}^{ang}$ is the number of least-angular-cost paths between
 $u$ and $v$, and $\sigma_{uv}^{ang}(s)$ counts those passing through $s$. Since
@@ -897,7 +897,7 @@ the graph is undirected, each unordered pair $(u,v)$ is counted twice; the
 engine divides by 2 to obtain pair-based choice.</p>
 
 <p><strong>NAIN — Normalised Angular INtegration (to-movement potential):</strong></p>
-$$NAIN(s) = \frac{(NC(s) + 2)^{1.2}}{TD(s) + 2}$$
+$$NAIN(s) = \frac{(NC(s) + 2)^{1.2}}{TD(s) + 2} \tag{2}$$
 
 <p>The constants +2 in numerator and denominator prevent division by zero for
 isolated segments. The exponent 1.2 was calibrated by Hillier, Yang &amp;
@@ -906,7 +906,7 @@ cities. <strong>High NAIN = easy to arrive at</strong> — the segment is a
 destination magnet.</p>
 
 <p><strong>NACH — Normalised Angular CHoice (through-movement potential):</strong></p>
-$$NACH(s) = \frac{\log_{10}(CH(s) + 1)}{\log_{10}(TD(s) + 3)}$$
+$$NACH(s) = \frac{\log_{10}(CH(s) + 1)}{\log_{10}(TD(s) + 3)} \tag{1}$$
 
 <p>The constants +1 and +3 keep the ratio real and finite (choice can be zero;
 total depth is at least 1). <strong>High NACH = heavily used as a through
@@ -1102,13 +1102,13 @@ investment.</p>
 engine computes the shortest-path distance $d_{net}(i,j)$ by Dijkstra's
 algorithm on the primal graph $G = (V, E)$ with edge weights $w(e)$ (geometric
 length or a user-specified cost field):</p>
-$$d_{net}(i,j) = \min_{path(i \to j)} \sum_{e \in path} w(e)$$
+$$d_{net}(i,j) = \min_{path(i \to j)} \sum_{e \in path} w(e) \tag{3}$$
 
 <p><strong>Euclidean distance</strong> (as the crow flies):</p>
-$$d_{euc}(i,j) = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2}$$
+$$d_{euc}(i,j) = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2} \tag{2}$$
 
 <p><strong>Detour ratio:</strong></p>
-$$detour(i,j) = \frac{d_{net}(i,j)}{d_{euc}(i,j)}$$
+$$detour(i,j) = \frac{d_{net}(i,j)}{d_{euc}(i,j)} \tag{1}$$
 
 <p>The engine uses SciPy's <code>csgraph.dijkstra</code> for the sparse-matrix
 fast path when available, falling back to a pure-Python <code>heapq</code>
@@ -1236,7 +1236,7 @@ algorithm computes:</p>
 the polyline coordinates are oriented so the first vertex is closest to the
 current position. Consecutive edges share the junction node, producing a
 contiguous linestring.</p>
-$$length\_m = \sum_{e \in route} \ell_e$$
+$$length\_m = \sum_{e \in route} \ell_e \tag{1}$$
 
 <h3>Input Data Requirements</h3>
 <table>
@@ -1336,8 +1336,8 @@ proportionally, eliminating this error entirely (Curtin, 2007).</p>
 enters the network at its nearest point on the nearest edge $(e_f, t_f)$ where
 $t_f \in [0,1]$ is the position along the edge. Two node-offset entries are
 created for the edge's endpoints with the approach cost added:</p>
-$$cost_{entry}(a) = d_{snap} + t_f \cdot \ell_{e_f}$$
-$$cost_{entry}(b) = d_{snap} + (1 - t_f) \cdot \ell_{e_f}$$
+$$cost_{entry}(a) = d_{snap} + t_f \cdot \ell_{e_f} \tag{4}$$
+$$cost_{entry}(b) = d_{snap} + (1 - t_f) \cdot \ell_{e_f} \tag{3}$$
 
 <p>where $d_{snap}$ is the straight-line snap distance (added to the budget
 when cost is length). Dijkstra runs once from all facility entries
@@ -1347,10 +1347,10 @@ simultaneously, producing per-node costs and winning-facility labels.</p>
 cost $\ell$ and node costs $d_u, d_v$, the reachable portion within budget $B$
 is the interval $[t_{min}, t_{max}]$ where the interpolated cost at position
 $t$ is ≤ $B$:</p>
-$$cost(t) = \min(d_u + t\ell,\; d_v + (1-t)\ell) \leq B$$
+$$cost(t) = \min(d_u + t\ell,\; d_v + (1-t)\ell) \leq B \tag{2}$$
 
 <p><strong>Pedshed ratio:</strong></p>
-$$pedshed = \frac{A_{catchment}}{A_{circle}} = \frac{\text{network catchment area}}{\pi \cdot B^2}$$
+$$pedshed = \frac{A_{catchment}}{A_{circle}} = \frac{\text{network catchment area}}{\pi \cdot B^2} \tag{1}$$
 
 <p>Pedshed ≥ 0.6 = well-connected grid; 0.4–0.6 = average; &lt; 0.4 = poor —
 the network delivers less than half the promised radius.</p>
@@ -1468,17 +1468,17 @@ where $f$ is the number of facilities.</p>
 <h3>Mathematical Formulation</h3>
 <p>Given $n$ demand locations and $f$ facility locations, each snapped to
 network nodes, the algorithm computes:</p>
-$$label(d) = \arg\min_{k \in \{1,\ldots,f\}} d_{net}(k, d)$$
-$$cost(d) = \min_{k \in \{1,\ldots,f\}} d_{net}(k, d)$$
+$$label(d) = \arg\min_{k \in \{1,\ldots,f\}} d_{net}(k, d) \tag{5}$$
+$$cost(d) = \min_{k \in \{1,\ldots,f\}} d_{net}(k, d) \tag{4}$$
 
 <p>where $d_{net}(k,d)$ is the shortest-path distance from facility $k$ to
 demand $d$ on the graph. If multiple facilities share a node, the first one
 in the input order wins — assignments are deterministic.</p>
 
 <p><strong>Facility load:</strong></p>
-$$load(k) = |\{d : label(d) = k\}|$$
-$$mean\_cost(k) = \frac{1}{load(k)} \sum_{d: label(d)=k} cost(d)$$
-$$max\_cost(k) = \max_{d: label(d)=k} cost(d)$$
+$$load(k) = |\{d : label(d) = k\}| \tag{3}$$
+$$mean\_cost(k) = \frac{1}{load(k)} \sum_{d: label(d)=k} cost(d) \tag{2}$$
+$$max\_cost(k) = \max_{d: label(d)=k} cost(d) \tag{1}$$
 
 <h3>Input Data Requirements</h3>
 <table>
@@ -1575,7 +1575,7 @@ cost imposed on the OD demand (the detour bill) and the number of OD pairs
 that become completely disconnected.</p>
 
 <p>The Network Robustness Index (Scott et al., 2006) formalises this:</p>
-$$NRI(e) = \frac{\sum_{od} \left(d_{net}^{(e)}(o,d) - d_{net}(o,d)\right)}{\sum_{od} d_{net}(o,d)}$$
+$$NRI(e) = \frac{\sum_{od} \left(d_{net}^{(e)}(o,d) - d_{net}(o,d)\right)}{\sum_{od} d_{net}(o,d)} \tag{4}$$
 
 <p>where $d_{net}(o,d)$ is the shortest-path cost in the intact network and
 $d_{net}^{(e)}(o,d)$ is the cost in the network with edge $e$ removed. The
@@ -1593,21 +1593,21 @@ networks with high redundancy.</p>
 <p><strong>Baseline routing.</strong> For every OD pair $(o,d)$ in the demand
 set, compute $d_{net}(o,d)$ on the intact graph $G$. The <strong>base
 total</strong> is:</p>
-$$T_{base} = \sum_{o,d} d_{net}(o,d)$$
+$$T_{base} = \sum_{o,d} d_{net}(o,d) \tag{3}$$
 
 <p>An edge $e$ is a <strong>candidate</strong> if it lies on at least one
 intact shortest path: $used\_by(e) = |\{(o,d) : e \in path(o,d)\}| > 0$.</p>
 
 <p><strong>Removal test.</strong> For each candidate edge $e$, route all OD
 pairs on $G \setminus \{e\}$:</p>
-$$extra\_cost(e) = \sum_{o,d} \max(0,\; d_{net}^{(e)}(o,d) - d_{net}(o,d))$$
+$$extra\_cost(e) = \sum_{o,d} \max(0,\; d_{net}^{(e)}(o,d) - d_{net}(o,d)) \tag{2}$$
 
 <p>Note: removal can only lengthen paths, so $extra\_cost(e) \geq 0$. If
 the removal severs an OD pair entirely, $d_{net}^{(e)}(o,d)$ is infinite
 and the pair contributes to $n\_disconnected(e)$.</p>
 
 <p><strong>Criticality (NRI):</strong></p>
-$$criticality(e) = \frac{extra\_cost(e)}{T_{base}}$$
+$$criticality(e) = \frac{extra\_cost(e)}{T_{base}} \tag{1}$$
 
 <p>Criticality is dimensionless, typically in $[0, 0.1]$ — losing a single
 segment rarely adds more than 10% to total travel, though extreme values
@@ -1723,9 +1723,9 @@ between the shortest path and the pleasantest one.</p>
 <p>The walkability index traces its lineage to urban planning's <strong>D-variables</strong> framework (Ewing &amp; Cervero, 2010): Density, Diversity (land-use mix), Design (street connectivity), Destination accessibility, and Distance to transit. Frank et al. (2010) operationalised four of these for the Neighborhood Quality of Life Study. PlanX adapts this to the <strong>street-segment</strong> level — walkability is fundamentally a <strong>network property</strong>: a street is walkable not in isolation but by virtue of what it connects to. Breakpoints default to a comfortably walkable European urban fabric: 120 junctions/km², 80 m block length, 25 POIs, and 0% slope all score 100.</p>
 <h3>Mathematical Formulation</h3>
 <p><strong>Intersection density.</strong> Junctions (degree ≥ 3) counted within radius $r$ of each segment midpoint:</p>
-$$int\_km2(s) = \frac{|\{j : \|p_j - m_s\| \leq r\}|}{\pi r^2 / 10^6} \qquad s\_inters(s) = 100 \cdot \min(1, int\_km2(s) / 120)$$
+$$int\_km2(s) = \frac{|\{j : \|p_j - m_s\| \leq r\}|}{\pi r^2 / 10^6} \qquad s\_inters(s) = 100 \cdot \min(1, int\_km2(s) / 120) \tag{2}$$
 <p><strong>Land-use mix.</strong> Normalised Shannon entropy of buffer land-use areas:</p>
-$$mix(s) = \frac{-\sum_c p_c \ln p_c}{\ln N_{cat}} \in [0,1] \qquad s\_mix(s) = 100 \cdot mix(s)$$
+$$mix(s) = \frac{-\sum_c p_c \ln p_c}{\ln N_{cat}} \in [0,1] \qquad s\_mix(s) = 100 \cdot mix(s) \tag{1}$$
 <p><strong>Destinations.</strong> POI count within radius: $s\_dest(s) = 100 \cdot \min(1, n\_pois(s) / 25)$.</p>
 <p><strong>Block length</strong> (smaller-is-better): $s\_block(s) = 100 \cdot \max(0, \min(1, (400 - blk\_len(s)) / (400 - 80)))$.</p>
 <p><strong>Slope:</strong> $slope\_pct(s) = |z_{end} - z_{start}| / \ell_s \cdot 100$, then $s\_slope(s) = 100 \cdot \max(0, 1 - slope\_pct(s) / 10)$.</p>
@@ -3222,7 +3222,7 @@ btt.addEventListener('click', () => {
   try {
     renderMathInElement(content, {
       delimiters: [
-        {left: "$$", right: "$$", display: true},
+        {left: "$$", right: " \tag{1}$$", display: true},
         {left: "$", right: "$", display: false},
       ],
       throwOnError: false,
