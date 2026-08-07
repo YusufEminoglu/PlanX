@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.10.3] - 2026-08-07
+
+- MathJax equations, per-algorithm icons in sidebar, group color coding, Studio Dock documentation button, per-algorithm helpUrl, GitHub Pages with redirect
+
 ## [4.10.2] - 2026-08-07
 
 - Add comprehensive 69-algorithm academic reference manual (standalone HTML with KaTeX equations, DOI-verified references, appendices)
