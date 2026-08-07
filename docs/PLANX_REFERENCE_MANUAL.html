@@ -631,7 +631,7 @@ are snapped together when their Euclidean distance falls within the tolerance
 $\varepsilon$. The implementation uses an R-tree spatial index: for each
 unprocessed endpoint $p$, a bounding-box query of radius $\varepsilon$ retrieves
 nearby endpoints; all within tolerance are merged to their centroid. Formally:</p>
-$$\|p - q\|_2 \leq \varepsilon \quad\Rightarrow\quad p, q \text{ share the same node } v \in V \tag{4}$$
+$$\|p - q\|_2 \leq \varepsilon \quad\Rightarrow\quad p, q \text{ share the same node } v \in V \tag{3}$$
 
 <p>where $\varepsilon$ is the snapping tolerance (default: 1.0 map unit).
 This step transforms $O(m^2)$ naive pairwise checking into $O(m \log m)$
@@ -644,11 +644,11 @@ segments are split at $p_{int}$, and $p_{int}$ is added to $V$. This ensures tha
 the resulting graph is <em>planarised</em>: every edge intersection corresponds to
 a node. Each edge $e = (u, v)$ carries a weight equal to either its geometric
 length or a user-specified cost field value:</p>
-$$w(e) = \ell_e \quad \text{or} \quad w(e) = f_{\text{cost}}(e) \tag{3}$$
+$$w(e) = \ell_e \quad \text{or} \quad w(e) = f_{\text{cost}}(e) \tag{2}$$
 
 <p>where $\ell_e$ is the Euclidean length of the segment in map units, computed
 as the sum of distances between consecutive vertices along the polyline:</p>
-$$\ell_e = \sum_{t=1}^{k-1} \sqrt{(x_{t+1} - x_t)^2 + (y_{t+1} - y_t)^2} \tag{2}$$
+$$\ell_e = \sum_{t=1}^{k-1} \sqrt{(x_{t+1} - x_t)^2 + (y_{t+1} - y_t)^2} \tag{1}$$
 
 <p>When a cost field $f_{\text{cost}}(e)$ is provided (e.g. travel time in
 seconds), the edge weight becomes that field's value. This is critical for
@@ -1640,20 +1640,20 @@ length or a user-specified additive cost field). Each origin snap point is
 mapped to its nearest network node $n_i^O$; similarly each destination snap
 point maps to $n_j^D$. The many-to-many kernel then runs Dijkstra from each
 unique origin node, producing a full shortest-path tree per origin:</p>
-$$d_{net}(i,j) = \min_{\text{path}(n_i^O \to n_j^D)} \sum_{e \in \text{path}} w(e) \tag{6}$$
+$$d_{net}(i,j) = \min_{\text{path}(n_i^O \to n_j^D)} \sum_{e \in \text{path}} w(e) \tag{4}$$
 
 <p>The engine adds the straight-line snap distance $d_{snap}$ from the original
 point coordinates to the network node, so the total cost from origin geometry to
 destination geometry is:</p>
-$$D_{ij} = d_{snap}(O_i \to n_i^O) + d_{net}(n_i^O, n_j^D) + d_{snap}(n_j^D \to D_j) \tag{5}$$
+$$D_{ij} = d_{snap}(O_i \to n_i^O) + d_{net}(n_i^O, n_j^D) + d_{snap}(n_j^D \to D_j) \tag{3}$$
 
 <p><strong>Euclidean distance</strong> (as the crow flies) between the original
 point coordinates:</p>
-$$d_{euc}(i,j) = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2} \tag{4}$$
+$$d_{euc}(i,j) = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2} \tag{2}$$
 
 <p><strong>Detour ratio:</strong> the dimensionless measure of how much farther
 the network forces travel compared to the straight line:</p>
-$$detour(i,j) = \frac{D_{ij}}{d_{euc}(i,j)} \tag{3}$$
+$$detour(i,j) = \frac{D_{ij}}{d_{euc}(i,j)} \tag{1}$$
 
 <p><strong>Many-to-many computational kernel.</strong> The engine function
 <code>paths.many_to_many(indptr, adj, weights, n, sources, cutoff)</code>
@@ -8611,10 +8611,10 @@ different windows (morning peak, midday, evening, weekend) reveals whether a
 <p><strong>Departures per hour.</strong> For stop $s$ with $D_s$ departures
 counted in a window of duration $\Delta t = t_{\text{end}} - t_{\text{start}}$
 (in seconds):</p>
-$$f_s = \frac{D_s}{\Delta t / 3600} \quad [\text{departures/hour}] \tag{5}$$
+$$f_s = \frac{D_s}{\Delta t / 3600} \quad [\text{departures/hour}] \tag{3}$$
 
 <p><strong>Scheduled mean headway.</strong> The reciprocal, converted to minutes:</p>
-$$h_s = \frac{\Delta t}{60 \cdot \max(1, D_s)} \quad [\text{minutes}] \tag{4}$$
+$$h_s = \frac{\Delta t}{60 \cdot \max(1, D_s)} \quad [\text{minutes}] \tag{2}$$
 
 <p>When $D_s = 0$, $h_s = 0$ (no service — or more precisely, $h_s = \Delta t /
 60$, but the engine sets it to 0 as a "no service" sentinel). This is the
@@ -8625,7 +8625,7 @@ minutes.</p>
 
 <p><strong>Distinct routes.</strong> A route is counted if at least one of its
 trips departs the stop within the window:</p>
-$$R_s = \left| \{ route\_id : \exists trip \; \text{of this route serving} \; s \; \text{in window} \} \right| \tag{3}$$
+$$R_s = \left| \{ route\_id : \exists trip \; \text{of this route serving} \; s \; \text{in window} \} \right| \tag{1}$$
 
 <h3>Input Data Requirements</h3>
 <table>
