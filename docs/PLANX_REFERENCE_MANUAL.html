@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -8,91 +8,335 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" integrity="sha384-RBfDNmR6zZNB7EmvpBhOBWZvD5DKhBBEoa+MziNNEUkwu/jNBwR5Huohc2DZxOD" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js" integrity="sha384-cXBpxyeinC+PDNG+sVQHtB2Xar5HZnZajQIXR9KYdmflNziODmmsWtKyGYzh5cG" crossorigin="anonymous"></script>
 <style>
-  /* ============================================================
-     PlanX Reference Manual — Print-first CSS
-     ============================================================ */
+
+:root {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #555;
+  --accent: #13a0a0; --accent-dark: #0d7a7a; --accent-light: #e6f7f7;
+  --border: #ddd; --code-bg: #f5f7f7;
+  --sidebar-bg: #f0f4f4; --sidebar-fg: #333; --sidebar-active: #e6f7f7;
+  --table-stripe: #f9fbfb;
+  font-size: 11pt; line-height: 1.55;
+}
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #ffffff; --fg: #1a1a1a; --muted: #555;
-    --accent: #2c5f8a; --accent-light: #e8f0f8;
-    --border: #ddd; --code-bg: #f5f5f5;
-    --table-stripe: #f9f9f9;
-    --warn-bg: #fff8e6; --warn-border: #e6c300;
-    font-size: 11pt; line-height: 1.55;
+    --bg: #1a1a2e; --fg: #e0e0e0; --muted: #999;
+    --accent: #13a0a0; --accent-dark: #0d7a7a; --accent-light: #0d2a2a;
+    --border: #333; --code-bg: #1e2d3d;
+    --sidebar-bg: #16213e; --sidebar-fg: #ccc; --sidebar-active: #0d2a2a;
+    --table-stripe: #1a2a3a;
   }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #1a1a1a; --fg: #e0e0e0; --muted: #999;
-      --accent: #6baed6; --accent-light: #1e3040; --border: #444;
-      --code-bg: #2a2a2a; --table-stripe: #222; --warn-bg: #332; --warn-border: #665200; }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg); color: var(--fg); max-width: 52em;
-    margin: 0 auto; padding: 2em 1.5em 4em; }
-  h1 { font-size: 2.4em; margin: 0 0 .15em; color: var(--accent); }
-  h1.subtitle { font-size: 1.15em; font-weight: 400; color: var(--muted);
-    margin-bottom: 1.5em; }
-  h2 { font-size: 1.55em; margin: 2em 0 .5em; padding-bottom: .25em;
-    border-bottom: 2px solid var(--accent); color: var(--accent);
-    page-break-before: always; }
-  h3 { font-size: 1.2em; margin: 1.5em 0 .4em; color: var(--fg); }
-  h4 { font-size: 1.05em; margin: 1.2em 0 .3em; color: var(--muted); }
-  p, ul, ol { margin: .6em 0; }
-  ul, ol { padding-left: 1.8em; }
-  li { margin: .25em 0; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-    font-size: .9em; background: var(--code-bg); padding: .1em .3em;
-    border-radius: 3px; }
-  pre { background: var(--code-bg); padding: .8em 1em; border-radius: 4px;
-    overflow-x: auto; margin: .8em 0; font-size: .88em; }
-  table { width: 100%; border-collapse: collapse; margin: .8em 0;
-    font-size: .95em; }
-  th, td { text-align: left; padding: .45em .6em; border: 1px solid var(--border); }
-  th { background: var(--accent-light); font-weight: 600; }
-  tr:nth-child(even) td { background: var(--table-stripe); }
-  .note { background: var(--accent-light); border-left: 4px solid var(--accent);
-    padding: .6em 1em; margin: .8em 0; border-radius: 0 4px 4px 0; }
-  .warn { background: var(--warn-bg); border-left: 4px solid var(--warn-border);
-    padding: .6em 1em; margin: .8em 0; border-radius: 0 4px 4px 0; }
-  .ref { margin: .35em 0; padding-left: 1.5em; text-indent: -1.5em;
-    font-size: .93em; }
-  .ref .check { color: #2a8; font-weight: bold; }
-  .ref .no-doi { color: #c90; }
-  .eq { text-align: center; margin: 1em 0; }
-  .eq-num { float: right; color: var(--muted); }
-  #toc { background: var(--accent-light); padding: 1em 1.5em;
-    border-radius: 6px; margin: 2em 0; }
-  #toc h2 { border: none; margin-top: 0; page-break-before: auto; }
-  #toc ol { padding-left: 1.5em; }
-  #toc li { margin: .2em 0; }
-  #toc .toc-h2 { font-weight: 600; }
-  #toc .toc-h3 { padding-left: 1.5em; font-size: .93em; }
-  .page-break { page-break-before: always; }
-  .param-table td:first-child { font-family: monospace; font-weight: 600;
-    white-space: nowrap; }
-  .field-table td:first-child { font-family: monospace; white-space: nowrap; }
-  .cover { text-align: center; padding: 4em 0 2em; }
-  .cover h1 { font-size: 3em; margin-bottom: .2em; }
-  .cover .version { font-size: 1.2em; color: var(--muted); }
-  .cover .date { font-size: 1em; color: var(--muted); margin-top: 1em; }
-  .group-header { page-break-before: always; }
-  img.icon { vertical-align: middle; width: 24px; height: 24px; margin-right: 6px; }
-  sup { font-size: .8em; color: var(--accent); }
-  @media print {
-    body { font-size: 10pt; max-width: none; padding: 0; }
-    h2 { page-break-before: always; }
-    h3, h4 { page-break-after: avoid; }
-    table { page-break-inside: avoid; }
-    pre, .note, .warn { page-break-inside: avoid; }
-    .no-print { display: none; }
-    a { color: inherit; }
-    @page { margin: 2cm 2.2cm; }
-    @page :first { margin-top: 3cm; }
-  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg); color: var(--fg); display: flex; min-height: 100vh; }
+
+/* ── Sidebar ───────────────────────────────────────────────────── */
+#sidebar {
+  width: 300px; min-width: 300px; height: 100vh; position: sticky; top: 0;
+  background: var(--sidebar-bg); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden; z-index: 100;
+}
+#sidebar-header { padding: 16px 18px 8px; border-bottom: 1px solid var(--border); }
+#sidebar-header .logo { font-size: 1.4em; font-weight: 700; color: var(--accent); display: block; }
+#sidebar-header .subtitle { font-size: .78em; color: var(--muted); }
+#search-wrap { padding: 10px 14px; }
+#search {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: .9em; background: var(--bg); color: var(--fg); outline: none;
+}
+#search:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+#toc { flex: 1; overflow-y: auto; padding: 4px 0; list-style: none; }
+.toc-group { border-bottom: 1px solid var(--border); }
+.toc-group-btn {
+  display: block; width: 100%; text-align: left; padding: 8px 18px;
+  background: none; border: none; font-size: .88em; font-weight: 600;
+  color: var(--sidebar-fg); cursor: pointer;
+}
+.toc-group-btn:hover { background: var(--accent-light); }
+.toc-group-btn .arrow { font-size: .7em; transition: transform .2s; display: inline-block; }
+.toc-group-btn[aria-expanded="false"] .arrow { transform: rotate(-90deg); }
+.toc-algs { list-style: none; overflow: hidden; }
+.toc-algs li a {
+  display: block; padding: 4px 18px 4px 28px; font-size: .85em;
+  color: var(--sidebar-fg); text-decoration: none; border-left: 3px solid transparent;
+}
+.toc-algs li a:hover, .toc-algs li a.active { background: var(--accent-light); border-left-color: var(--accent); color: var(--accent-dark); }
+.toc-algs li a.hidden { display: none; }
+#sidebar-footer { padding: 10px 18px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+#sidebar-footer a { font-size: .82em; color: var(--muted); text-decoration: none; }
+#sidebar-footer a:hover { color: var(--accent); }
+
+/* ── Content ────────────────────────────────────────────────────── */
+#content { flex: 1; max-width: 52em; padding: 2em 2.5em 6em; overflow-y: auto; }
+h1 { font-size: 2.4em; margin: 0 0 .15em; color: var(--accent); }
+h1.subtitle { font-size: 1.15em; font-weight: 400; color: var(--muted); margin-bottom: 1.5em; }
+h2 { font-size: 1.55em; margin: 2em 0 .5em; padding-bottom: .25em;
+  border-bottom: 2px solid var(--accent); color: var(--accent-dark); }
+h3 { font-size: 1.2em; margin: 1.5em 0 .4em; }
+h4 { font-size: 1.05em; margin: 1.2em 0 .3em; color: var(--muted); }
+p, ul, ol { margin: .6em 0; }
+ul, ol { padding-left: 1.8em; }
+li { margin: .25em 0; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: .9em; background: var(--code-bg); padding: .1em .3em; border-radius: 3px; }
+pre { background: var(--code-bg); padding: .8em 1em; border-radius: 4px;
+  overflow-x: auto; margin: .8em 0; font-size: .88em; }
+table { width: 100%; border-collapse: collapse; margin: .8em 0; font-size: .95em; }
+th, td { text-align: left; padding: .45em .6em; border: 1px solid var(--border); }
+th { background: var(--accent-light); font-weight: 600; }
+tr:nth-child(even) td { background: var(--table-stripe); }
+.note { background: var(--accent-light); border-left: 4px solid var(--accent);
+  padding: .6em 1em; margin: .8em 0; border-radius: 0 4px 4px 0; }
+.warn { background: #fff8e6; border-left: 4px solid #e6c300;
+  padding: .6em 1em; margin: .8em 0; border-radius: 0 4px 4px 0; }
+@media (prefers-color-scheme: dark) { .warn { background: #332; border-left-color: #665200; } }
+.ref { margin: .35em 0; padding-left: 1.5em; text-indent: -1.5em; font-size: .93em; }
+.ref .check { color: #2a8; font-weight: bold; }
+.ref .no-doi { color: #c90; }
+.eq { text-align: center; margin: 1em 0; }
+.param-table td:first-child { font-family: monospace; font-weight: 600; white-space: nowrap; }
+.field-table td:first-child { font-family: monospace; white-space: nowrap; }
+.cover { text-align: center; padding: 4em 0 2em; }
+.cover h1 { font-size: 3em; margin-bottom: .2em; }
+.cover .version { font-size: 1.2em; color: var(--muted); }
+.cover .date { font-size: 1em; color: var(--muted); margin-top: 1em; }
+
+/* ── Back to top ────────────────────────────────────────────────── */
+#back-to-top {
+  position: fixed; bottom: 24px; right: 24px; width: 40px; height: 40px;
+  background: var(--accent); color: white; border: none; border-radius: 50%;
+  font-size: 1.3em; cursor: pointer; opacity: 0; transform: translateY(20px);
+  transition: opacity .2s, transform .2s; z-index: 200;
+}
+#back-to-top.visible { opacity: .85; transform: translateY(0); }
+#back-to-top:hover { opacity: 1; }
+
+/* ── Mobile ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  #sidebar { width: 100%; min-width: 0; height: auto; position: static; max-height: 40vh; }
+  #content { padding: 1em 1em 4em; }
+  #back-to-top { bottom: 12px; right: 12px; }
+}
+
+/* ── Print ──────────────────────────────────────────────────────── */
+@media print {
+  body { display: block; }
+  #sidebar, #back-to-top { display: none !important; }
+  #content { max-width: none; padding: 0; }
+  h2 { page-break-before: always; }
+  h3, h4 { page-break-after: avoid; }
+  table, pre, .note, .warn { page-break-inside: avoid; }
+  a { color: inherit; }
+  @page { margin: 2cm 2.2cm; }
+}
+
 </style>
 </head>
 <body>
+<nav id="sidebar">
+<div id="sidebar-header">
+<span class="logo">🏙️ PlanX</span>
+<span class="subtitle">Reference Manual</span>
+</div>
+<div id="search-wrap">
+<input type="text" id="search" placeholder="Search algorithms…" autocomplete="off">
+</div>
+<ul id="toc">
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 1. Network Analysis
+</button>
+<ul class="toc-algs">
+<li><a href="#linkcriticality" data-name="linkcriticality" data-display="link criticality (network robustness)">Link Criticality (Network Robustness)</a></li>
+<li><a href="#nearestfacility" data-name="nearestfacility" data-display="nearest facility allocation">Nearest Facility Allocation</a></li>
+<li><a href="#odmatrix" data-name="odmatrix" data-display="od cost matrix">OD Cost Matrix</a></li>
+<li><a href="#odroutes" data-name="odroutes" data-display="od routes (shortest paths)">OD Routes (Shortest Paths)</a></li>
+<li><a href="#preparenetwork" data-name="preparenetwork" data-display="prepare network">Prepare Network</a></li>
+<li><a href="#serviceareas" data-name="serviceareas" data-display="service areas (isochrones)">Service Areas (Isochrones)</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 2. Centrality & Space Syntax
+</button>
+<ul class="toc-algs">
+<li><a href="#networkcentrality" data-name="networkcentrality" data-display="network centrality">Network Centrality</a></li>
+<li><a href="#spacesyntax" data-name="spacesyntax" data-display="space syntax (segment angular analysis)">Space Syntax (Segment Angular Analysis)</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 3. Urban Morphology
+</button>
+<ul class="toc-algs">
+<li><a href="#buildingmetrics" data-name="buildingmetrics" data-display="building form metrics">Building Form Metrics</a></li>
+<li><a href="#spacematrix" data-name="spacematrix" data-display="spacematrix density">Spacematrix Density</a></li>
+<li><a href="#streetmorphology" data-name="streetmorphology" data-display="street network morphology">Street Network Morphology</a></li>
+<li><a href="#tessellation" data-name="tessellation" data-display="morphological tessellation">Morphological Tessellation</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 4. Accessibility
+</button>
+<ul class="toc-algs">
+<li><a href="#accessscore" data-name="accessscore" data-display="multi-amenity access score (15-minute city)">Multi-Amenity Access Score (15-Minute City)</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 5. Microclimate
+</button>
+<ul class="toc-algs">
+<li><a href="#airscreen" data-name="airscreen" data-display="air quality screening">Air Quality Screening</a></li>
+<li><a href="#annualsolar" data-name="annualsolar" data-display="annual solar potential (dsm)">Annual Solar Potential (DSM)</a></li>
+<li><a href="#frontalarea" data-name="frontalarea" data-display="frontal area index">Frontal Area Index</a></li>
+<li><a href="#heatriskgrid" data-name="heatriskgrid" data-display="heat island risk grid">Heat Island Risk Grid</a></li>
+<li><a href="#noisescreen" data-name="noisescreen" data-display="road noise screening">Road Noise Screening</a></li>
+<li><a href="#roademissions" data-name="roademissions" data-display="road emissions">Road Emissions</a></li>
+<li><a href="#shadowcasting" data-name="shadowcasting" data-display="shadow casting (dsm)">Shadow Casting (DSM)</a></li>
+<li><a href="#skyviewfactor" data-name="skyviewfactor" data-display="sky view factor (dsm)">Sky View Factor (DSM)</a></li>
+<li><a href="#solarirradiation" data-name="solarirradiation" data-display="solar irradiation (dsm)">Solar Irradiation (DSM)</a></li>
+<li><a href="#sunhours" data-name="sunhours" data-display="sun hours (dsm)">Sun Hours (DSM)</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 6. Plan Standards and QA
+</button>
+<ul class="toc-algs">
+<li><a href="#densitygrid" data-name="densitygrid" data-display="density grid">Density Grid</a></li>
+<li><a href="#facilityadequacy" data-name="facilityadequacy" data-display="facility adequacy (capacity + distance)">Facility Adequacy (Capacity + Distance)</a></li>
+<li><a href="#landusebalance" data-name="landusebalance" data-display="land-use balance (per-capita standards)">Land-Use Balance (Per-Capita Standards)</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 7. Reporting and Dashboard
+</button>
+<ul class="toc-algs">
+<li><a href="#democity" data-name="democity" data-display="generate demo city">Generate Demo City</a></li>
+<li><a href="#performancereport" data-name="performancereport" data-display="plan performance report (html)">Plan Performance Report (HTML)</a></li>
+<li><a href="#planaudit" data-name="planaudit" data-display="batch plan auditor">Batch Plan Auditor</a></li>
+<li><a href="#scenariocompare" data-name="scenariocompare" data-display="scenario compare (a/b)">Scenario Compare (A/B)</a></li>
+<li><a href="#scenariopipeline" data-name="scenariopipeline" data-display="scenario pipeline (luti-lite)">Scenario Pipeline (LUTI-lite)</a></li>
+<li><a href="#scenariorank" data-name="scenariorank" data-display="scenario ranking">Scenario Ranking</a></li>
+<li><a href="#scenariosnapshot" data-name="scenariosnapshot" data-display="scenario snapshot">Scenario Snapshot</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 8. Optimization
+</button>
+<ul class="toc-algs">
+<li><a href="#capacitatedallocation" data-name="capacitatedallocation" data-display="capacitated allocation (nearest with capacity)">Capacitated Allocation (Nearest with Capacity)</a></li>
+<li><a href="#capacitatedsiting" data-name="capacitatedsiting" data-display="capacitated facility siting">Capacitated Facility Siting</a></li>
+<li><a href="#facilitylocation" data-name="facilitylocation" data-display="facility location optimizer (coverage / p-median)">Facility Location Optimizer (Coverage / P-Median)</a></li>
+<li><a href="#landallocation" data-name="landallocation" data-display="land-use allocation optimizer">Land-Use Allocation Optimizer</a></li>
+<li><a href="#paretoallocation" data-name="paretoallocation" data-display="land-use pareto front">Land-Use Pareto Front</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 9. Equity
+</button>
+<ul class="toc-algs">
+<li><a href="#accessequity" data-name="accessequity" data-display="accessibility equity (gini / theil)">Accessibility Equity (Gini / Theil)</a></li>
+<li><a href="#equitycrosstab" data-name="equitycrosstab" data-display="demographic equity cross-tabs">Demographic Equity Cross-Tabs</a></li>
+<li><a href="#inequalitycurves" data-name="inequalitycurves" data-display="inequality curves (lorenz & atkinson)">Inequality Curves (Lorenz & Atkinson)</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 10. Walkability
+</button>
+<ul class="toc-algs">
+<li><a href="#routequality" data-name="routequality" data-display="pedestrian route quality">Pedestrian Route Quality</a></li>
+<li><a href="#streetcomfort" data-name="streetcomfort" data-display="street environment comfort">Street Environment Comfort</a></li>
+<li><a href="#walkability" data-name="walkability" data-display="walkability audit">Walkability Audit</a></li>
+<li><a href="#walkingslope" data-name="walkingslope" data-display="walking slope comfort">Walking Slope Comfort</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 11. Transit
+</button>
+<ul class="toc-algs">
+<li><a href="#gtfsimport" data-name="gtfsimport" data-display="gtfs import and service stats">GTFS Import and Service Stats</a></li>
+<li><a href="#transitaccess" data-name="transitaccess" data-display="transit travel-time access">Transit Travel-Time Access</a></li>
+<li><a href="#transitfrequency" data-name="transitfrequency" data-display="transit frequency map">Transit Frequency Map</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 12. Visibility
+</button>
+<ul class="toc-algs">
+<li><a href="#isovistfield" data-name="isovistfield" data-display="isovist field">Isovist Field</a></li>
+<li><a href="#viewshed" data-name="viewshed" data-display="viewshed (dsm)">Viewshed (DSM)</a></li>
+<li><a href="#visualexposure" data-name="visualexposure" data-display="visual exposure of landmarks">Visual Exposure of Landmarks</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 13. Population and Housing
+</button>
+<ul class="toc-algs">
+<li><a href="#housingneeds" data-name="housingneeds" data-display="housing needs assessment">Housing Needs Assessment</a></li>
+<li><a href="#popallocate" data-name="popallocate" data-display="allocate population growth">Allocate Population Growth</a></li>
+<li><a href="#populationprojection" data-name="populationprojection" data-display="population projection (cohort-component)">Population Projection (Cohort-Component)</a></li>
+<li><a href="#residentialcapacity" data-name="residentialcapacity" data-display="residential capacity">Residential Capacity</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 14. Green Infrastructure
+</button>
+<ul class="toc-algs">
+<li><a href="#greenaccess" data-name="greenaccess" data-display="green space access">Green Space Access</a></li>
+<li><a href="#greenconnectivity" data-name="greenconnectivity" data-display="urban green connectivity">Urban Green Connectivity</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 15. Urban Growth
+</button>
+<ul class="toc-algs">
+<li><a href="#growthsim" data-name="growthsim" data-display="urban growth simulation (ca)">Urban Growth Simulation (CA)</a></li>
+<li><a href="#landcoverchange" data-name="landcoverchange" data-display="land-cover change analysis">Land-Cover Change Analysis</a></li>
+<li><a href="#sprawlmetrics" data-name="sprawlmetrics" data-display="urban sprawl metrics">Urban Sprawl Metrics</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 16. Cycling
+</button>
+<ul class="toc-algs">
+<li><a href="#cyclingstress" data-name="cyclingstress" data-display="cycling stress (lts)">Cycling Stress (LTS)</a></li>
+<li><a href="#lowstressislands" data-name="lowstressislands" data-display="low-stress connectivity">Low-Stress Connectivity</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 17. Hazard Screening
+</button>
+<ul class="toc-algs">
+<li><a href="#floodexposure" data-name="floodexposure" data-display="flood exposure">Flood Exposure</a></li>
+<li><a href="#flowaccumulation" data-name="flowaccumulation" data-display="flow accumulation">Flow Accumulation</a></li>
+<li><a href="#handindex" data-name="handindex" data-display="hand and inundation">HAND and Inundation</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 18. Travel Demand
+</button>
+<ul class="toc-algs">
+<li><a href="#gravitymodel" data-name="gravitymodel" data-display="gravity distribution">Gravity Distribution</a></li>
+<li><a href="#modesplit" data-name="modesplit" data-display="mode split">Mode Split</a></li>
+<li><a href="#tripgeneration" data-name="tripgeneration" data-display="trip generation">Trip Generation</a></li>
+</ul></li>
+<li class="toc-group">
+<button class="toc-group-btn" aria-expanded="true">
+<span class="arrow">▼</span> 19. Seismic Risk
+</button>
+<ul class="toc-algs">
+<li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
+</ul></li>
+</ul>
+<div id="sidebar-footer">
+<a href="#appendix-a">📊 Symbolization</a>
+<a href="#appendix-b">📚 Bibliography</a>
+<a href="#appendix-c">📖 Glossary</a>
+</div>
+</nav>
+<main id="content">
+
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- COVER PAGE                                                         -->
@@ -112,57 +356,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- TABLE OF CONTENTS                                                  -->
 <!-- ═══════════════════════════════════════════════════════════════════ -->
-<nav id="toc">
-<h2>Table of Contents</h2>
-<ol>
-<li><span class="toc-h2"><a href="#how-to-use">How to Use This Manual</a></span></li>
-<li><span class="toc-h2"><a href="#introduction">Introduction to PlanX</a></span></li>
-<li><span class="toc-h2"><a href="#group1">1. Network Analysis</a></span>
-  <ol>
-  <li class="toc-h3"><a href="#alg-prepare-network">Prepare Network</a></li>
-  <li class="toc-h3"><a href="#alg-od-matrix">OD Cost Matrix</a></li>
-  <li class="toc-h3"><a href="#alg-od-routes">OD Routes (Shortest Paths)</a></li>
-  <li class="toc-h3"><a href="#alg-service-areas">Service Areas (Isochrones)</a></li>
-  <li class="toc-h3"><a href="#alg-nearest-facility">Nearest Facility Allocation</a></li>
-  <li class="toc-h3"><a href="#alg-link-criticality">Link Criticality (NRI)</a></li>
-  </ol>
-</li>
-<li><span class="toc-h2"><a href="#group2">2. Centrality &amp; Space Syntax</a></span>
-  <ol>
-  <li class="toc-h3"><a href="#alg-centrality">Network Centrality</a></li>
-  <li class="toc-h3"><a href="#alg-space-syntax">Space Syntax (Segment Angular Analysis)</a></li>
-  </ol>
-</li>
-<li><span class="toc-h2"><a href="#group3">3. Urban Morphology</a></span>
-  <ol>
-  <li class="toc-h3"><a href="#alg-building-metrics">Building Form Metrics</a></li>
-  <li class="toc-h3"><a href="#alg-tessellation">Morphological Tessellation</a></li>
-  <li class="toc-h3"><a href="#alg-spacematrix">Spacematrix Density</a></li>
-  <li class="toc-h3"><a href="#alg-street-morphology">Street Network Morphology</a></li>
-  </ol>
-</li>
-<li><span class="toc-h2"><a href="#group4">4. Accessibility</a></span></li>
-<li><span class="toc-h2"><a href="#group5">5. Microclimate</a></span></li>
-<li><span class="toc-h2"><a href="#group6">6. Plan Standards and QA</a></span></li>
-<li><span class="toc-h2"><a href="#group7">7. Reporting and Dashboard</a></span></li>
-<li><span class="toc-h2"><a href="#group8">8. Optimization</a></span></li>
-<li><span class="toc-h2"><a href="#group9">9. Equity</a></span></li>
-<li><span class="toc-h2"><a href="#group10">10. Walkability</a></span></li>
-<li><span class="toc-h2"><a href="#group11">11. Transit</a></span></li>
-<li><span class="toc-h2"><a href="#group12">12. Visibility</a></span></li>
-<li><span class="toc-h2"><a href="#group13">13. Population and Housing</a></span></li>
-<li><span class="toc-h2"><a href="#group14">14. Green Infrastructure</a></span></li>
-<li><span class="toc-h2"><a href="#group15">15. Urban Growth</a></span></li>
-<li><span class="toc-h2"><a href="#group16">16. Cycling</a></span></li>
-<li><span class="toc-h2"><a href="#group17">17. Hazard Screening</a></span></li>
-<li><span class="toc-h2"><a href="#group18">18. Travel Demand</a></span></li>
-<li><span class="toc-h2"><a href="#group19">19. Seismic Risk</a></span></li>
-<li><span class="toc-h2"><a href="#appendix-a">Appendix A: Data Sources Directory</a></span></li>
-<li><span class="toc-h2"><a href="#appendix-b">Appendix B: Symbolization Quick Reference</a></span></li>
-<li><span class="toc-h2"><a href="#appendix-c">Appendix C: Glossary</a></span></li>
-<li><span class="toc-h2"><a href="#appendix-d">Appendix D: Complete Bibliography</a></span></li>
-</ol>
-</nav>
+
 <div class="page-break"></div>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -308,7 +502,7 @@ costs.</p>
 <div class="page-break"></div>
 
 <!-- ALGORITHM 1: Prepare Network -->
-<h2 id="alg-prepare-network">Prepare Network</h2>
+<h2 id="preparenetwork">Prepare Network</h2>
 <p><strong>Processing ID:</strong> <code>planx:preparenetwork</code></p>
 
 <h3>Overview</h3>
@@ -458,7 +652,7 @@ once built, persists for centuries.</p>
 <div class="page-break"></div>
 
 <!-- ALGORITHM 7: Network Centrality -->
-<h2 id="alg-centrality">Network Centrality</h2>
+<h2 id="networkcentrality">Network Centrality</h2>
 <p><strong>Processing ID:</strong> <code>planx:networkcentrality</code></p>
 
 <h3>Overview</h3>
@@ -612,7 +806,7 @@ DOI: <a href="https://doi.org/10.1017/CBO9780511815478">10.1017/CBO9780511815478
 <div class="page-break"></div>
 
 <!-- ALGORITHM 8: Space Syntax -->
-<h2 id="alg-space-syntax">Space Syntax (Segment Angular Analysis)</h2>
+<h2 id="spacesyntax">Space Syntax (Segment Angular Analysis)</h2>
 <p><strong>Processing ID:</strong> <code>planx:spacesyntax</code></p>
 
 <h3>Overview</h3>
@@ -869,7 +1063,7 @@ DOI: <a href="https://doi.org/10.1068/b200029">10.1068/b200029</a>
 
 <!-- ALGORITHM 2: OD Cost Matrix -->
 <div class="page-break"></div>
-<h2 id="alg-od-matrix">OD Cost Matrix</h2>
+<h2 id="odmatrix">OD Cost Matrix</h2>
 <p><strong>Processing ID:</strong> <code>planx:odmatrix</code></p>
 
 <h3>Overview</h3>
@@ -992,7 +1186,7 @@ DOI: <a href="https://doi.org/10.1007/BF01386390">10.1007/BF01386390</a>
 
 <!-- ALGORITHM 3: OD Routes -->
 <div class="page-break"></div>
-<h2 id="alg-od-routes">OD Routes (Shortest Paths)</h2>
+<h2 id="odroutes">OD Routes (Shortest Paths)</h2>
 <p><strong>Processing ID:</strong> <code>planx:odroutes</code></p>
 
 <h3>Overview</h3>
@@ -1108,7 +1302,7 @@ superblock.</li>
 
 <!-- ALGORITHM 4: Service Areas -->
 <div class="page-break"></div>
-<h2 id="alg-service-areas">Service Areas (Isochrones)</h2>
+<h2 id="serviceareas">Service Areas (Isochrones)</h2>
 <p><strong>Processing ID:</strong> <code>planx:serviceareas</code></p>
 
 <h3>Overview</h3>
@@ -1242,7 +1436,7 @@ DOI: <a href="https://doi.org/10.1057/palgrave.udi.9000136">10.1057/palgrave.udi
 
 <!-- ALGORITHM 5: Nearest Facility -->
 <div class="page-break"></div>
-<h2 id="alg-nearest-facility">Nearest Facility Allocation</h2>
+<h2 id="nearestfacility">Nearest Facility Allocation</h2>
 <p><strong>Processing ID:</strong> <code>planx:nearestfacility</code></p>
 
 <h3>Overview</h3>
@@ -1355,7 +1549,7 @@ DOI: <a href="https://doi.org/10.1068/a300595">10.1068/a300595</a>
 
 <!-- ALGORITHM 6: Link Criticality -->
 <div class="page-break"></div>
-<h2 id="alg-link-criticality">Link Criticality (Network Robustness)</h2>
+<h2 id="linkcriticality">Link Criticality (Network Robustness)</h2>
 <p><strong>Processing ID:</strong> <code>planx:linkcriticality</code></p>
 
 <h3>Overview</h3>
@@ -1521,7 +1715,7 @@ the length-weighted quality score, and the low-score share — the difference
 between the shortest path and the pleasantest one.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-walkability">Walkability Audit</h2>
+<h2 id="walkability">Walkability Audit</h2>
 <p><strong>Processing ID:</strong> <code>planx:walkability</code></p>
 <h3>Overview</h3>
 <p>Scores every street segment <strong>0–100 for walkability</strong> using five classic ingredients from the walkability-index literature: intersection density (connectivity), land-use mix (normalised Shannon entropy of buffer areas), destination counts (POIs within radius), block length (mean street-segment length as a block-size proxy), and slope (segment gradient from an optional DEM). Each ingredient is normalised 0–100 with documented breakpoints; missing inputs are renormalised away so the tool degrades gracefully with partial data. The output is the definitive "existing conditions" exhibit for a pedestrian master plan.</p>
@@ -1645,18 +1839,56 @@ Methods and Applications.</em> Cambridge University Press.
 DOI: <a href="https://doi.org/10.1017/CBO9780511815478">10.1017/CBO9780511815478</a>
 <span class="check">✓✓✓</span></p>
 
-<script>
-  renderMathInElement(document.body, {
-    delimiters: [
-      {left: "$$", right: "$$", display: true},
-      {left: "$", right: "$", display: false},
-    ],
-    throwOnError: false
-  });
-</script>
+
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- GROUP 3: URBAN MORPHOLOGY                                           -->
 <!-- ═══════════════════════════════════════════════════════════════════ -->
+<span class="check">✓✓✓</span></p>
+
+<div class="page-break"></div>
+<h2 id="walkingslope">Walking Slope Comfort</h2>
+<p><strong>Processing ID:</strong> <code>planx:walkingslope</code></p>
+<h3>Overview</h3>
+<p>Profiles every street segment against a DEM to compute slope statistics, comfort classes, and direction-aware walking times using Tobler's hiking function: $v = 6 \cdot e^{-3.5|m+0.05|}$ km/h, peaking at −5% grade. For each segment: length-weighted mean and maximum slope, total climb/descent, forward and reverse travel times, and comfort class (1=Comfortable through 4=Severe). The output's <code>time_fwd_min</code> column serves as a slope-aware cost field for network routing tools.</p>
+<h3>Theoretical Background</h3>
+<p>Tobler's hiking function (Tobler, 1993) is the foundational empirical model of walking speed vs. slope. The function's asymmetry — downhill is faster than uphill — means catchment analysis ignoring slope direction systematically overestimates uphill catchments. Default comfort breakpoints: 5% (ADA accessible-route maximum), 8% (short-ramp standard), 12%+ (stairs-preferred).</p>
+<h3>Parameters</h3>
+<table class="param-table"><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>NETWORK</code></td><td>Vector (Line)</td><td>—</td><td>Street network. Projected CRS.</td></tr>
+<tr><td><code>DEM</code></td><td>Raster</td><td>—</td><td>Digital elevation model. Required.</td></tr>
+<tr><td><code>SAMPLE_STEP</code></td><td>Double</td><td>10.0</td><td>Profile sample spacing in metres.</td></tr>
+<tr><td><code>BREAKS</code></td><td>String</td><td>"5,8,12"</td><td>Comfort class mean |slope| % breakpoints.</td></tr></table>
+<h3>Output Description</h3>
+<table class="field-table"><tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>slope_pct</code></td><td>Double</td><td>Length-weighted mean absolute slope (%)</td></tr>
+<tr><td><code>max_pct</code></td><td>Double</td><td>Maximum absolute slope (%)</td></tr>
+<tr><td><code>climb_m</code></td><td>Double</td><td>Total vertical climb (m)</td></tr>
+<tr><td><code>descent_m</code></td><td>Double</td><td>Total vertical descent (m)</td></tr>
+<tr><td><code>time_fwd_min</code></td><td>Double</td><td>Forward travel time (min) — use as cost field for slope-aware routing</td></tr>
+<tr><td><code>time_rev_min</code></td><td>Double</td><td>Reverse travel time (min)</td></tr>
+<tr><td><code>comfort_class</code></td><td>Integer</td><td>1=Comfortable, 2=Moderate, 3=Steep, 4=Severe</td></tr>
+<tr><td><code>class_label</code></td><td>String</td><td>Human-readable comfort class</td></tr></table>
+<h3>Interpretation Guide</h3>
+<p>Feed <code>time_fwd_min</code> as the cost field into OD Matrix, Nearest Facility, or Service Areas for slope-aware catchments that price uphill walks honestly. Comfort class ≥ 3 segments are barrier locations breaking wheelchair/stroller continuity. Rank interventions by <code>climb_m × pedestrian_volume</code>.</p>
+<h3>Academic References</h3>
+<p class="ref">Tobler, W. (1993). "Three Presentations on Geographical Analysis and Modeling." <em>NCGIA Technical Report</em>, 93-1. <span class="no-doi">[no DOI]</span></p>
+
+<div class="page-break"></div>
+<h2 id="streetcomfort">Street Environment Comfort</h2>
+<p><strong>Processing ID:</strong> <code>planx:streetcomfort</code></p>
+<h3>Overview</h3>
+<p>Scores street segments 0–100 by aggregating kernel-density estimates of comfort assets (trees, benches, lighting) and barriers (potholes, blank walls), plus optional raster factors (sunlight, heat, noise). Each component is min-max normalised and orientation-flipped, combined into a weighted comfort index. Kernels: $K(u) = 1$ (Uniform), $1-u$ (Triangular), $1-u^2$ (Epanechnikov), $e^{-4.5u^2}$ (Gaussian), all truncated at bandwidth $h$. Bandwidth defines the perception radius — default 50 m (block scale).</p>
+<h3>Interpretation Guide</h3>
+<p>The comfort score is relative — calibrated to min/max within this network, not an absolute grade. Low comfort + high <code>neg_den</code> = barrier problem (fix potholes, activate blank walls). Low comfort + low <code>pos_den</code> = asset gap (add trees, benches, lights). Feed <code>comfort</code> into Pedestrian Route Quality as the custom score field for comfort-aware routing.</p>
+
+<div class="page-break"></div>
+<h2 id="routequality">Pedestrian Route Quality</h2>
+<p><strong>Processing ID:</strong> <code>planx:routequality</code></p>
+<h3>Overview</h3>
+<p>Routes pedestrians over quality-weighted streets and reports what the walk is actually like. Each segment's cost: $\ell_e \cdot (1 + p \cdot (100 - score)/100)$. With penalty $p=1$, a score-0 street counts double. For each OD pair: detour ratio (price of pleasantness), length-weighted mean walk score, and share of route on low-scoring segments. Pairing: nearest destination or all pairs.</p>
+<h3>Interpretation Guide</h3>
+<p><strong>detour ≈ 1.0:</strong> direct route already pleasant. <strong>detour ≥ 1.3:</strong> direct route so poor it's worth 30% more distance to escape — a strong indictment. <strong>low_share > 0.3 with detour ≈ 1.0:</strong> trapped — there IS no better alternative. This combination identifies missing-link investments better than either metric alone. Run home-to-school pairs and rank by <code>low_share</code> for Safe Routes to School prioritisation.</p>
+
 <div class="page-break"></div>
 <h2 id="group3" class="group-header">3. Urban Morphology</h2>
 <p>The Urban Morphology group quantifies the physical form of the city at three
@@ -1667,7 +1899,7 @@ as a cadastral proxy via Voronoi partitioning), and the <strong>block</strong>
 orientation entropy, meshedness indices, and junction typology).</p>
 
 <div class="page-break"></div>
-<h2 id="alg-building-metrics">Building Form Metrics</h2>
+<h2 id="buildingmetrics">Building Form Metrics</h2>
 <p><strong>Processing ID:</strong> <code>planx:buildingformmetrics</code></p>
 <h3>Overview</h3>
 <p>Computes 12 standard urban-morphology shape indicators for every building
@@ -1728,7 +1960,7 @@ semi-detached, &gt;0.3 = terraced/attached fabric.</p>
 <p class="ref">Toussaint, G.T. (1983). "Solving geometric problems with the rotating calipers." <em>Proceedings of IEEE MELECON '83</em>, Athens. <span class="no-doi">[no DOI]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-tessellation">Morphological Tessellation</h2>
+<h2 id="tessellation">Morphological Tessellation</h2>
 <p><strong>Processing ID:</strong> <code>planx:morphologicaltessellation</code></p>
 <h3>Overview</h3>
 <p>Partitions urban space into cells around buildings using the momepy method
@@ -1757,7 +1989,7 @@ then clipped: $\hat{T}_k = T_k \cap \text{mask}$.</p>
 <p class="ref">Fleischmann, M. (2019). "momepy: Urban Morphology Measuring Toolkit." <em>JOSS</em>, 4(43), 1807. DOI: <a href="https://doi.org/10.21105/joss.01807">10.21105/joss.01807</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-spacematrix">Spacematrix Density</h2>
+<h2 id="spacematrix">Spacematrix Density</h2>
 <p><strong>Processing ID:</strong> <code>planx:spacematrixdensity</code></p>
 <h3>Overview</h3>
 <p>Computes the Berghauser Pont &amp; Haupt Spacematrix indicators per block or
@@ -1790,7 +2022,7 @@ $\text{OSR} = (1-\text{GSI})/\text{FSI}$, $L = \text{FSI}/\text{GSI}$.</p>
 <p class="ref">Pont, M.B. &amp; Haupt, P. (2023). <em>Spacematrix: Space, Density and Urban Form</em> (Revised ed.). TU Delft OPEN Publishing. DOI: <a href="https://doi.org/10.59490/mg.38">10.59490/mg.38</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-street-morphology">Street Network Morphology</h2>
+<h2 id="streetmorphology">Street Network Morphology</h2>
 <p><strong>Processing ID:</strong> <code>planx:streetnetworkmorphology</code></p>
 <h3>Overview</h3>
 <p>Profiles a street network's structure in one pass: orientation entropy and
@@ -1815,7 +2047,7 @@ Ideal for comparing neighbourhoods or tracking plan iterations.</p>
 <h2 id="group4" class="group-header">4. Accessibility</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-access-score">Multi-Amenity Access Score (15-Minute City)</h2>
+<h2 id="accessscore">Multi-Amenity Access Score (15-Minute City)</h2>
 <p><strong>Processing ID:</strong> <code>planx:multiamentiyaccess</code></p>
 <h3>Overview</h3>
 <p>Scores every origin point (building, address, parcel centroid) on walkable
@@ -1857,7 +2089,7 @@ position model (±0.5° accuracy) and UMEP-style array-shifting shadow casts.
 These are <strong>screening tools</strong>, not regulatory compliance models.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-shadow">Shadow Casting (DSM)</h2>
+<h2 id="shadowcasting">Shadow Casting (DSM)</h2>
 <p><strong>Processing ID:</strong> <code>planx:shadowcasting</code></p>
 <h3>Overview</h3>
 <p>Casts building and terrain shadows from a DSM for any date and local clock
@@ -1883,7 +2115,7 @@ time using the UMEP iterative array-shifting method. Output: binary raster
 <p class="ref">Reda, I. &amp; Andreas, A. (2004). "Solar position algorithm for solar radiation applications." <em>Solar Energy</em>, 76(5), 577–589. DOI: <a href="https://doi.org/10.1016/j.solener.2003.12.003">10.1016/j.solener.2003.12.003</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-svf">Sky View Factor (DSM)</h2>
+<h2 id="skyviewfactor">Sky View Factor (DSM)</h2>
 <p><strong>Processing ID:</strong> <code>planx:skyviewfactor</code></p>
 <h3>Overview</h3>
 <p>Computes SVF — the fraction of visible sky hemisphere from each ground cell.
@@ -1904,7 +2136,7 @@ $\sin^2(\arctan t) = t^2/(1+t^2)$. Clipped to [0,1]. Johnson &amp; Watson (1984)
 <p class="ref">Johnson, G.T. &amp; Watson, I.D. (1984). "The Determination of View-Factors in Urban Canyons." <em>Journal of Climate and Applied Meteorology</em>, 23(2), 329–335. DOI: <a href="https://doi.org/10.1175/1520-0450(1984)023&lt;0329:TDOVFI&gt;2.0.CO;2">10.1175/1520-0450(1984)023&lt;0329:TDOVFI&gt;2.0.CO;2</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-fai">Frontal Area Index</h2>
+<h2 id="frontalarea">Frontal Area Index</h2>
 <p><strong>Processing ID:</strong> <code>planx:frontalareaindex</code></p>
 <h3>Overview</h3>
 <p>Computes $\lambda_f$ (frontal area index) and $\lambda_p$ (plan area index) per
@@ -1924,7 +2156,7 @@ $F_i = w_{proj} \cdot h_i$. Per cell: $\lambda_f = \sum F_i \cdot A_{i \cap c} /
 <p class="ref">Grimmond, C.S.B. &amp; Oke, T.R. (1999). "Aerodynamic Properties of Urban Areas Derived from Analysis of Surface Form." <em>Journal of Applied Meteorology</em>, 38(9), 1262–1292. DOI: <a href="https://doi.org/10.1175/1520-0450(1999)038&lt;1262:APOUAD&gt;2.0.CO;2">10.1175/1520-0450(1999)038&lt;1262:APOUAD&gt;2.0.CO;2</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-sun-hours">Sun Hours (DSM)</h2>
+<h2 id="sunhours">Sun Hours (DSM)</h2>
 <p><strong>Processing ID:</strong> <code>planx:sunhours</code></p>
 <h3>Overview</h3>
 <p>Computes hours of direct sunlight per DSM cell over one full day via repeated
@@ -1939,7 +2171,7 @@ Site potential daylight (unobstructed) reported in log for comparison.</p>
 <p>Always read hours relative to potential daylight in the log. Common regulatory thresholds: ~2 hours direct sun on Dec 21 or Mar 21 for habitable rooms; 4–6 hours for playgrounds. Run both winter AND summer: winter shows where sunlight is missing; summer shows where shade is missing. Roofs with &gt; 4–6 winter hours = good PV screening potential.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-solar-irr">Solar Irradiation (DSM)</h2>
+<h2 id="solarirradiation">Solar Irradiation (DSM)</h2>
 <p><strong>Processing ID:</strong> <code>planx:solarirradiation</code></p>
 <h3>Overview</h3>
 <p>Computes clear-sky global solar irradiation per cell for a single day in
@@ -1959,7 +2191,7 @@ shadowed cell gets only diffuse·SVF. Daily total: $\text{kWh/m}^2 = \frac{1}{10
 <p class="ref">Masters, G.M. (2004). <em>Renewable and Efficient Electric Power Systems</em>. Wiley. DOI: <a href="https://doi.org/10.1002/0471668826">10.1002/0471668826</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-annual-solar">Annual Solar Potential (DSM)</h2>
+<h2 id="annualsolar">Annual Solar Potential (DSM)</h2>
 <p><strong>Processing ID:</strong> <code>planx:annualsolar</code></p>
 <h3>Overview</h3>
 <p>Computes clear-sky global solar irradiation summed over a full year in
@@ -1982,7 +2214,7 @@ usable roof area × system factor (0.75–0.85) × cloud correction (0.5–0.7).
 <p class="ref">Klein, S.A. (1977). "Calculation of monthly average insolation on tilted surfaces." <em>Solar Energy</em>, 19(4), 325–329. DOI: <a href="https://doi.org/10.1016/0038-092X(77)90001-9">10.1016/0038-092X(77)90001-9</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-heat-risk">Heat Island Risk Grid</h2>
+<h2 id="heatriskgrid">Heat Island Risk Grid</h2>
 <p><strong>Processing ID:</strong> <code>planx:heatriskgrid</code></p>
 <h3>Overview</h3>
 <p>Screens for UHI risk on a regular grid using only building footprints, green
@@ -2002,7 +2234,7 @@ Mapped to 0–100 using fixed anchors (not data-driven). Risk classes: Low &lt;2
 <p class="ref">Oke, T.R. (1982). "The energetic basis of the urban heat island." <em>Quarterly Journal of the Royal Meteorological Society</em>, 108(455), 1–24. DOI: <a href="https://doi.org/10.1002/qj.49710845502">10.1002/qj.49710845502</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-noise">Road Noise Screening</h2>
+<h2 id="noisescreen">Road Noise Screening</h2>
 <p><strong>Processing ID:</strong> <code>planx:noisescreening</code></p>
 <h3>Overview</h3>
 <p>Screening-quality road traffic noise grid using RLS-90-style emission and
@@ -2018,7 +2250,7 @@ optional receiver-level assessment with population exposure bands.</p>
 <p class="ref">WHO (2018). <em>Environmental Noise Guidelines for the European Region</em>. WHO Regional Office for Europe. <span class="no-doi">[no DOI — institutional report]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-road-emissions">Road Emissions</h2>
+<h2 id="roademissions">Road Emissions</h2>
 <p><strong>Processing ID:</strong> <code>planx:roademissions</code></p>
 <h3>Overview</h3>
 <p>Calculates road segment emissions as $E = M_{daily} \cdot EF$ (g/km/day) from
@@ -2029,7 +2261,7 @@ input step for Air Quality Screening. Default EF = 0.5 g/km/veh (generic NOx pro
 <p>Emission ranks roads as sources, before any dispersion. The top decile of segments is where source-reduction measures act most effectively. When fleet-specific factors arrive (COPERT, local inventory), only this tool needs rerunning — downstream Air Quality Screening reuses the updated rates.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-air-screen">Air Quality Screening</h2>
+<h2 id="airscreen">Air Quality Screening</h2>
 <p><strong>Processing ID:</strong> <code>planx:airscreening</code></p>
 <h3>Overview</h3>
 <p>Screening-quality dispersion grid: road segments sampled as line-calibrated
@@ -2051,7 +2283,7 @@ places, compare scenarios, never check regulatory compliance.</p>
 <h2 id="group6" class="group-header">6. Plan Standards and QA</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-landuse-balance">Land-Use Balance</h2>
+<h2 id="landusebalance">Land-Use Balance</h2>
 <p><strong>Processing ID:</strong> <code>planx:landusebalance</code></p>
 <h3>Overview</h3>
 <p>Computes per-capita land-use balance against configurable standards (e.g.
@@ -2067,7 +2299,7 @@ Status: "Meets standard" if $B_c \geq 0$, "Deficit" if $B_c &lt; 0$, "No standar
 <p>Run with current AND horizon population. Categories flipping to "Deficit" identify the land reservations needed before demand materialises. "No standard" rows are warnings, not passes. City-wide averages hide spatial mismatch — pair with Facility Adequacy or Green Access to test reachability.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-facility-adequacy">Facility Adequacy</h2>
+<h2 id="facilityadequacy">Facility Adequacy</h2>
 <p><strong>Processing ID:</strong> <code>planx:facilityadequacy</code></p>
 <h3>Overview</h3>
 <p>Evaluates facilities along two dimensions simultaneously: spatial
@@ -2082,7 +2314,7 @@ capacity. Output: facility adequacy (with status) and demand coverage (covered/u
 <p class="ref">Church, R. &amp; ReVelle, C. (1974). "The maximal covering location problem." <em>Papers of the RSA</em>, 32(1), 101–118. DOI: <a href="https://doi.org/10.1007/BF01942293">10.1007/BF01942293</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-density-grid">Density Grid</h2>
+<h2 id="densitygrid">Density Grid</h2>
 <p><strong>Processing ID:</strong> <code>planx:densitygrid</code></p>
 <h3>Overview</h3>
 <p>Distributes a numeric value (population, dwellings, jobs) from source features
@@ -2109,7 +2341,7 @@ weighted composites, a one-click batch auditor, a deterministic demo city
 generator, and a LUTI-lite scenario pipeline.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-perf-report">Plan Performance Report (HTML)</h2>
+<h2 id="performancereport">Plan Performance Report (HTML)</h2>
 <p><strong>Processing ID:</strong> <code>planx:performancereport</code></p>
 <h3>Overview</h3>
 <p>Compiles multiple PlanX outputs into a self-contained HTML document with
@@ -2124,7 +2356,7 @@ scores. No external services or GIS needed to view the report.</p>
 <p class="ref">Tufte, E.R. (2001). <em>The Visual Display of Quantitative Information</em> (2nd ed.). Graphics Press. <span class="no-doi">[no DOI]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-scenario-compare">Scenario Compare (A/B)</h2>
+<h2 id="scenariocompare">Scenario Compare (A/B)</h2>
 <p><strong>Processing ID:</strong> <code>planx:scenariocompare</code></p>
 <h3>Overview</h3>
 <p>Metric-by-metric comparison of two scenario snapshots with direction-aware
@@ -2139,7 +2371,7 @@ the normal outcome is a trade-off profile.</p>
 <p>Do not stop at the win count. Use pct_change to judge materiality: &lt;1% = noise; double-digit = genuine decision. Missing metrics on one side usually mean one snapshot was evaluated with fewer PlanX tools — fix snapshots before concluding.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-scenario-rank">Scenario Ranking</h2>
+<h2 id="scenariorank">Scenario Ranking</h2>
 <p><strong>Processing ID:</strong> <code>planx:scenariorank</code></p>
 <h3>Overview</h3>
 <p>Ranks any number of snapshots using a weighted composite of direction-aware
@@ -2156,7 +2388,7 @@ $(\max - v_{k,s})/(\max - \min)$ for lower-better.</p>
 <p>Composite score is RELATIVE to the compared set. Rank ties = genuinely undistinguishable alternatives. Wins vs rank divergence: a balanced alternative ranks first with zero wins; specialists win metrics but score lower overall. Check skipped metrics list (neutral/not-shared/constant) before trusting ranking.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-scenario-snapshot">Scenario Snapshot</h2>
+<h2 id="scenariosnapshot">Scenario Snapshot</h2>
 <p><strong>Processing ID:</strong> <code>planx:scenariosnapshot</code></p>
 <h3>Overview</h3>
 <p>Captures plan score metrics from the current QGIS project into a structured
@@ -2171,7 +2403,7 @@ should end with a snapshot node.</p>
 <p class="ref">Baer, W.C. (1997). "General plan evaluation criteria." <em>Journal of the APA</em>, 63(3), 329–344. DOI: <a href="https://doi.org/10.1080/01944369708975926">10.1080/01944369708975926</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-plan-audit">Batch Plan Auditor</h2>
+<h2 id="planaudit">Batch Plan Auditor</h2>
 <p><strong>Processing ID:</strong> <code>planx:planaudit</code></p>
 <h3>Overview</h3>
 <p>Chains the standard evaluation battery in a single run: 15-minute access,
@@ -2183,7 +2415,7 @@ analyses needed. Output: scenario snapshot JSON + optional HTML report.</p>
 <p>Read the metric table as a triage list, worst first. The PPI is meaningful over iterations, weak as an absolute grade. Each headline number has a dedicated tool behind it — when a number looks wrong, run that tool alone and inspect its map. Audit every alternative with identical inputs and thresholds so snapshots are comparable.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-demo-city">Generate Demo City</h2>
+<h2 id="democity">Generate Demo City</h2>
 <p><strong>Processing ID:</strong> <code>planx:democity</code></p>
 <h3>Overview</h3>
 <p>Creates a complete, deterministic synthetic city: grid streets with a diagonal
@@ -2196,7 +2428,7 @@ bug reports.</p>
 <p>Nothing here is real — the town exists so every other tool has clean, compatible inputs. Use to LEARN a tool's outputs before trusting it on real data. When a tool misbehaves on your data but works on the demo city: the difference (CRS, noding, field types) is the diagnosis.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-scenario-pipeline">Scenario Pipeline (LUTI-lite)</h2>
+<h2 id="scenariopipeline">Scenario Pipeline (LUTI-lite)</h2>
 <p><strong>Processing ID:</strong> <code>planx:scenariopipeline</code></p>
 <h3>Overview</h3>
 <p>Chains urban growth simulation (CA), population allocation, and
@@ -2224,7 +2456,7 @@ compactness and adjacency terms, and a Pareto front tracer that maps the
 suitability-compactness trade-off.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-facility-location">Facility Location Optimizer</h2>
+<h2 id="facilitylocation">Facility Location Optimizer</h2>
 <p><strong>Processing ID:</strong> <code>planx:facilitylocation</code></p>
 <h3>Overview</h3>
 <p>Selects the best sites for new facilities among candidates on the real street
@@ -2245,7 +2477,7 @@ Run both — sites picked by BOTH are robust.</p>
 <p class="ref">Teitz, M.B. &amp; Bart, P. (1968). "Heuristic methods for estimating the generalized vertex median." <em>Operations Research</em>, 16(5), 955–961. DOI: <a href="https://doi.org/10.1287/opre.16.5.955">10.1287/opre.16.5.955</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-capacitated-alloc">Capacitated Allocation</h2>
+<h2 id="capacitatedallocation">Capacitated Allocation</h2>
 <p><strong>Processing ID:</strong> <code>planx:capacitatedallocation</code></p>
 <h3>Overview</h3>
 <p>Assigns demand to fixed facilities respecting capacity constraints. Demand sent
@@ -2260,7 +2492,7 @@ catchment. Points fitting nowhere remain uncovered. Demand status: "Assigned"
 <p class="ref">Daskin, M.S. (1995). <em>Network and Discrete Location</em>. Wiley. DOI: <a href="https://doi.org/10.1002/9781118032343">10.1002/9781118032343</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-land-alloc">Land-Use Allocation Optimizer</h2>
+<h2 id="landallocation">Land-Use Allocation Optimizer</h2>
 <p><strong>Processing ID:</strong> <code>planx:landuseallocation</code></p>
 <h3>Overview</h3>
 <p>Assigns a land use to each parcel maximising $w_{suit}\sum a_p \cdot S_{p,u} + \sum l_{pq} \cdot C_{u,v}$
@@ -2272,7 +2504,7 @@ Greedy construction + local search of reassignments and swaps.</p>
 <p>The map is a DRAFT ZONING PROPOSAL. Mean suitability per use shows the price of pattern: if residential averages 0.9 and industry 0.4, industry is being pushed onto land the evidence dislikes. Scattered parcels with compactness=0: honest suitability but poor zoning — raise compactness weight. Compare against the hand-drawn plan: parcels where they disagree deserve written justification.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-pareto">Land-Use Pareto Front</h2>
+<h2 id="paretoallocation">Land-Use Pareto Front</h2>
 <p><strong>Processing ID:</strong> <code>planx:paretoallocation</code></p>
 <h3>Overview</h3>
 <p>Maps the trade-off between suitability and compactness by solving the
@@ -2288,7 +2520,7 @@ knee (default), max suitability, max compactness.</p>
 <p class="ref">Deb, K. (2001). <em>Multi-Objective Optimization Using Evolutionary Algorithms</em>. Wiley. <span class="no-doi">[no DOI]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-capacitated-siting">Capacitated Facility Siting</h2>
+<h2 id="capacitatedsiting">Capacitated Facility Siting</h2>
 <p><strong>Processing ID:</strong> <code>planx:capacitatedsiting</code></p>
 <h3>Overview</h3>
 <p>Simultaneously selects sites and assigns demand under per-site capacity
@@ -2306,7 +2538,7 @@ uncovered demand. Siting AND sizing together.</p>
 <h2 id="group9" class="group-header">9. Equity</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-access-equity">Accessibility Equity (Gini / Theil)</h2>
+<h2 id="accessequity">Accessibility Equity (Gini / Theil)</h2>
 <p><strong>Processing ID:</strong> <code>planx:accessequity</code></p>
 <h3>Overview</h3>
 <p>Measures how fairly a per-unit value (access score, travel time) is distributed
@@ -2327,7 +2559,7 @@ income), the between-share answers the environmental-justice question.</p>
 <p class="ref">Shorrocks, A.F. (1980). "The class of additively decomposable inequality measures." <em>Econometrica</em>, 48(3), 613–625. DOI: <a href="https://doi.org/10.2307/1913126">10.2307/1913126</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-inequality-curves">Inequality Curves (Lorenz &amp; Atkinson)</h2>
+<h2 id="inequalitycurves">Inequality Curves (Lorenz &amp; Atkinson)</h2>
 <p><strong>Processing ID:</strong> <code>planx:inequalitycurves</code></p>
 <h3>Overview</h3>
 <p>Draws the Lorenz curve (cumulative population vs. cumulative value share) and
@@ -2347,7 +2579,7 @@ $A(\epsilon) = 1 - \text{EDE}/\mu$. <strong>Gini from Lorenz:</strong> $G = 1 - 
 <p class="ref">Atkinson, A.B. (1970). "On the measurement of inequality." <em>Journal of Economic Theory</em>, 2(3), 244–263. DOI: <a href="https://doi.org/10.1016/0022-0531(70)90039-6">10.1016/0022-0531(70)90039-6</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-equity-crosstab">Demographic Equity Cross-Tabs</h2>
+<h2 id="equitycrosstab">Demographic Equity Cross-Tabs</h2>
 <p><strong>Processing ID:</strong> <code>planx:equitycrosstab</code></p>
 <h3>Overview</h3>
 <p>Cross-tabulates a per-unit value by population subgroup. Value axis divided
@@ -2370,7 +2602,7 @@ Duncan dissimilarity index vs. the rest.</p>
 <h2 id="group11" class="group-header">11. Transit</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-gtfs-import">GTFS Import and Service Stats</h2>
+<h2 id="gtfsimport">GTFS Import and Service Stats</h2>
 <p><strong>Processing ID:</strong> <code>planx:gtfsimport</code></p>
 <h3>Overview</h3>
 <p>Loads a GTFS feed zip into QGIS: a stops point layer in WGS84 with daily
@@ -2382,7 +2614,7 @@ first active day. Times past midnight (25:10:00 = 90,600 s) are handled natively
 <p>Departure count is raw service presence — sort descending to identify true hubs. Stops with n_routes &gt; 1 form the transfer skeleton. Trips per route separates paper routes (4/day) from genuine service. Always verify stop locations against a basemap before downstream use — agency coordinate bugs are common.</p>
 
 <div class="page-break"></div>
-<h2 id="alg-transit-freq">Transit Frequency Map</h2>
+<h2 id="transitfrequency">Transit Frequency Map</h2>
 <p><strong>Processing ID:</strong> <code>planx:transitfrequency</code></p>
 <h3>Overview</h3>
 <p>Computes scheduled service intensity per stop within a time window on a single
@@ -2401,7 +2633,7 @@ $\text{headway\_min}_s = (t_{end}-t_{start}) / (60 \cdot \text{departures}_s)$ (
 <p class="ref">Walker, J. (2012). <em>Human Transit</em>. Island Press. <span class="no-doi">[no DOI]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-transit-access">Transit Travel-Time Access</h2>
+<h2 id="transitaccess">Transit Travel-Time Access</h2>
 <p><strong>Processing ID:</strong> <code>planx:transitaccess</code></p>
 <h3>Overview</h3>
 <p>Door-to-door travel times from origins to destinations using walking on street
@@ -2423,7 +2655,7 @@ via multi-source Dijkstra. Output: walk_min, transit_min, best_min, saved_min, m
 <h2 id="group12" class="group-header">12. Visibility</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-viewshed">Viewshed (DSM)</h2>
+<h2 id="viewshed">Viewshed (DSM)</h2>
 <p><strong>Processing ID:</strong> <code>planx:viewshed</code></p>
 <h3>Overview</h3>
 <p>Computes visibility-count raster from observer points over a DSM. Azimuth rays
@@ -2438,7 +2670,7 @@ horizon (Fisher, 1993). Output: integer count of observers seeing each cell.</p>
 <p class="ref">Fisher, P.F. (1993). "Algorithm and implementation uncertainty in viewshed analysis." <em>IJGIS</em>, 7(4), 331–347. DOI: <a href="https://doi.org/10.1080/02693799308901965">10.1080/02693799308901965</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-isovist">Isovist Field</h2>
+<h2 id="isovistfield">Isovist Field</h2>
 <p><strong>Processing ID:</strong> <code>planx:isovistfield</code></p>
 <h3>Overview</h3>
 <p>Samples a point grid over open space and computes isovist measures per point:
@@ -2454,7 +2686,7 @@ blocked or max distance reached.</p>
 <p class="ref">Benedikt, M.L. (1979). "To Take Hold of Space: Isovists and Isovist Fields." <em>Environment and Planning B</em>, 6(1), 47–65. DOI: <a href="https://doi.org/10.1068/b060047">10.1068/b060047</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-visual-exposure">Visual Exposure of Landmarks</h2>
+<h2 id="visualexposure">Visual Exposure of Landmarks</h2>
 <p><strong>Processing ID:</strong> <code>planx:visualexposure</code></p>
 <h3>Overview</h3>
 <p>Inverse viewshed: from where can a landmark be seen? Samples landmark polygon
@@ -2476,7 +2708,7 @@ standard input for skyline and heritage impact assessment.</p>
 <h2 id="group13" class="group-header">13. Population and Housing</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-pop-projection">Population Projection (Cohort-Component)</h2>
+<h2 id="populationprojection">Population Projection (Cohort-Component)</h2>
 <p><strong>Processing ID:</strong> <code>planx:populationprojection</code></p>
 <h3>Overview</h3>
 <p>Projects an age-structured population forward using the Leslie (1945) matrix:
@@ -2495,7 +2727,7 @@ with $f_a$ on row 0, $s_a$ on sub-diagonal, $s_{k-1}$ on bottom-right diagonal.<
 <p class="ref">Leslie, P.H. (1945). "On the Use of Matrices in Certain Population Mathematics." <em>Biometrika</em>, 33(3), 183–212. DOI: <a href="https://doi.org/10.1093/biomet/33.3.183">10.1093/biomet/33.3.183</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-housing-needs">Housing Needs Assessment</h2>
+<h2 id="housingneeds">Housing Needs Assessment</h2>
 <p><strong>Processing ID:</strong> <code>planx:housingneeds</code></p>
 <h3>Overview</h3>
 <p>Computes additional dwellings needed by the horizon year: horizon population ÷
@@ -2513,7 +2745,7 @@ auditability.</p>
 <p class="ref">Liu, J., Daily, G.C., Ehrlich, P.R., &amp; Luck, G.W. (2003). "Effects of household dynamics on resource consumption." <em>Nature</em>, 421, 530–533. DOI: <a href="https://doi.org/10.1038/nature01359">10.1038/nature01359</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-res-capacity">Residential Capacity</h2>
+<h2 id="residentialcapacity">Residential Capacity</h2>
 <p><strong>Processing ID:</strong> <code>planx:residentialcapacity</code></p>
 <h3>Overview</h3>
 <p>Computes remaining dwelling-unit capacity per parcel under current zoning:
@@ -2528,7 +2760,7 @@ parcel capacity and optional district roll-up.</p>
 <p class="ref">Bibby, P., Henneberry, J., &amp; Halleux, J.-M. (2020). "Under the radar? 'Soft' residential densification." <em>EPB: Urban Analytics</em>, 47(1), 102–118. DOI: <a href="https://doi.org/10.1177/2399808318772842">10.1177/2399808318772842</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-pop-allocate">Allocate Population Growth</h2>
+<h2 id="popallocate">Allocate Population Growth</h2>
 <p><strong>Processing ID:</strong> <code>planx:popallocate</code></p>
 <h3>Overview</h3>
 <p>Distributes a population increment across parcels using largest-remainder
@@ -2546,7 +2778,7 @@ summation. Weights from capacity field, custom field, or uniform.</p>
 <h2 id="group14" class="group-header">14. Green Infrastructure</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-green-access">Green Space Access</h2>
+<h2 id="greenaccess">Green Space Access</h2>
 <p><strong>Processing ID:</strong> <code>planx:greenaccess</code></p>
 <h3>Overview</h3>
 <p>Evaluates whether every demand point can reach green spaces of different size
@@ -2562,7 +2794,7 @@ ok flag, classes met count, and population-coverage summary per class.</p>
 <p class="ref">Higgs, G., Fry, R., &amp; Langford, M. (2012). "Investigating the implications of using alternative GIS-based techniques to measure accessibility to green space." <em>Environment and Planning B</em>, 39(2), 326–343. DOI: <a href="https://doi.org/10.1068/b37130">10.1068/b37130</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-green-connectivity">Urban Green Connectivity</h2>
+<h2 id="greenconnectivity">Urban Green Connectivity</h2>
 <p><strong>Processing ID:</strong> <code>planx:greenconnectivity</code></p>
 <h3>Overview</h3>
 <p>Evaluates the green network as a connected system. Two patches linked when
@@ -2584,7 +2816,7 @@ lost if the patch is removed.</p>
 <h2 id="group15" class="group-header">15. Urban Growth</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-landcover-change">Land-Cover Change Analysis</h2>
+<h2 id="landcoverchange">Land-Cover Change Analysis</h2>
 <p><strong>Processing ID:</strong> <code>planx:landcoverchange</code></p>
 <h3>Overview</h3>
 <p>Cross-tabulates two integer-class rasters cell-by-cell to produce the classic
@@ -2605,7 +2837,7 @@ Area: $\text{area\_ha} = \text{cells} \times \text{pixel}^2 / 10000$.</p>
 <p class="ref">Pontius, R.G., Shusas, E., &amp; McEachern, M. (2004). "Detecting important categorical land changes." <em>Agriculture, Ecosystems &amp; Environment</em>, 101(2–3), 251–268. DOI: <a href="https://doi.org/10.1016/j.agee.2003.09.008">10.1016/j.agee.2003.09.008</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-growth-sim">Urban Growth Simulation (CA)</h2>
+<h2 id="growthsim">Urban Growth Simulation (CA)</h2>
 <p><strong>Processing ID:</strong> <code>planx:growthsim</code></p>
 <h3>Overview</h3>
 <p>Constrained cellular automaton in the SLEUTH tradition (Clarke &amp; Gaydos,
@@ -2622,7 +2854,7 @@ of order $10^{-9}$). Output: year-of-conversion raster (0 = initial urban, 1,2,�
 <p class="ref">Clarke, K.C. &amp; Gaydos, L.J. (1998). "Loose-coupling a cellular automaton model and GIS." <em>IJGIS</em>, 12(7), 699–714. DOI: <a href="https://doi.org/10.1080/136588198241617">10.1080/136588198241617</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-sprawl-metrics">Urban Sprawl Metrics</h2>
+<h2 id="sprawlmetrics">Urban Sprawl Metrics</h2>
 <p><strong>Processing ID:</strong> <code>planx:sprawlmetrics</code></p>
 <h3>Overview</h3>
 <p>Computes SDG Indicator 11.3.1 — the Land Consumption Rate to Population Growth
@@ -2648,7 +2880,7 @@ $\text{LCRPGR} = \text{LCR}/\text{PGR}$ (NaN if PGR=0).
 <h2 id="group16" class="group-header">16. Cycling</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-cycling-stress">Cycling Stress (LTS)</h2>
+<h2 id="cyclingstress">Cycling Stress (LTS)</h2>
 <p><strong>Processing ID:</strong> <code>planx:cyclingstress</code></p>
 <h3>Overview</h3>
 <p>Classifies every street segment LTS 1–4 using a simplified Mekuria/Furth
@@ -2664,7 +2896,7 @@ LTS class, label, segment length, and attribute values actually used.</p>
 <p class="ref">Mekuria, M.C., Furth, P.G., &amp; Nixon, H. (2012). <em>Low-Stress Bicycling and Network Connectivity</em>. Mineta Transportation Institute. <span class="no-doi">[no DOI]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-low-stress">Low-Stress Connectivity</h2>
+<h2 id="lowstressislands">Low-Stress Connectivity</h2>
 <p><strong>Processing ID:</strong> <code>planx:lowstressislands</code></p>
 <h3>Overview</h3>
 <p>Drops all segments above a chosen LTS threshold and finds connected cycling
@@ -2683,7 +2915,7 @@ islands that contain at least one destination.</p>
 <h2 id="group17" class="group-header">17. Hazard Screening</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-flow-accum">Flow Accumulation</h2>
+<h2 id="flowaccumulation">Flow Accumulation</h2>
 <p><strong>Processing ID:</strong> <code>planx:flowaccumulation</code></p>
 <h3>Overview</h3>
 <p>Three foundational hydrological rasters from a DEM: depression-filled DEM
@@ -2705,7 +2937,7 @@ slope neighbour (E=1, SE=2, S=4, SW=8, W=16, NW=32, N=64, NE=128, 0=flat).
 <p class="ref">Jenson, S.K. &amp; Domingue, J.O. (1988). "Extracting topographic structure." <em>PE&amp;RS</em>, 54(11), 1593–1600. <span class="no-doi">[no DOI]</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-hand">HAND and Inundation</h2>
+<h2 id="handindex">HAND and Inundation</h2>
 <p><strong>Processing ID:</strong> <code>planx:handindex</code></p>
 <h3>Overview</h3>
 <p>Height Above Nearest Drainage: vertical distance from each cell to the nearest
@@ -2725,7 +2957,7 @@ drainage cell downstream. Inundation: $\mathbf{1}[\text{HAND}(r,c) \leq \text{de
 <p class="ref">Renno, C.D., et al. (2008). "HAND, a new terrain descriptor using SRTM-DEM." <em>Remote Sensing of Environment</em>, 112(9), 3469–3481. DOI: <a href="https://doi.org/10.1016/j.rse.2008.03.018">10.1016/j.rse.2008.03.018</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-flood-exposure">Flood Exposure</h2>
+<h2 id="floodexposure">Flood Exposure</h2>
 <p><strong>Processing ID:</strong> <code>planx:floodexposure</code></p>
 <h3>Overview</h3>
 <p>Intersects a binary inundation mask with building centroids and/or
@@ -2743,7 +2975,7 @@ with wet/dry status. Run once per depth scenario to build up the exposure curve.
 <h2 id="group18" class="group-header">18. Travel Demand</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-trip-gen">Trip Generation</h2>
+<h2 id="tripgeneration">Trip Generation</h2>
 <p><strong>Processing ID:</strong> <code>planx:tripgeneration</code></p>
 <h3>Overview</h3>
 <p>Step 1 of the four-step travel demand model. Linear trip generation:
@@ -2758,7 +2990,7 @@ diagnosis: P≫A = dormitory; A≫P = employment core; P~A = balanced.</p>
 <p class="ref">Ortúzar, J. de D. &amp; Willumsen, L.G. (2011). <em>Modelling Transport</em> (4th ed.). Wiley. DOI: <a href="https://doi.org/10.1002/9781119993308">10.1002/9781119993308</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-gravity">Gravity Distribution</h2>
+<h2 id="gravitymodel">Gravity Distribution</h2>
 <p><strong>Processing ID:</strong> <code>planx:gravitymodel</code></p>
 <h3>Overview</h3>
 <p>Step 2: doubly constrained (Furness/IPF) gravity model over network-computed
@@ -2778,7 +3010,7 @@ Convergence: $\max(|\sum_j T_{ij} - P_i|, |\sum_i T_{ij} - A_j|) &lt; \text{tol}
 <p class="ref">Wilson, A.G. (1967). "A statistical theory of spatial distribution models." <em>Transportation Research</em>, 1(3), 253–269. DOI: <a href="https://doi.org/10.1016/0041-1647(67)90035-4">10.1016/0041-1647(67)90035-4</a> <span class="check">✓✓✓</span></p>
 
 <div class="page-break"></div>
-<h2 id="alg-mode-split">Mode Split</h2>
+<h2 id="modesplit">Mode Split</h2>
 <p><strong>Processing ID:</strong> <code>planx:modesplit</code></p>
 <h3>Overview</h3>
 <p>Step 3: multinomial logit mode choice (McFadden, 1974). For each OD pair:
@@ -2799,7 +3031,7 @@ $F_k = P_k \cdot F_{total}$. Log-sum-exp stabilisation prevents overflow.</p>
 <h2 id="group19" class="group-header">19. Seismic Risk</h2>
 
 <div class="page-break"></div>
-<h2 id="alg-seismic">Seismic Collapse and Debris Spread (Monte Carlo)</h2>
+<h2 id="seismicdebris">Seismic Collapse and Debris Spread (Monte Carlo)</h2>
 <p><strong>Processing ID:</strong> <code>planx:seismicdebris</code></p>
 <h3>Overview</h3>
 <p>Screening-quality Monte Carlo model for earthquake-induced building collapse,
@@ -2920,6 +3152,77 @@ where $p_{base} = 0.85$ (≤1985), 0.60 (≤2000), 0.25 (≤2018), 0.05 (later).
   Covering PlanX v4.10.1 &middot; 69 Algorithms &middot; 19 Tool Groups &middot; August 2026</em>
 </p>
 
+
+</main>
+<button id="back-to-top" title="Back to top">↑</button>
+<script>
+
+// ── Sidebar TOC collapse ──────────────────────────────────────────
+document.querySelectorAll('.toc-group-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', !expanded);
+  });
+});
+
+// ── Search ────────────────────────────────────────────────────────
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', () => {
+  const query = searchInput.value.toLowerCase().trim();
+  document.querySelectorAll('.toc-algs li a').forEach(link => {
+    const name = (link.dataset.name || '').toLowerCase();
+    const display = (link.dataset.display || '').toLowerCase();
+    const match = !query || name.includes(query) || display.includes(query);
+    link.classList.toggle('hidden', !match);
+  });
+  // Auto-expand groups with visible children
+  document.querySelectorAll('.toc-group').forEach(group => {
+    const visible = group.querySelectorAll('.toc-algs li a:not(.hidden)');
+    const btn = group.querySelector('.toc-group-btn');
+    if (query && visible.length > 0) btn.setAttribute('aria-expanded', 'true');
+  });
+});
+// Ctrl+K / Cmd+K to focus search
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+  }
+});
+
+// ── Active section tracking ───────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('#toc a').forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`#toc a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+document.querySelectorAll('#content h2[id]').forEach(h2 => observer.observe(h2));
+
+// ── Back to top ───────────────────────────────────────────────────
+const btt = document.getElementById('back-to-top');
+window.addEventListener('scroll', () => {
+  btt.classList.toggle('visible', window.scrollY > 400);
+});
+btt.addEventListener('click', () => {
+  document.getElementById('content').scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+</script>
+<script>
+  renderMathInElement(document.getElementById('content'), {
+    delimiters: [
+      {left: "$$", right: "$$", display: true},
+      {left: "$", right: "$", display: false},
+    ],
+    throwOnError: false
+  });
+</script>
 </body>
 </html>
-

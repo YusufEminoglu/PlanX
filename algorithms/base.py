@@ -18,6 +18,7 @@ from qgis.core import (
 )
 
 PLUGIN_DIR = os.path.dirname(os.path.dirname(__file__))
+DOC_BASE_URL = "https://yusufeminoglu.github.io/PlanX/PLANX_REFERENCE_MANUAL.html"
 
 GROUP_NETWORK = ("Network Analysis", "network")
 GROUP_CENTRALITY = ("Centrality and Space Syntax", "centrality")
@@ -65,7 +66,7 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
         return self.GROUP[1]
 
     def helpUrl(self) -> str:
-        return "https://github.com/YusufEminoglu/PlanX"
+        return DOC_BASE_URL + "#" + self.name()
 
     # ------------------------------------------------------------------ #
     # Geometry helpers
