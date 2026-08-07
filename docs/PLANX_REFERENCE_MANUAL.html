@@ -5,8 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PlanX — Comprehensive Academic Reference Manual</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"></script>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$']],
+    displayMath: [['$$', '$$']],
+    tags: 'ams',
+    macros: {
+      arg: '\\mathop{\\mathrm{arg}}\\nolimits',
+      min: '\\mathop{\\mathrm{min}}\\nolimits',
+      max: '\\mathop{\\mathrm{max}}\\nolimits',
+    }
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+    ignoreHtmlClass: 'no-math'
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
 
 :root {
@@ -398,7 +415,7 @@ conference proceedings or journals that do not assign DOIs are marked
 <li><code>monospace</code> — parameter names, field names, code identifiers</li>
 <li><strong>bold</strong> — key concepts on first introduction</li>
 <li><em>italic</em> — journal names, book titles, emphasis</li>
-<li>Math is rendered with KaTeX: $E = mc^2$ for inline, $$E = mc^2 \tag{1}$$ for display</li>
+<li>Math is rendered with MathJax: $E = mc^2$ for inline, $$E = mc^2 \tag{1}$$ for display</li>
 </ul>
 
 <div class="note"><strong>Note on CRS.</strong> Unless otherwise stated, all tools that
@@ -3214,27 +3231,6 @@ btt.addEventListener('click', () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-</script>
-<script>
-(function() {
-  var content = document.getElementById('content');
-  if (!content) return;
-  try {
-    renderMathInElement(content, {
-      delimiters: [
-        {left: "$$", right: "$$", display: true},
-        {left: "$", right: "$", display: false},
-      ],
-      throwOnError: false,
-      errorCallback: function(msg, err) {
-        console.warn('KaTeX error:', msg, err);
-      }
-    });
-    console.log('KaTeX rendered ' + content.querySelectorAll('.katex').length + ' equations');
-  } catch(e) {
-    console.error('KaTeX render failed:', e);
-  }
-})();
 </script>
 </body>
 </html>
