@@ -20,13 +20,12 @@ PLUGIN_DIR = os.path.dirname(__file__)
 
 
 class PlanX:
-    """Plugin entry: Processing provider + PlanX menu + Studio dock."""
+    """Plugin entry: Processing provider + one-click Studio toolbar dock."""
 
     def __init__(self, iface):
         self.iface = iface
         self.provider = None
         self.dock = None
-        self.dashboard = None
         self.actions = []
 
     # ------------------------------------------------------------------ #
@@ -41,39 +40,24 @@ class PlanX:
         icon = QIcon(os.path.join(PLUGIN_DIR, "icons", "icon.png"))
         action = QAction(icon, "PlanX Studio", self.iface.mainWindow())
         action.setToolTip("Open the PlanX Urban Analytics Studio panel")
-        action.triggered.connect(self.toggle_dock)
-        self.iface.addPluginToMenu("PlanX", action)
+        action.triggered.connect(self.open_dock)
         self.iface.addToolBarIcon(action)
         self.actions.append(action)
 
-        dash_icon_path = os.path.join(PLUGIN_DIR, "icons", "tool_performancereport.png")
-        dash_icon = QIcon(dash_icon_path) if os.path.exists(dash_icon_path) else icon
-        dash_action = QAction(dash_icon, "Plan Dashboard", self.iface.mainWindow())
-        dash_action.setToolTip("Live plan score cards + one-click HTML "
-                               "Plan Performance Report")
-        dash_action.triggered.connect(self.toggle_dashboard)
-        self.iface.addPluginToMenu("PlanX", dash_action)
-        self.actions.append(dash_action)
-
     def unload(self):
         for action in self.actions:
-            self.iface.removePluginMenu("PlanX", action)
             self.iface.removeToolBarIcon(action)
         self.actions = []
         if self.dock is not None:
             self.iface.removeDockWidget(self.dock)
             self.dock.deleteLater()
             self.dock = None
-        if self.dashboard is not None:
-            self.iface.removeDockWidget(self.dashboard)
-            self.dashboard.deleteLater()
-            self.dashboard = None
         if self.provider is not None:
             QgsApplication.processingRegistry().removeProvider(self.provider)
             self.provider = None
 
     # ------------------------------------------------------------------ #
-    def toggle_dock(self):
+    def open_dock(self):
         if self.dock is None:
             try:
                 from .studio_dock import PlanXStudioDock
@@ -82,20 +66,6 @@ class PlanX:
             except Exception as exc:  # never break the plugin over the dock
                 self.iface.messageBar().pushWarning("PlanX", f"Studio panel unavailable: {exc}")
                 return
-        self.dock.setVisible(not self.dock.isVisible())
-
-    def toggle_dashboard(self):
-        if self.dashboard is None:
-            try:
-                from .dashboard_dock import PlanXDashboardDock
-                self.dashboard = PlanXDashboardDock(self.iface)
-                self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
-                                         self.dashboard)
-            except Exception as exc:  # never break the plugin over the dock
-                self.iface.messageBar().pushWarning(
-                    "PlanX", f"Dashboard unavailable: {exc}")
-                return
-        else:
-            self.dashboard.setVisible(not self.dashboard.isVisible())
-            if self.dashboard.isVisible():
-                self.dashboard.refresh()
+        self.dock.show()
+        self.dock.raise_()
+        self.dock.activateWindow()

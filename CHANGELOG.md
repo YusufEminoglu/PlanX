@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.10.6] - 2026-08-09
+
+- Open PlanX Studio from the single toolbar icon and remove the separate `Plugins > PlanX` menu entry.
+- Move the Plan Dashboard workflow into the `Plan Dashboard & Performance Report (HTML)` Processing tool instead of a separate dashboard dock.
+
 ## [4.10.5] - 2026-08-07
 
 - Added online user manual link (https://yusufeminoglu.github.io/PlanX/) and GitHub repository star call-to-action.

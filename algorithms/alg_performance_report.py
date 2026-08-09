@@ -60,11 +60,11 @@ class PlanPerformanceReportAlgorithm(PlanXAlgorithm):
         return "performancereport"
 
     def displayName(self):
-        return self.tr("Plan Performance Report (HTML)")
+        return self.tr("Plan Dashboard & Performance Report (HTML)")
 
     def shortHelpString(self):
         return self.tr(
-            "Builds a single-file HTML 'Plan Performance Report' from the "
+            "Builds a single-file HTML 'Plan Dashboard & Performance Report' from the "
             "outputs of the other PlanX tools - score cards, charts and "
             "compliance tables, ready to share with stakeholders. No "
             "external services: charts are inline SVG drawn by the "
@@ -77,8 +77,8 @@ class PlanPerformanceReportAlgorithm(PlanXAlgorithm):
             "- Facility adequacy + demand coverage: outputs of Facility "
             "Adequacy - utilization table and the covered-population card;\n"
             "- Density grid: output of Density Grid - density summary.\n\n"
-            "The same cards are shown live in the PlanX Dashboard dock "
-            "(PlanX menu > Plan Dashboard).\n\n"
+            "Run this tool from the PlanX Studio toolbar panel or the Processing "
+            "toolbox. It is the dashboard workflow without a separate dock.\n\n"
             "How to read the results\n"
             "- The Plan Performance Index (PPI) is the unweighted mean of "
             "the section scores (access mean, standards compliance, "
