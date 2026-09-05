@@ -2,6 +2,8 @@
 """Network Centrality: degree, closeness, straightness, betweenness."""
 from __future__ import annotations
 
+import numpy as np
+
 from qgis.core import (
     QgsFeature,
     QgsFeatureSink,
@@ -129,12 +131,7 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
         samples = self.parameterAsInt(parameters, self.SAMPLES, context)
         self.require_projected(network, "Street network")
 
-        polylines, line_feats = self.source_polylines(network)
-        costs = None
-        if cost_field:
-            idx = network.fields().lookupField(cost_field)
-            costs = [float(f.attributes()[idx] or 0.0) for f in line_feats]
-        graph = graphs.build_node_graph(polylines, costs=costs)
+        graph, polylines, line_feats = self.network_graph(network, cost_field)
         n = graph.num_nodes
         feedback.pushInfo(self.tr(f"Graph: {n} nodes / {graph.num_edges} edges"))
         if radius is None and samples == 0 and n > 20000:
@@ -160,10 +157,13 @@ class NetworkCentralityAlgorithm(PlanXAlgorithm):
             radius=radius, sources=sources,
             cancel=feedback.isCanceled,
             progress=lambda p: feedback.setProgress(50 + int(50 * p)))
-        # Pair-based convention: undirected Brandes counts each pair twice.
-        node_bc /= 2.0
-        edge_bc /= 2.0
-        norm = (n - 1) * (n - 2) / 2.0 if n > 2 else 1.0
+        symmetric = (np.all(graph.edge_direction == 0)
+                     and np.allclose(graph.edge_cost, graph.edge_rev_cost))
+        if symmetric:  # each unordered pair was counted twice
+            node_bc /= 2.0
+            edge_bc /= 2.0
+        norm = ((n - 1) * (n - 2) / (2.0 if symmetric else 1.0)
+                if n > 2 else 1.0)
 
         feedback.pushInfo(self.tr("Eigenvector pass (power iteration)..."))
         eig = centrality.eigenvector(graph.indptr, graph.adj_node, n)

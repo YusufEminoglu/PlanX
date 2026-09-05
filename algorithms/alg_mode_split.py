@@ -20,6 +20,7 @@ from qgis.core import (
 
 from .base import DOUBLE, GROUP_DEMAND, PlanXAlgorithm
 from ..engine import demand
+from ..engine import uncertainty
 
 
 class ModeSplitAlgorithm(PlanXAlgorithm):
@@ -31,6 +32,7 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
     MODE_BETAS = "MODE_BETAS"
     MODE_ASCS = "MODE_ASCS"
     MODE_NAMES = "MODE_NAMES"
+    OBSERVED_SHARES = "OBSERVED_SHARES"
     OUTPUT = "OUTPUT"
 
     def name(self):
@@ -46,6 +48,8 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
             "logit model based on travel times, coefficients (betas), and alternative-specific "
             "constants (ASCs).\n\n"
             "Outputs the original features annotated with shares and flows for each mode.\n\n"
+            "Optional observed share fields add per-feature residuals and log "
+            "MAE, RMSE, bias and R2 for calibration/validation.\n\n"
             "How to read the results\n"
             "- share_<mode> is the probability the average traveller "
             "picks that mode given the TIMES you supplied; flow_<mode> "
@@ -89,6 +93,10 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterString(
             self.MODE_NAMES, self.tr("Mode names (comma-separated, optional)"),
             defaultValue="car,transit"))
+        self.addParameter(QgsProcessingParameterString(
+            self.OBSERVED_SHARES,
+            self.tr("Observed share fields for validation (comma-separated, optional)"),
+            defaultValue="", optional=True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Annotated OD flows")))
 
@@ -99,6 +107,7 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
         mode_betas_str = self.parameterAsString(parameters, self.MODE_BETAS, context)
         mode_ascs_str = self.parameterAsString(parameters, self.MODE_ASCS, context)
         mode_names_str = self.parameterAsString(parameters, self.MODE_NAMES, context)
+        observed_str = self.parameterAsString(parameters, self.OBSERVED_SHARES, context)
 
         time_fields = [t.strip() for t in mode_times_str.replace(";", ",").split(",") if t.strip()]
         betas = [float(b.strip()) for b in mode_betas_str.replace(";", ",").split(",") if b.strip()]
@@ -121,6 +130,13 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
         for name in names:
             extra_specs.append((f"share_{name}", DOUBLE))
             extra_specs.append((f"flow_{name}", DOUBLE))
+        observed_fields = [item.strip() for item in observed_str.replace(";", ",").split(",") if item.strip()]
+        if observed_fields and len(observed_fields) != K:
+            raise QgsProcessingException(
+                "Observed share fields must be empty or match the number of modes.")
+        if observed_fields:
+            for name in names:
+                extra_specs.append((f"error_{name}", DOUBLE))
 
         out_fields = self.make_fields(*extra_specs, base=flows.fields())
 
@@ -130,9 +146,14 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
 
         flow_idx = flows.fields().lookupField(flow_field)
         time_idxs = [flows.fields().lookupField(fld) for fld in time_fields]
+        observed_idxs = [flows.fields().lookupField(fld) for fld in observed_fields]
         for k, idx in enumerate(time_idxs):
             if idx < 0:
                 raise QgsProcessingException(f"Time field '{time_fields[k]}' not found in flows layer.")
+        for k, idx in enumerate(observed_idxs):
+            if idx < 0:
+                raise QgsProcessingException(
+                    f"Observed share field '{observed_fields[k]}' not found in flows layer.")
 
         feats = []
         flow_vals = []
@@ -190,9 +211,34 @@ class ModeSplitAlgorithm(PlanXAlgorithm):
                 sh = float(shares_arr[k][i])
                 fl = float(sh * flow_vals[i])
                 extra_attrs.extend([round(sh, 4), round(fl, 2)])
+            if observed_idxs:
+                for k, idx in enumerate(observed_idxs):
+                    try:
+                        observed = float(f.attributes()[idx])
+                    except (TypeError, ValueError):
+                        observed = float("nan")
+                    extra_attrs.append(round(float(shares_arr[k][i]) - observed, 4))
 
             out_feat.setAttributes(list(f.attributes())[:n_base] + extra_attrs)
             sink.addFeature(out_feat, QgsFeatureSink.Flag.FastInsert)
+
+        if observed_idxs:
+            for k, idx in enumerate(observed_idxs):
+                observed = []
+                predicted = []
+                for i, feature in enumerate(feats):
+                    try:
+                        observed.append(float(feature.attributes()[idx]))
+                        predicted.append(float(shares_arr[k][i]))
+                    except (TypeError, ValueError):
+                        continue
+                try:
+                    metrics = uncertainty.validation_metrics(observed, predicted)
+                except ValueError:
+                    continue
+                feedback.pushInfo(self.tr(
+                    f"Validation {names[k]}: n={metrics['n']}, MAE={metrics['mae']:.4f}, "
+                    f"RMSE={metrics['rmse']:.4f}, bias={metrics['bias']:.4f}, R2={metrics['r2']:.3f}."))
 
         return {self.OUTPUT: dest}
 

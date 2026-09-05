@@ -127,8 +127,8 @@ class RouteQualityAlgorithm(PlanXAlgorithm):
         low_thr = self.parameterAsDouble(parameters, self.LOW_THRESHOLD, context)
         self.require_projected(network, "Street network")
 
-        polylines, line_feats = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, line_feats = self.network_graph(
+            network, use_prepared_costs=False)
         n_edges = graph.num_edges
 
         scores = np.full(n_edges, 100.0)

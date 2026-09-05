@@ -10,7 +10,9 @@ from qgis.core import (
     QgsGeometry,
     QgsPointXY,
     QgsProcessing,
+    QgsProcessingException,
     QgsProcessingParameterEnum,
+    QgsProcessingParameterBoolean,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterField,
@@ -34,6 +36,9 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
     METHOD = "METHOD"
     P = "P"
     RADIUS = "RADIUS"
+    EXACT_AUDIT = "EXACT_AUDIT"
+    SITE_COST = "SITE_COST"
+    BUDGET = "BUDGET"
     OUT_SITES = "OUT_SITES"
     OUT_ASSIGN = "OUT_ASSIGN"
 
@@ -57,8 +62,11 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
             "most uncovered demand within the catchment radius;\n"
             "- P-median (Teitz & Bart vertex substitution): minimizes the "
             "population-weighted travel cost to the nearest facility.\n\n"
-            "Existing facilities (optional) are kept in the solution and "
-            "new sites complement them. Outputs:\n"
+            "Existing facilities (optional) are kept in the solution and new "
+            "sites complement them. An optional implementation-cost field and "
+            "budget constrain the new selections. For tractable candidate "
+            "sets an exact enumerator reports the heuristic's optimality gap. "
+            "Outputs:\n"
             "- Candidate sites: every candidate with its standalone "
             "screening score (demand within the radius), selection flag, "
             "pick rank and marginal gain;\n"
@@ -115,6 +123,15 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.RADIUS, self.tr("Catchment radius (map units; coverage + screening)"),
             QgsProcessingParameterNumber.Type.Double, 500.0, minValue=1.0))
+        self.addParameter(QgsProcessingParameterField(
+            self.SITE_COST, self.tr("Candidate implementation cost (optional)"),
+            parentLayerParameterName=self.CANDIDATES, optional=True,
+            type=QgsProcessingParameterField.DataType.Numeric))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.BUDGET, self.tr("Maximum budget (0 = unlimited)"),
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
+        self.addParameter(QgsProcessingParameterBoolean(
+            self.EXACT_AUDIT, self.tr("Audit heuristic against exact optimum when feasible"), True))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_SITES, self.tr("Candidate sites (screened + selected)")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -130,10 +147,13 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
         method = self.parameterAsEnum(parameters, self.METHOD, context)
         p = self.parameterAsInt(parameters, self.P, context)
         radius = self.parameterAsDouble(parameters, self.RADIUS, context)
+        site_cost_field = self.parameterAsString(parameters, self.SITE_COST, context)
+        budget_value = self.parameterAsDouble(parameters, self.BUDGET, context)
+        budget = budget_value if budget_value > 0 and site_cost_field else None
+        exact_audit = self.parameterAsBool(parameters, self.EXACT_AUDIT, context)
         self.require_projected(network, "Street network")
 
-        polylines, _ = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         crs = network.sourceCrs()
         xform = context.transformContext()
         d_xy, d_feats = self.source_points(demand, crs, xform)
@@ -159,6 +179,14 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
         w = np.array([pop_of(f) for f in d_feats])
         cid_idx = candidates.fields().lookupField(cand_id)
         c_ids = [str(f.attributes()[cid_idx]) for f in c_feats]
+        cost_idx = candidates.fields().lookupField(site_cost_field) if site_cost_field else -1
+        site_costs = np.zeros(len(c_feats), dtype=float)
+        if cost_idx >= 0:
+            for index, feature in enumerate(c_feats):
+                try:
+                    site_costs[index] = max(0.0, float(feature.attributes()[cost_idx]))
+                except (TypeError, ValueError):
+                    site_costs[index] = 0.0
         labels = [f"EX{i + 1}" for i in range(len(e_feats))] + c_ids
 
         # Distance matrix rows: existing facilities first (fixed), then
@@ -173,6 +201,7 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
                                   cancel=feedback.isCanceled)
         D = dist[:, d_nodes]
         fixed = list(range(len(e_feats)))
+        all_site_costs = np.concatenate([np.zeros(len(e_feats)), site_costs])
         n_free = len(c_feats)
         if p > n_free:
             feedback.pushWarning(self.tr(
@@ -182,7 +211,9 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
         screening = optimize.coverage_weights(D[len(e_feats):], w, radius)
 
         if method == 0:
-            res = optimize.greedy_max_coverage(D, w, p, radius, fixed=fixed)
+            res = optimize.greedy_max_coverage(
+                D, w, p, radius, fixed=fixed,
+                candidate_costs=all_site_costs, budget=budget)
             sel_rows = res["selected"]
             gains = res["gains"]
             share = (100.0 * res["covered_weight"] / res["total_weight"]
@@ -197,7 +228,12 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
                 f"Covered demand: {res['covered_weight']:g} of "
                 f"{res['total_weight']:g} ({share:.1f} percent) within {radius:g}."))
         else:
-            res = optimize.p_median(D, w, p, fixed=fixed)
+            try:
+                res = optimize.p_median(
+                    D, w, p, fixed=fixed,
+                    candidate_costs=all_site_costs, budget=budget)
+            except ValueError as exc:
+                raise QgsProcessingException(str(exc))
             sel_rows = res["selected"]
             gains = [0.0] * len(sel_rows)
             total_w = float(w.sum())
@@ -207,18 +243,51 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
                 f"(mean {mean_cost:g} per person), {res['swaps']} improving "
                 f"swap(s) applied."))
 
+        if budget is not None:
+            feedback.pushInfo(self.tr(
+                f"Budget used: {res['budget_used']:g} of {budget:g}."))
+
+        audit = None
+        heuristic_objective = (float(res["covered_weight"]) if method == 0
+                               else float(res["objective"]))
+        if exact_audit:
+            audit = optimize.exact_location_audit(
+                D, w, p, method="coverage" if method == 0 else "pmedian",
+                radius=radius, fixed=fixed, candidate_costs=all_site_costs,
+                budget=budget)
+            if audit["audited"]:
+                optimum = audit["objective"]
+                gap = ((optimum - heuristic_objective) / max(abs(optimum), 1e-12)
+                       if method == 0 else
+                       (heuristic_objective - optimum) / max(abs(optimum), 1e-12))
+                feedback.pushInfo(self.tr(
+                    f"Exact audit: {audit['combinations']} combinations, "
+                    f"optimum {optimum:g}, heuristic gap {100.0 * max(0.0, gap):.3f} percent."))
+            else:
+                reason = audit.get("reason", "not-feasible")
+                feedback.pushInfo(self.tr(
+                    f"Exact audit skipped ({reason}): {audit['combinations']} combinations."))
+
         solution = fixed + list(sel_rows)
         assign, cost = optimize.assign_to_nearest(D, solution)
 
         # ------------------------------------------------------- sites out
         s_fields = self.make_fields(
             ("cand_id", STRING), ("reach_dem", DOUBLE), ("selected", INT),
-            ("rank", INT), ("gain", DOUBLE), base=candidates.fields())
+            ("rank", INT), ("gain", DOUBLE), ("audit_gap", DOUBLE),
+            ("exact", INT), base=candidates.fields())
         s_sink, s_dest = self.parameterAsSink(
             parameters, self.OUT_SITES, context, s_fields, QgsWkbTypes.Type.Point, crs)
         rank_of = {row: i + 1 for i, row in enumerate(sel_rows)}
         gain_of = {row: gains[i] for i, row in enumerate(sel_rows)}
         n_cand_fields = len(candidates.fields())
+        audit_gap = -1.0
+        if audit and audit["audited"]:
+            optimum = audit["objective"]
+            audit_gap = ((optimum - heuristic_objective) / max(abs(optimum), 1e-12)
+                         if method == 0 else
+                         (heuristic_objective - optimum) / max(abs(optimum), 1e-12))
+            audit_gap = 100.0 * max(0.0, audit_gap)
         for j, feat in enumerate(c_feats):
             row = len(e_feats) + j
             out = QgsFeature(s_fields)
@@ -227,7 +296,8 @@ class FacilityLocationAlgorithm(PlanXAlgorithm):
                 list(feat.attributes())[:n_cand_fields]
                 + [c_ids[j], round(float(screening[j]), 2),
                    1 if row in rank_of else 0, rank_of.get(row, 0),
-                   round(float(gain_of.get(row, 0.0)), 2)])
+                   round(float(gain_of.get(row, 0.0)), 2), round(audit_gap, 4),
+                   1 if audit and audit["audited"] else 0])
             s_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         # -------------------------------------------------- allocation out

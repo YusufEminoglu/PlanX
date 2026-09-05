@@ -309,8 +309,32 @@ def compile_day(gtfs, day: str):
     return patterns, stop_patterns
 
 
+def walking_transfers(stop_xy, max_distance, speed_m_s=1.3333):
+    """Build a grid-indexed stop-to-stop walking transfer graph."""
+    xy = np.asarray(stop_xy, dtype=float)
+    radius = float(max_distance)
+    if radius <= 0:
+        return {}
+    cells = {}
+    for index, point in enumerate(xy):
+        key = (int(np.floor(point[0] / radius)), int(np.floor(point[1] / radius)))
+        cells.setdefault(key, []).append(index)
+    transfers = {index: [] for index in range(len(xy))}
+    for index, point in enumerate(xy):
+        key = (int(np.floor(point[0] / radius)), int(np.floor(point[1] / radius)))
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for other in cells.get((key[0] + dx, key[1] + dy), ()):
+                    if other == index:
+                        continue
+                    distance = float(np.hypot(*(xy[other] - point)))
+                    if distance <= radius:
+                        transfers[index].append((other, distance / max(float(speed_m_s), 1e-9)))
+    return transfers
+
+
 def earliest_arrival(patterns, stop_patterns, n_stops, access,
-                     max_transfers=2):
+                     max_transfers=2, transfers=None, min_transfer_time=0.0):
     """RAPTOR earliest arrival at every stop.
 
     ``access`` maps a stop position to the earliest second one can stand
@@ -325,6 +349,22 @@ def earliest_arrival(patterns, stop_patterns, n_stops, access,
         if t < best[stop]:
             best[stop] = float(t)
             marked.add(int(stop))
+    transfers = transfers or {}
+
+    def relax_walks(seed_stops):
+        queue = list(seed_stops)
+        changed = set(seed_stops)
+        while queue:
+            stop = queue.pop()
+            for other, seconds in transfers.get(stop, ()):
+                candidate = best[stop] + max(float(seconds), float(min_transfer_time))
+                if candidate < best[other]:
+                    best[other] = candidate
+                    changed.add(int(other))
+                    queue.append(int(other))
+        return changed
+
+    marked = relax_walks(marked)
     for _ in range(int(max_transfers) + 1):
         prev = best.copy()
         touched = {}
@@ -346,7 +386,7 @@ def earliest_arrival(patterns, stop_patterns, n_stops, access,
                     cand = int(np.searchsorted(dep[:, i], prev[stop]))
                     if cand < len(dep) and (trip < 0 or cand < trip):
                         trip = cand
-        marked = new_marked
+        marked = relax_walks(new_marked)
         if not marked:
             break
     return best

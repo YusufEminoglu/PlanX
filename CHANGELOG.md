@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.11.0] - 2026-09-05
+
+### Added
+- Analysis provenance manifests and deterministic fingerprints on generated layers; Scenario Snapshot now carries the lineage of its source analyses.
+- Searchable PlanX Studio with favorites, recent tools, active-layer filtering, presets, and six guided multi-tool workflows.
+- Directed/asymmetric routing, network snapping controls, component diagnostics, and prepared-network node identifiers.
+- Multi-threshold and distance-decay accessibility measures, including gravity access and cumulative reach counts.
+- Enhanced two-step floating catchment accessibility in Facility Adequacy.
+- Monte Carlo weight sensitivity for Scenario Ranking with mean rank, rank deviation, and probability of ranking first.
+- Exact small-instance optimality audits for facility location heuristics.
+- Walking transfers, minimum transfer times, and departure-window P50/P90 reliability for GTFS accessibility.
+- Optional observed-share validation diagnostics for Mode Split and optional EPW calibration for Annual Solar Potential.
+- Provider-wide QGIS smoke coverage and focused regression tests for the new engine capabilities.
+
+### Changed
+- Every network-consuming algorithm honors `dir_code`; tools that accept generalized costs also auto-detect `cost_fwd` and `cost_rev` from Prepare Network, while metric walking tools retain physical length.
+- Generated vector results receive readable aliases and a default graduated renderer when an analytical score field is present.
+
 ## [4.10.6] - 2026-08-09
 
 - Open PlanX Studio from the single toolbar icon and remove the separate `Plugins > PlanX` menu entry.

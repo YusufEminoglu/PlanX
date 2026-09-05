@@ -2,6 +2,8 @@
 """Scenario Snapshot: capture the plan score metrics of the open project."""
 from __future__ import annotations
 
+import json
+
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsFeature,
@@ -137,7 +139,27 @@ class ScenarioSnapshotAlgorithm(PlanXAlgorithm):
                 "The detected layers produced no metrics - are they really "
                 "PlanX outputs?")
 
-        snap = scenario.snapshot(name, metrics)
+        provenance = []
+        seen_fingerprints = set()
+        for role, layer in layers.items():
+            if layer is None:
+                continue
+            raw = layer.customProperty("planx/provenance_json", "")
+            if not raw:
+                continue
+            try:
+                manifest = json.loads(str(raw))
+            except (TypeError, ValueError):
+                feedback.pushWarning(self.tr(
+                    f"Could not read provenance attached to {role}: {layer.name()}."))
+                continue
+            fingerprint = manifest.get("analysis_fingerprint", "")
+            if fingerprint and fingerprint in seen_fingerprints:
+                continue
+            seen_fingerprints.add(fingerprint)
+            provenance.append({"role": role, "layer": layer.name(),
+                               "manifest": manifest})
+        snap = scenario.snapshot(name, metrics, provenance=provenance)
         try:
             with open(json_path, "w", encoding="utf-8") as fh:
                 fh.write(scenario.to_json(snap))

@@ -114,8 +114,8 @@ class LowStressIslandsAlgorithm(PlanXAlgorithm):
         pop_field = self.parameterAsString(parameters, self.POP_FIELD, context)
         self.require_projected(network, "Street network")
 
-        polylines, feats = self.source_polylines(network, feedback)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, feats = self.network_graph(
+            network, feedback=feedback, use_prepared_costs=False)
         l_idx = network.fields().lookupField(lts_field)
         if l_idx < 0:
             raise QgsProcessingException(f"LTS field '{lts_field}' was not found.")

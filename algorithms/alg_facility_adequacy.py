@@ -31,6 +31,7 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
     FACILITY_ID = "FACILITY_ID"
     CAPACITY_FIELD = "CAPACITY_FIELD"
     MAX_COST = "MAX_COST"
+    FCA_DECAY = "FCA_DECAY"
     OUT_FACILITIES = "OUT_FACILITIES"
     OUT_DEMAND = "OUT_DEMAND"
 
@@ -54,6 +55,9 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
             "Unused), plus demand points flagged covered/uncovered with "
             "their network cost. The log reports the covered population "
             "share - the headline number for plan QA.\n\n"
+            "The output also includes an enhanced two-step floating catchment "
+            "measure: each facility's capacity-to-catchment-demand ratio and "
+            "each demand point's distance-decayed fca_access value.\n\n"
             "Population defaults to 1 per demand point when no field is "
             "given (i.e. counts).\n\n"
             "How to read the results\n"
@@ -98,6 +102,9 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_COST, self.tr("Maximum network cost (catchment, map units)"),
             QgsProcessingParameterNumber.Type.Double, 500.0, minValue=1.0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.FCA_DECAY, self.tr("E2SFCA Gaussian decay strength (0 = unweighted catchment)"),
+            QgsProcessingParameterNumber.Type.Double, 1.0, minValue=0.0, maxValue=10.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_FACILITIES, self.tr("Facility adequacy")))
         self.addParameter(QgsProcessingParameterFeatureSink(
@@ -111,10 +118,10 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
         fac_id = self.parameterAsString(parameters, self.FACILITY_ID, context)
         cap_field = self.parameterAsString(parameters, self.CAPACITY_FIELD, context)
         max_cost = self.parameterAsDouble(parameters, self.MAX_COST, context)
+        fca_decay = self.parameterAsDouble(parameters, self.FCA_DECAY, context)
         self.require_projected(network, "Street network")
 
-        polylines, _ = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         crs = network.sourceCrs()
         d_xy, d_feats = self.source_points(demand, crs, context.transformContext())
         f_xy, f_feats = self.source_points(facilities, crs, context.transformContext())
@@ -138,9 +145,31 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
                 return 0.0
 
         f_ids = [str(f.attributes()[fid_idx]) for f in f_feats]
+        populations = np.asarray([pop_of(feature) for feature in d_feats], dtype=float)
+        capacity_values = []
+        for feature in f_feats:
+            try:
+                capacity_values.append(max(0.0, float(feature.attributes()[cap_idx])))
+            except (TypeError, ValueError):
+                capacity_values.append(0.0)
+        facility_dist = paths.many_to_many(
+            graph.indptr, graph.adj_node, graph.adj_cost, graph.num_nodes,
+            f_nodes, cutoff=max_cost,
+        )[:, d_nodes]
+        decay_weights = np.where(
+            np.isfinite(facility_dist),
+            np.exp(-fca_decay * (facility_dist / max(max_cost, 1e-9)) ** 2),
+            0.0,
+        )
+        catchment_demand = decay_weights @ populations
+        supply_ratio = np.divide(
+            np.asarray(capacity_values), catchment_demand,
+            out=np.zeros(len(f_feats), dtype=float), where=catchment_demand > 0,
+        )
+        fca_access = decay_weights.T @ supply_ratio
         assigned = {}   # facility position -> population
         d_fields = self.make_fields(("covered", INT), ("facility", STRING),
-                                    ("net_cost", DOUBLE), base=demand.fields())
+                                    ("net_cost", DOUBLE), ("fca_access", DOUBLE), base=demand.fields())
         d_sink, d_dest = self.parameterAsSink(
             parameters, self.OUT_DEMAND, context, d_fields, QgsWkbTypes.Type.Point, crs)
         covered_pop = total_pop = 0.0
@@ -165,12 +194,13 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
             out = QgsFeature(d_fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*d_xy[i])))
             out.setAttributes(list(feat.attributes())[:n_dem] +
-                              [1 if covered else 0, fac, cost_val])
+                              [1 if covered else 0, fac, cost_val, float(fca_access[i])])
             d_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         f_fields = self.make_fields(
             ("facility", STRING), ("capacity", DOUBLE), ("assigned", DOUBLE),
-            ("utilization", DOUBLE), ("status", STRING))
+            ("utilization", DOUBLE), ("status", STRING),
+            ("catch_demand", DOUBLE), ("supply_ratio", DOUBLE))
         f_sink, f_dest = self.parameterAsSink(
             parameters, self.OUT_FACILITIES, context, f_fields, QgsWkbTypes.Type.Point, crs)
         overloaded = 0
@@ -190,7 +220,8 @@ class FacilityAdequacyAlgorithm(PlanXAlgorithm):
                 overloaded += 1
             out = QgsFeature(f_fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*f_xy[j])))
-            out.setAttributes([f_ids[j], cap, load, round(util, 3), status])
+            out.setAttributes([f_ids[j], cap, load, round(util, 3), status,
+                               float(catchment_demand[j]), float(supply_ratio[j])])
             f_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         share = covered_pop / total_pop if total_pop > 0 else 0.0

@@ -167,8 +167,8 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
                 continue
             weights[key] = value
 
-        polylines, line_feats = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, line_feats = self.network_graph(
+            network, use_prepared_costs=False)
         n_seg = len(polylines)
         feedback.pushInfo(self.tr(
             f"{n_seg} street segments, {graph.num_nodes} nodes; "

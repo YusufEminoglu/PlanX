@@ -38,6 +38,10 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
     WALK_SPEED = "WALK_SPEED"
     MAX_WALK = "MAX_WALK"
     MAX_TRANSFERS = "MAX_TRANSFERS"
+    TRANSFER_WALK = "TRANSFER_WALK"
+    MIN_TRANSFER = "MIN_TRANSFER"
+    SAMPLE_WINDOW = "SAMPLE_WINDOW"
+    DEPARTURE_SAMPLES = "DEPARTURE_SAMPLES"
     OUT_DEMAND = "OUT_DEMAND"
 
     def name(self):
@@ -67,7 +71,9 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
             "- transit_min: walk + ride (+ transfer waits) + walk;\n"
             "- best_min and mode: which one wins;\n"
             "- saved_min: minutes transit saves (negative never happens - "
-            "walking is kept when faster).\n\n"
+            "walking is kept when faster). Walking transfers between nearby "
+            "stops and minimum interchange time are explicit. A departure "
+            "window adds transit_p50, transit_p90 and their reliability gap.\n\n"
             "Stops are matched to the street network by nearest node "
             "within the access-walk limit. Use a projected CRS for the "
             "network; the GTFS stops are reprojected automatically.\n\n"
@@ -122,6 +128,18 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_TRANSFERS, self.tr("Max transfers"),
             QgsProcessingParameterNumber.Type.Integer, 2, minValue=0, maxValue=5))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.TRANSFER_WALK, self.tr("Maximum walk transfer between stops (metres; 0 = same stop only)"),
+            QgsProcessingParameterNumber.Type.Double, 250.0, minValue=0.0, maxValue=2000.0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.MIN_TRANSFER, self.tr("Minimum transfer time (minutes)"),
+            QgsProcessingParameterNumber.Type.Double, 2.0, minValue=0.0, maxValue=60.0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.SAMPLE_WINDOW, self.tr("Departure reliability window (minutes)"),
+            QgsProcessingParameterNumber.Type.Double, 60.0, minValue=0.0, maxValue=360.0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.DEPARTURE_SAMPLES, self.tr("Departure samples in reliability window"),
+            QgsProcessingParameterNumber.Type.Integer, 5, minValue=1, maxValue=25))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_DEMAND, self.tr("Destinations with travel times")))
 
@@ -135,6 +153,10 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
         speed_kmh = self.parameterAsDouble(parameters, self.WALK_SPEED, context)
         max_walk_min = self.parameterAsDouble(parameters, self.MAX_WALK, context)
         max_transfers = self.parameterAsInt(parameters, self.MAX_TRANSFERS, context)
+        transfer_walk = self.parameterAsDouble(parameters, self.TRANSFER_WALK, context)
+        min_transfer = self.parameterAsDouble(parameters, self.MIN_TRANSFER, context) * 60.0
+        sample_window = self.parameterAsDouble(parameters, self.SAMPLE_WINDOW, context) * 60.0
+        departure_samples = self.parameterAsInt(parameters, self.DEPARTURE_SAMPLES, context)
         self.require_projected(network, "Street network")
 
         gtfs, day, _services = load_feed(path, day_text, feedback)
@@ -142,8 +164,8 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
         speed = speed_kmh / 3.6  # m/s
         max_walk_sec = max_walk_min * 60.0
 
-        polylines, _feats = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _feats = self.network_graph(
+            network, use_prepared_costs=False)
         w_sec = graph.adj_cost / speed  # walking seconds per CSR entry
 
         crs = network.sourceCrs()
@@ -188,9 +210,11 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
             f"{max_transfers} transfer(s)."))
 
         patterns, stop_patterns = transit.compile_day(gtfs, day)
+        transfers = transit.walking_transfers(stop_xy, transfer_walk, speed)
         arrivals = transit.earliest_arrival(
             patterns, stop_patterns, len(gtfs["stop_ids"]), access,
-            max_transfers=max_transfers)
+            max_transfers=max_transfers, transfers=transfers,
+            min_transfer_time=min_transfer)
 
         # egress: min over stops of (arrival + walk) via offset Dijkstra
         egress_nodes, offsets = [], []
@@ -205,10 +229,42 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
                 graph.indptr, graph.adj_node, w_sec, graph.num_nodes,
                 np.asarray(egress_nodes), np.asarray(offsets))
 
+        sampled_minutes = None
+        if departure_samples > 1 and sample_window > 0:
+            departure_grid = np.linspace(
+                dep_sec - sample_window / 2.0,
+                dep_sec + sample_window / 2.0, departure_samples)
+            sampled_minutes = np.full((departure_samples, len(d_nodes)), np.inf)
+            for sample_index, sample_departure in enumerate(departure_grid):
+                sample_access = {}
+                for stop in range(len(stop_nodes)):
+                    if far[stop]:
+                        continue
+                    walk = walk_from_o[stop_nodes[stop]] + snap_off[stop] / speed
+                    if walk <= max_walk_sec:
+                        sample_access[stop] = sample_departure + walk
+                sample_arrivals = transit.earliest_arrival(
+                    patterns, stop_patterns, len(gtfs["stop_ids"]), sample_access,
+                    max_transfers=max_transfers, transfers=transfers,
+                    min_transfer_time=min_transfer)
+                nodes, starts = [], []
+                for stop, node in enumerate(stop_nodes):
+                    if not far[stop] and np.isfinite(sample_arrivals[stop]):
+                        nodes.append(int(node))
+                        starts.append(float(sample_arrivals[stop]) + snap_off[stop] / speed)
+                if nodes:
+                    sampled_at_node, _ = paths.multi_source_offset(
+                        graph.indptr, graph.adj_node, w_sec, graph.num_nodes,
+                        np.asarray(nodes), np.asarray(starts))
+                    sampled_minutes[sample_index] = (
+                        sampled_at_node[d_nodes] - sample_departure) / 60.0
+
         fields = self.make_fields(
             ("walk_min", DOUBLE), ("transit_min", DOUBLE),
             ("best_min", DOUBLE), ("saved_min", DOUBLE), ("mode", STRING),
-            ("transfers_max", INT), base=demand.fields())
+            ("transfers_max", INT), ("transit_p50", DOUBLE),
+            ("transit_p90", DOUBLE), ("reliability", DOUBLE),
+            base=demand.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUT_DEMAND, context, fields,
             QgsWkbTypes.Type.Point, crs)
@@ -239,11 +295,22 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
                 saved = 0.0
             out = QgsFeature(fields)
             out.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(*d_xy[i])))
+            p50 = p90 = reliability = None
+            if sampled_minutes is not None:
+                values = sampled_minutes[:, i]
+                values = values[np.isfinite(values)]
+                if values.size:
+                    p50 = float(np.percentile(values, 50))
+                    p90 = float(np.percentile(values, 90))
+                    reliability = p90 - p50
             out.setAttributes(list(feat.attributes())[:n_base] + [
                 None if walk_min is None else round(walk_min, 2),
                 None if transit_min is None else round(transit_min, 2),
                 None if best is None else round(best, 2),
-                saved, mode, max_transfers])
+                saved, mode, max_transfers,
+                None if p50 is None else round(p50, 2),
+                None if p90 is None else round(p90, 2),
+                None if reliability is None else round(reliability, 2)])
             sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
 
         feedback.pushInfo(self.tr(

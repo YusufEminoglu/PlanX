@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from planx.engine import (  # noqa: E402
     HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, graphs, hydro, isochrone, morphology,
-    optimize, paths, report, robustness, scenario, seismic, solar, standards, syntax, walkability,
+    optimize, paths, provenance, report, robustness, scenario, seismic, solar,
+    standards, syntax, transit, uncertainty, walkability, weather,
 )
 
 CHECKS = []
@@ -2221,6 +2222,106 @@ check("linkcriticality: scipy == pure fallback",
       and np.allclose(_r1["extra_cost"], _r3["extra_cost"])
       and _r1["n_disconnected"].tolist() == _r3["n_disconnected"].tolist()
       and _r1["used_by"].tolist() == _r3["used_by"].tolist())
+
+# --------------------------------------------------------------------------- #
+# Platform advances: directed routing, exact audit, provenance, uncertainty,
+# transfer walking and climate calibration.
+# --------------------------------------------------------------------------- #
+_directed = graphs.build_node_graph(path_lines, directions=[1, 1])
+_forward = paths.many_to_many(
+    _directed.indptr, _directed.adj_node, _directed.adj_cost,
+    _directed.num_nodes, [0])[0]
+_backward = paths.many_to_many(
+    _directed.indptr, _directed.adj_node, _directed.adj_cost,
+    _directed.num_nodes, [2])[0]
+check("directed graph: forward route exists and reverse route is blocked",
+      close(_forward[2], 2.0) and not np.isfinite(_backward[0]))
+
+_asymmetric = graphs.build_node_graph(
+    [path_lines[0]], costs=[2.0], reverse_costs=[7.0])
+check("directed graph: asymmetric forward/reverse costs",
+      close(_asymmetric.adj_cost[0], 2.0)
+      and close(_asymmetric.adj_cost[1], 7.0))
+_labels, _component_count = graphs.weak_components(_directed)
+check("directed graph: weak components ignore travel direction",
+      _component_count == 1 and len(set(_labels.tolist())) == 1)
+_directed_reach = isochrone.reach_intervals(
+    np.array([0.0, np.inf]), np.array([0]), np.array([1]),
+    np.array([1.0]), 0.5, reverse_cost=np.array([1.0]),
+    directions=np.array([1]))
+check("directed isochrone: reach only follows the allowed edge direction",
+      _directed_reach[0] == [(0.0, 0.5)])
+check("directed isochrone: mid-edge entry is one-sided",
+      isochrone.entry_interval(0.5, 0.0, 1.0, 0.2,
+                               reverse_cost=1.0, direction=1) == (0.5, 0.7))
+
+_audit_D = np.array([[1.0, 9.0], [4.0, 4.0], [9.0, 1.0]])
+_audit = optimize.exact_location_audit(
+    _audit_D, np.ones(2), 1, method="pmedian")
+check("optimization audit: exact p-median finds balanced site",
+      _audit["audited"] and _audit["selected"] == [1]
+      and close(_audit["objective"], 8.0))
+_budgeted = optimize.greedy_max_coverage(
+    _audit_D, np.ones(2), 2, 5.0,
+    candidate_costs=[6.0, 4.0, 6.0], budget=4.0)
+check("optimization constraints: coverage respects implementation budget",
+      _budgeted["selected"] == [1] and close(_budgeted["budget_used"], 4.0))
+_budget_audit = optimize.exact_location_audit(
+    _audit_D, np.ones(2), 2, method="pmedian",
+    candidate_costs=[6.0, 4.0, 6.0], budget=4.0)
+check("optimization audit: exact search respects implementation budget",
+      _budget_audit["audited"] and _budget_audit["selected"] == [1])
+
+_manifest = provenance.build_manifest(
+    "planx:test", {"radius": 500}, [{"source": "streets"}], "1.0")
+check("provenance: manifest validates and has stable fingerprint",
+      provenance.validate_manifest(_manifest)
+      and _manifest["analysis_fingerprint"] == provenance.build_manifest(
+          "planx:test", {"radius": 500}, [{"source": "streets"}], "1.0")[
+              "analysis_fingerprint"])
+_snap = scenario.snapshot("Audit", {"access_mean": 75},
+                          provenance=[{"manifest": _manifest}])
+check("scenario: provenance survives JSON round trip",
+      scenario.from_json(scenario.to_json(_snap))["provenance"][0][
+          "manifest"]["analysis_fingerprint"] == _manifest["analysis_fingerprint"])
+
+_validation = uncertainty.validation_metrics([1, 2, 3], [1, 2, 4])
+check("calibration diagnostics: MAE/RMSE are correct",
+      close(_validation["mae"], 1.0 / 3.0)
+      and close(_validation["rmse"], math.sqrt(1.0 / 3.0)))
+_rank_snaps = [
+    scenario.snapshot("A", {"access_mean": 10, "access_gini": 0.2}),
+    scenario.snapshot("B", {"access_mean": 20, "access_gini": 0.4}),
+]
+_stability_a = uncertainty.rank_stability(
+    scenario.rank, _rank_snaps, {}, simulations=20, seed=7)
+_stability_b = uncertainty.rank_stability(
+    scenario.rank, _rank_snaps, {}, simulations=20, seed=7)
+check("scenario uncertainty: seeded rank stability is reproducible",
+      _stability_a == _stability_b)
+_rank_report = scenario.rank(_rank_snaps)
+_rank_report["stability"] = _stability_a
+_rank_html = report.build_rank_html("Stability", _rank_report)
+check("scenario uncertainty: HTML board includes sensitivity results",
+      "Weight Sensitivity" in _rank_html and "Probability first" in _rank_html)
+
+_transfer_graph = transit.walking_transfers(
+    np.array([[0.0, 0.0], [90.0, 0.0], [500.0, 0.0]]), 100.0, 1.0)
+check("transit: walking transfer graph respects radius",
+      _transfer_graph[0] == [(1, 90.0)] and _transfer_graph[2] == [])
+_walk_pattern = [{
+    "route": "R", "stops": (1, 2),
+    "arr": np.array([[100.0, 200.0]]),
+    "dep": np.array([[100.0, 200.0]]),
+}]
+_walk_arrival = transit.earliest_arrival(
+    _walk_pattern, {1: [(0, 0)], 2: [(0, 1)]}, 3, {0: 0.0},
+    max_transfers=0, transfers={0: [(1, 50.0)]})
+check("transit: walking transfer connects access stop to a route",
+      close(_walk_arrival[2], 200.0))
+check("weather: monthly measured-sky factors",
+      weather.monthly_solar_factors(
+          {"monthly_ghi": [50.0, 200.0]}, [100.0, 100.0]) == [0.5, 2.0])
 
 # --------------------------------------------------------------------------- #
 fails = [label for label, ok in CHECKS if not ok]

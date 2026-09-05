@@ -2,7 +2,7 @@
 """Prepare Network: node a raw street layer for graph analysis."""
 from __future__ import annotations
 
-import processing
+import numpy as np
 from qgis.core import (
     QgsFeature,
     QgsFeatureSink,
@@ -11,6 +11,7 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterField,
     QgsProcessingParameterNumber,
     QgsProcessingParameterCrs,
     QgsProcessingParameterBoolean,
@@ -21,6 +22,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_NETWORK, LONG, PlanXAlgorithm
+from ..engine import graphs
 
 
 class PrepareNetworkAlgorithm(PlanXAlgorithm):
@@ -30,6 +32,10 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
     MIN_LENGTH = "MIN_LENGTH"
     TARGET_CRS = "TARGET_CRS"
     CREATE_INDEX = "CREATE_INDEX"
+    SNAP_TOLERANCE = "SNAP_TOLERANCE"
+    ONEWAY_FIELD = "ONEWAY_FIELD"
+    FORWARD_COST = "FORWARD_COST"
+    REVERSE_COST = "REVERSE_COST"
     OUTPUT = "OUTPUT"
 
     def name(self):
@@ -86,16 +92,36 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterBoolean(
             self.CREATE_INDEX, self.tr("Create spatial index on the result"),
             defaultValue=True))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.SNAP_TOLERANCE, self.tr("Snap endpoint gaps within (map units; 0 = off)"),
+            QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
+        self.addParameter(QgsProcessingParameterField(
+            self.ONEWAY_FIELD, self.tr("One-way field (optional: yes/1, -1/reverse, no/0)"),
+            parentLayerParameterName=self.INPUT, optional=True))
+        self.addParameter(QgsProcessingParameterField(
+            self.FORWARD_COST, self.tr("Forward additive cost field (optional)"),
+            parentLayerParameterName=self.INPUT, optional=True,
+            type=QgsProcessingParameterField.DataType.Numeric))
+        self.addParameter(QgsProcessingParameterField(
+            self.REVERSE_COST, self.tr("Reverse additive cost field (optional)"),
+            parentLayerParameterName=self.INPUT, optional=True,
+            type=QgsProcessingParameterField.DataType.Numeric))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Prepared network")))
 
     def processAlgorithm(self, parameters, context, feedback):
+        import processing
+
         source = self.parameterAsSource(parameters, self.INPUT, context)
         min_len = self.parameterAsDouble(parameters, self.MIN_LENGTH, context)
         self.require_projected(source, "Street network")
 
         target_crs = self.parameterAsCrs(parameters, self.TARGET_CRS, context)
         create_index = self.parameterAsBool(parameters, self.CREATE_INDEX, context)
+        snap_tolerance = self.parameterAsDouble(parameters, self.SNAP_TOLERANCE, context)
+        oneway_field = self.parameterAsString(parameters, self.ONEWAY_FIELD, context)
+        forward_field = self.parameterAsString(parameters, self.FORWARD_COST, context)
+        reverse_field = self.parameterAsString(parameters, self.REVERSE_COST, context)
 
         def child(alg, params):
             res = processing.run(alg, params, context=context,
@@ -105,6 +131,12 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
         feedback.pushInfo(self.tr("Exploding multipart geometries..."))
         single = child("native:multiparttosingleparts",
                        {"INPUT": parameters[self.INPUT], "OUTPUT": "TEMPORARY_OUTPUT"})
+        if snap_tolerance > 0:
+            feedback.pushInfo(self.tr(f"Snapping endpoint gaps within {snap_tolerance:g} map units..."))
+            single = child("native:snapgeometries",
+                           {"INPUT": single, "REFERENCE_LAYER": single,
+                            "TOLERANCE": snap_tolerance, "BEHAVIOR": 0,
+                            "OUTPUT": "TEMPORARY_OUTPUT"})
         feedback.pushInfo(self.tr("Noding lines at mutual intersections..."))
         noded = child("native:splitwithlines",
                       {"INPUT": single, "LINES": single, "OUTPUT": "TEMPORARY_OUTPUT"})
@@ -125,13 +157,20 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                 feedback.pushWarning(self.tr("The target CRS is geographic. Other PlanX tools require a projected CRS."))
 
         fields = self.make_fields(("seg_id", LONG), ("length_m", DOUBLE),
+                                  ("dir_code", LONG), ("cost_fwd", DOUBLE),
+                                  ("cost_rev", DOUBLE), ("node_from", LONG),
+                                  ("node_to", LONG), ("component", LONG),
                                   base=source.fields())
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
             QgsWkbTypes.Type.LineString, out_crs)
 
-        seg_id = 0
-        kept = 0
+        records = []
+        source_count = len(source.fields())
+        field_names = [field.name() for field in layer.fields()]
+        oneway_idx = field_names.index(oneway_field) if oneway_field in field_names else -1
+        forward_idx = field_names.index(forward_field) if forward_field in field_names else -1
+        reverse_idx = field_names.index(reverse_field) if reverse_field in field_names else -1
         for f in layer.getFeatures():
             if feedback.isCanceled():
                 break
@@ -141,6 +180,33 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
             length = g.length()
             if length <= min_len:
                 continue
+            value = str(f.attributes()[oneway_idx]).strip().lower() if oneway_idx >= 0 else ""
+            direction = -1 if value in ("-1", "reverse", "backward") else 1 if value in ("1", "yes", "true", "forward") else 0
+            def positive_cost(index):
+                try:
+                    number = float(f.attributes()[index]) if index >= 0 else length
+                    return number if number > 0 else length
+                except (TypeError, ValueError):
+                    return length
+            records.append((f, QgsGeometry(g), length, direction, positive_cost(forward_idx), positive_cost(reverse_idx)))
+
+        if not records:
+            raise QgsProcessingException("Network preparation removed every segment.")
+        polylines = []
+        for _, geometry, _, _, _, _ in records:
+            line = (geometry.asMultiPolyline()[0] if geometry.isMultipart()
+                    else geometry.asPolyline())
+            polylines.append([[point.x(), point.y()] for point in line])
+        graph = graphs.build_node_graph(
+            polylines, tolerance=max(0.01, snap_tolerance or 0.01),
+            costs=[item[4] for item in records], reverse_costs=[item[5] for item in records],
+            directions=[item[3] for item in records],
+        )
+        component_labels, component_count = graphs.weak_components(graph)
+
+        for seg_id, (f, g, length, direction, cost_fwd, cost_rev) in enumerate(records):
+            if feedback.isCanceled():
+                break
             out = QgsFeature(fields)
             if transform is not None:
                 g_trans = QgsGeometry(g)
@@ -148,11 +214,13 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                 out.setGeometry(g_trans)
             else:
                 out.setGeometry(g)
-            attrs = list(f.attributes())[:len(source.fields())]
-            out.setAttributes(attrs + [seg_id, float(length)])
+            attrs = list(f.attributes())[:source_count]
+            node_from = int(graph.edge_from[seg_id])
+            node_to = int(graph.edge_to[seg_id])
+            component = int(component_labels[node_from])
+            out.setAttributes(attrs + [seg_id, float(length), direction, cost_fwd, cost_rev,
+                                        node_from, node_to, component])
             sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
-            seg_id += 1
-            kept += 1
 
         if create_index:
             out_layer = QgsProcessingUtils.mapLayerFromString(dest_id, context)
@@ -163,7 +231,16 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                 else:
                     feedback.pushWarning(self.tr("Format does not support spatial index creation."))
 
-        feedback.pushInfo(self.tr(f"Prepared network: {kept} segments."))
+        degree = graph.degrees()
+        dead_ends = int(np.sum(degree == 1))
+        feedback.pushInfo(self.tr(
+            f"Prepared network: {len(records)} segments, {graph.num_nodes} nodes, "
+            f"{component_count} weak component(s), {dead_ends} directed dead-end node(s)."
+        ))
+        if component_count > 1:
+            feedback.pushWarning(self.tr(
+                "The network is disconnected. Inspect the component field and increase snapping tolerance where gaps are unintended."
+            ))
         return {self.OUTPUT: dest_id}
 
     def createInstance(self):

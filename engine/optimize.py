@@ -15,6 +15,9 @@ from the start and do not count against ``p``.
 """
 from __future__ import annotations
 
+import itertools
+import math
+
 import numpy as np
 
 INF = float("inf")
@@ -31,7 +34,8 @@ def coverage_weights(D, w, radius):
     return (D <= float(radius)).astype(float) @ w
 
 
-def greedy_max_coverage(D, w, p, radius, fixed=()):
+def greedy_max_coverage(D, w, p, radius, fixed=(), candidate_costs=None,
+                        budget=None):
     """Pick up to ``p`` candidates maximizing covered weighted demand.
 
     Returns dict with ``selected`` (in pick order), ``gains`` (marginal
@@ -48,6 +52,9 @@ def greedy_max_coverage(D, w, p, radius, fixed=()):
     cover = D <= float(radius)
     covered = np.zeros(D.shape[1], dtype=bool)
     taken = {int(f) for f in fixed}
+    site_cost = (np.zeros(D.shape[0], dtype=float) if candidate_costs is None
+                 else np.maximum(0.0, np.asarray(candidate_costs, dtype=float)))
+    spent = 0.0
     for f in taken:
         covered |= cover[f]
     selected, gains = [], []
@@ -55,6 +62,8 @@ def greedy_max_coverage(D, w, p, radius, fixed=()):
         gain = (cover & ~covered).astype(float) @ w
         if taken:
             gain[list(taken)] = -1.0
+        if budget is not None:
+            gain[spent + site_cost > float(budget) + 1e-9] = -1.0
         best = int(np.argmax(gain))
         if gain[best] <= 0.0:
             break
@@ -62,12 +71,14 @@ def greedy_max_coverage(D, w, p, radius, fixed=()):
         gains.append(float(gain[best]))
         covered |= cover[best]
         taken.add(best)
+        spent += float(site_cost[best])
     return {
         "selected": selected,
         "gains": gains,
         "covered": covered,
         "covered_weight": float(w[covered].sum()),
         "total_weight": float(w.sum()),
+        "budget_used": spent,
     }
 
 
@@ -75,7 +86,8 @@ def _objective(Dp, w, sel):
     return float((Dp[list(sel)].min(axis=0) * w).sum())
 
 
-def p_median(D, w, p, fixed=(), penalty=None, max_iter=100):
+def p_median(D, w, p, fixed=(), penalty=None, max_iter=100,
+             candidate_costs=None, budget=None):
     """Greedy + Teitz-Bart vertex-substitution p-median heuristic.
 
     Unreachable pairs (inf in ``D``) cost ``penalty`` (default: 1.5x the
@@ -94,6 +106,8 @@ def p_median(D, w, p, fixed=(), penalty=None, max_iter=100):
     Dp = np.where(np.isfinite(D), D, float(penalty))
     fixed = [int(f) for f in fixed]
     free = [i for i in range(D.shape[0]) if i not in set(fixed)]
+    site_cost = (np.zeros(D.shape[0], dtype=float) if candidate_costs is None
+                 else np.maximum(0.0, np.asarray(candidate_costs, dtype=float)))
     p = min(int(p), len(free))
     if p <= 0 and not fixed:
         raise ValueError("p must be >= 1 when there are no fixed facilities.")
@@ -104,9 +118,13 @@ def p_median(D, w, p, fixed=(), penalty=None, max_iter=100):
         for c in free:
             if c in selected:
                 continue
+            if budget is not None and site_cost[selected + [c]].sum() > float(budget) + 1e-9:
+                continue
             obj = _objective(Dp, w, fixed + selected + [c])
             if obj < best_obj:
                 best_obj, best = obj, c
+        if best < 0:
+            break
         selected.append(best)
 
     swaps = 0
@@ -122,6 +140,8 @@ def p_median(D, w, p, fixed=(), penalty=None, max_iter=100):
                 if c in selected:
                     continue
                 trial = selected[:si] + [c] + selected[si + 1:]
+                if budget is not None and site_cost[trial].sum() > float(budget) + 1e-9:
+                    continue
                 obj = _objective(Dp, w, fixed + trial)
                 if obj < best_obj - 1e-12:
                     best_obj, best_c = obj, c
@@ -130,11 +150,14 @@ def p_median(D, w, p, fixed=(), penalty=None, max_iter=100):
                 cur = best_obj
                 improved = True
                 swaps += 1
+    if not selected and not fixed:
+        raise ValueError("The budget cannot fund any candidate site.")
     return {
         "selected": selected,
         "objective": _objective(Dp, w, fixed + selected) if (fixed or selected) else 0.0,
         "swaps": swaps,
         "penalty": float(penalty),
+        "budget_used": float(site_cost[selected].sum()) if selected else 0.0,
     }
 
 
@@ -157,6 +180,58 @@ def assign_to_nearest(D, solution):
     assign[bad] = -1
     cost = np.where(bad, -1.0, cost)
     return assign, cost
+
+
+def exact_location_audit(D, w, p, method="pmedian", radius=None, fixed=(),
+                         max_combinations=50000, candidate_costs=None,
+                         budget=None):
+    """Audit a heuristic against the exact optimum when the case is small.
+
+    Returns ``audited=False`` instead of attempting an unsafe combinatorial
+    run when the candidate count exceeds ``max_combinations``.
+    """
+    D = np.asarray(D, dtype=float)
+    w = np.asarray(w, dtype=float)
+    fixed = tuple(int(item) for item in fixed)
+    free = [index for index in range(D.shape[0]) if index not in set(fixed)]
+    p = min(int(p), len(free))
+    start_size = 0 if fixed else 1
+    combinations = sum(math.comb(len(free), size)
+                       for size in range(start_size, p + 1))
+    if combinations > int(max_combinations):
+        return {"audited": False, "combinations": combinations,
+                "reason": "search-space-limit"}
+    if method not in ("coverage", "pmedian"):
+        raise ValueError("method must be 'coverage' or 'pmedian'.")
+    if method == "coverage" and radius is None:
+        raise ValueError("radius is required for coverage audit.")
+
+    finite = D[np.isfinite(D)]
+    penalty = (float(finite.max()) * 1.5) if finite.size else 1.0
+    best_value = -INF if method == "coverage" else INF
+    best = ()
+    site_cost = (np.zeros(D.shape[0], dtype=float) if candidate_costs is None
+                 else np.maximum(0.0, np.asarray(candidate_costs, dtype=float)))
+    for size in range(start_size, p + 1):
+        for choice in itertools.combinations(free, size):
+            if budget is not None and site_cost[list(choice)].sum() > float(budget) + 1e-9:
+                continue
+            selected = fixed + choice
+            if not selected:
+                value = 0.0
+            elif method == "coverage":
+                value = float(w[(D[list(selected)] <= float(radius)).any(axis=0)].sum())
+            else:
+                costs = np.where(np.isfinite(D[list(selected)]), D[list(selected)], penalty)
+                value = float((costs.min(axis=0) * w).sum())
+            better = value > best_value if method == "coverage" else value < best_value
+            if better:
+                best_value, best = value, choice
+    if not best and not fixed and not np.isfinite(best_value):
+        return {"audited": False, "combinations": combinations,
+                "reason": "infeasible-budget"}
+    return {"audited": True, "combinations": combinations,
+            "objective": float(best_value), "selected": list(best)}
 
 
 def capacitated_assign(D, w, cap, max_cost=None):

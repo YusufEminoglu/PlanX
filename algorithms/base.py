@@ -2,12 +2,13 @@
 """Shared base class and helpers for PlanX Processing algorithms."""
 from __future__ import annotations
 
+import json
 import os
 
 import numpy as np
 
 from qgis.PyQt.QtCore import QCoreApplication, QVariant
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.core import (
     QgsCoordinateTransform,
     QgsField,
@@ -15,7 +16,14 @@ from qgis.core import (
     QgsGeometry,
     QgsProcessingAlgorithm,
     QgsProcessingException,
+    QgsProject,
+    QgsGraduatedSymbolRenderer,
+    QgsRendererRange,
+    QgsSymbol,
 )
+
+from ..engine.provenance import build_manifest
+from ..engine import graphs
 
 PLUGIN_DIR = os.path.dirname(os.path.dirname(__file__))
 DOC_BASE_URL = "https://yusufeminoglu.github.io/PlanX/PLANX_REFERENCE_MANUAL.html"
@@ -48,6 +56,11 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
     #: per-tool icon file under icons/ (falls back to the plugin icon)
     ICON = ""
 
+    def __init__(self):
+        super().__init__()
+        self._planx_existing_layers = set()
+        self._planx_audit = None
+
     def tr(self, text: str) -> str:
         return QCoreApplication.translate(self.__class__.__name__, text)
 
@@ -67,6 +80,115 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
 
     def helpUrl(self) -> str:
         return DOC_BASE_URL + "#" + self.name()
+
+    # ------------------------------------------------------------------ #
+    # Shared result audit and presentation
+    # ------------------------------------------------------------------ #
+    def prepareAlgorithm(self, parameters, context, feedback):
+        store = context.temporaryLayerStore()
+        self._planx_existing_layers = set(store.mapLayers()) | set(QgsProject.instance().mapLayers())
+        clean_parameters = {}
+        inputs = []
+        for key, value in parameters.items():
+            definition = self.parameterDefinition(str(key))
+            if (definition is not None and hasattr(definition, "isDestination")
+                    and definition.isDestination()):
+                clean_parameters[str(key)] = "<output>"
+                continue
+            layer_value = value
+            if isinstance(value, str):
+                candidate = context.getMapLayer(value)
+                if candidate is not None:
+                    layer_value = candidate
+            if hasattr(layer_value, "sourceCrs") and hasattr(layer_value, "source"):
+                extent = layer_value.extent()
+                layer_input = {
+                    "parameter": str(key), "source": str(layer_value.source()),
+                    "crs": layer_value.sourceCrs().authid(),
+                    "extent": [extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum()],
+                }
+                if hasattr(layer_value, "featureCount"):
+                    layer_input["feature_count"] = int(layer_value.featureCount())
+                if hasattr(layer_value, "fields"):
+                    layer_input["fields"] = [field.name() for field in layer_value.fields()]
+                inputs.append(layer_input)
+                clean_parameters[str(key)] = {"layer": str(layer_value.sourceName())}
+            else:
+                clean_parameters[str(key)] = self._audit_value(value)
+        self._planx_audit = build_manifest(self.id(), clean_parameters, inputs, self._plugin_version())
+        return True
+
+    def postProcessAlgorithm(self, context, feedback):
+        candidates = {}
+        candidates.update(context.temporaryLayerStore().mapLayers())
+        candidates.update(QgsProject.instance().mapLayers())
+        for layer_id, layer in candidates.items():
+            if layer_id in self._planx_existing_layers or layer is None:
+                continue
+            self._decorate_layer(layer)
+        return {}
+
+    @staticmethod
+    def _audit_value(value):
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, (list, tuple)):
+            return [PlanXAlgorithm._audit_value(item) for item in value]
+        return str(value)
+
+    @staticmethod
+    def _plugin_version():
+        try:
+            with open(os.path.join(PLUGIN_DIR, "metadata.txt"), encoding="utf-8") as handle:
+                for line in handle:
+                    if line.startswith("version="):
+                        return line.split("=", 1)[1].strip()
+        except OSError:
+            return ""
+        return ""
+
+    def _decorate_layer(self, layer):
+        if self._planx_audit:
+            layer.setCustomProperty("planx/algorithm_id", self.id())
+            layer.setCustomProperty("planx/analysis_fingerprint", self._planx_audit["analysis_fingerprint"])
+            layer.setCustomProperty("planx/provenance_json", json.dumps(self._planx_audit, ensure_ascii=False, sort_keys=True))
+        fields = layer.fields() if hasattr(layer, "fields") else []
+        for index, field in enumerate(fields):
+            label = field.name().replace("_", " ").strip().title()
+            try:
+                layer.setFieldAlias(index, label)
+            except (AttributeError, TypeError):
+                pass
+        self._apply_default_renderer(layer, fields)
+
+    @staticmethod
+    def _apply_default_renderer(layer, fields):
+        if not fields or not hasattr(layer, "geometryType"):
+            return
+        preferred = ("score", "risk", "access", "criticality", "centrality", "coverage", "prob", "index", "cost")
+        numeric = [field.name() for field in fields if field.isNumeric()]
+        field_name = next((name for name in reversed(numeric) if any(token in name.lower() for token in preferred)), None)
+        if field_name is None:
+            return
+        values = [feature[field_name] for feature in layer.getFeatures() if feature[field_name] is not None]
+        try:
+            values = sorted(float(value) for value in values)
+        except (TypeError, ValueError):
+            return
+        if len(values) < 2 or values[0] == values[-1]:
+            return
+        colors = ("#e8f5e9", "#a5d6a7", "#fff59d", "#ffb74d", "#d32f2f")
+        ranges = []
+        for index, color in enumerate(colors):
+            lo = values[int(index * (len(values) - 1) / len(colors))]
+            hi = values[int((index + 1) * (len(values) - 1) / len(colors))]
+            symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+            if symbol is None:
+                return
+            symbol.setColor(QColor(color))
+            ranges.append(QgsRendererRange(lo, hi, symbol, f"{lo:.3g} – {hi:.3g}"))
+        layer.setRenderer(QgsGraduatedSymbolRenderer(field_name, ranges))
+        layer.triggerRepaint()
 
     # ------------------------------------------------------------------ #
     # Geometry helpers
@@ -106,6 +228,60 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
         if not polylines:
             raise QgsProcessingException("No usable line geometry found in the network layer.")
         return polylines, features
+
+    @classmethod
+    def network_graph(cls, source, cost_field="", feedback=None,
+                      min_length: float = 1e-6, use_prepared_costs=True):
+        """Build a graph and honour fields produced by Prepare Network.
+
+        ``dir_code`` uses -1/0/1 for reverse/both/forward.  If callers do
+        not choose a cost field, the standardized ``cost_fwd`` and
+        ``cost_rev`` columns are used automatically.  A selected legacy
+        cost field remains symmetric while still respecting one-way rules.
+        """
+        polylines, features = cls.source_polylines(source, feedback, min_length)
+        names = {field.name().lower(): field.name() for field in source.fields()}
+
+        def standard_name(field_name):
+            base = str(field_name).lower()
+            matches = []
+            for key, actual in names.items():
+                if key == base:
+                    matches.append((1, actual))
+                elif key.startswith(base + "_") and key[len(base) + 1:].isdigit():
+                    matches.append((int(key[len(base) + 1:]), actual))
+            return max(matches, default=(0, None))[1]
+
+        def values(field_name, fallback=None, standardized=False):
+            actual = (standard_name(field_name) if standardized
+                      else names.get(str(field_name).lower()))
+            if not actual:
+                return fallback
+            index = source.fields().lookupField(actual)
+            result = []
+            for feature in features:
+                try:
+                    result.append(float(feature.attributes()[index]))
+                except (TypeError, ValueError):
+                    result.append(0.0)
+            return result
+
+        directions = values("dir_code", standardized=True)
+        if directions is not None:
+            directions = [int(value) if value in (-1.0, 0.0, 1.0) else 0
+                          for value in directions]
+        if cost_field:
+            costs = values(cost_field)
+            reverse = costs
+        elif use_prepared_costs:
+            costs = values("cost_fwd", standardized=True)
+            reverse = values("cost_rev", standardized=True)
+        else:
+            costs = reverse = None
+        graph = graphs.build_node_graph(
+            polylines, costs=costs, reverse_costs=reverse,
+            directions=directions)
+        return graph, polylines, features
 
     @staticmethod
     def source_points(source, target_crs, transform_context):

@@ -28,7 +28,8 @@ EPS = 1e-9
 # --------------------------------------------------------------------------- #
 # Reach fractions per edge (vectorized)
 # --------------------------------------------------------------------------- #
-def reach_fractions(dist_a, dist_b, edge_cost, cutoff):
+def reach_fractions(dist_a, dist_b, edge_cost, cutoff,
+                    reverse_cost=None, directions=None):
     """Per-edge reach from both ends within ``cutoff``.
 
     ``dist_a``/``dist_b`` are the network costs of ``edge_from``/``edge_to``
@@ -42,11 +43,17 @@ def reach_fractions(dist_a, dist_b, edge_cost, cutoff):
     dist_a = np.asarray(dist_a, dtype=np.float64)
     dist_b = np.asarray(dist_b, dtype=np.float64)
     cost = np.maximum(np.asarray(edge_cost, dtype=np.float64), EPS)
+    reverse = (cost if reverse_cost is None else
+               np.maximum(np.asarray(reverse_cost, dtype=np.float64), EPS))
+    direction = (np.zeros(len(cost), dtype=np.int8) if directions is None
+                 else np.asarray(directions, dtype=np.int8))
     with np.errstate(invalid="ignore"):
         fa = (cutoff - dist_a) / cost
-        fb = (cutoff - dist_b) / cost
+        fb = (cutoff - dist_b) / reverse
     fa = np.clip(np.nan_to_num(fa, nan=-1.0, posinf=-1.0, neginf=-1.0), 0.0, 1.0)
     fb = np.clip(np.nan_to_num(fb, nan=-1.0, posinf=-1.0, neginf=-1.0), 0.0, 1.0)
+    fa = np.where(direction >= 0, fa, 0.0)
+    fb = np.where(direction <= 0, fb, 0.0)
     full = fa + fb >= 1.0 - EPS
     return full, fa, fb
 
@@ -170,7 +177,8 @@ def cut_polyline(coords, t0, t1):
 # --------------------------------------------------------------------------- #
 # Putting it together: reach of one scope (one facility or all merged)
 # --------------------------------------------------------------------------- #
-def entry_interval(t0, snap_cost, edge_cost, cutoff):
+def entry_interval(t0, snap_cost, edge_cost, cutoff, reverse_cost=None,
+                   direction=0):
     """Direct reach piece around a mid-edge entry point.
 
     ``t0`` = entry fraction along the edge, ``snap_cost`` = cost already
@@ -180,14 +188,18 @@ def entry_interval(t0, snap_cost, edge_cost, cutoff):
     budget = float(cutoff) - float(snap_cost)
     if budget <= EPS:
         return None
-    span = budget / max(float(edge_cost), EPS)
-    lo, hi = max(0.0, t0 - span), min(1.0, t0 + span)
+    forward_span = budget / max(float(edge_cost), EPS)
+    reverse_span = budget / max(
+        float(edge_cost if reverse_cost is None else reverse_cost), EPS)
+    lo = t0 if direction > 0 else max(0.0, t0 - reverse_span)
+    hi = t0 if direction < 0 else min(1.0, t0 + forward_span)
     if hi - lo <= EPS:
         return None
     return (lo, hi)
 
 
-def reach_intervals(dist, edge_from, edge_to, edge_cost, cutoff, entries=None):
+def reach_intervals(dist, edge_from, edge_to, edge_cost, cutoff, entries=None,
+                    reverse_cost=None, directions=None):
     """Reached intervals for every edge at one cutoff.
 
     ``dist``: per-node costs; ``entries``: optional list of
@@ -196,7 +208,8 @@ def reach_intervals(dist, edge_from, edge_to, edge_cost, cutoff, entries=None):
     with any reach.
     """
     full, fa, fb = reach_fractions(
-        dist[edge_from], dist[edge_to], edge_cost, cutoff)
+        dist[edge_from], dist[edge_to], edge_cost, cutoff,
+        reverse_cost=reverse_cost, directions=directions)
     out = {}
     touched = np.nonzero(full | (fa > EPS) | (fb > EPS))[0]
     for e in touched:
@@ -204,7 +217,11 @@ def reach_intervals(dist, edge_from, edge_to, edge_cost, cutoff, entries=None):
     if entries:
         extra = {}
         for e, t0, snap in entries:
-            piece = entry_interval(t0, snap, edge_cost[e], cutoff)
+            reverse = edge_cost[e] if reverse_cost is None else reverse_cost[e]
+            direction = 0 if directions is None else directions[e]
+            piece = entry_interval(
+                t0, snap, edge_cost[e], cutoff,
+                reverse_cost=reverse, direction=direction)
             if piece is not None:
                 extra.setdefault(int(e), []).append(piece)
         for e, pieces in extra.items():

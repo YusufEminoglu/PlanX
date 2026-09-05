@@ -17,7 +17,9 @@ from qgis.core import (
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterField,
     QgsProcessingParameterMultipleLayers,
+    QgsProcessingParameterEnum,
     QgsProcessingParameterNumber,
+    QgsProcessingParameterString,
     QgsWkbTypes,
 )
 
@@ -45,6 +47,8 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
     POP_FIELD = "POP_FIELD"
     SPEED = "SPEED"
     THRESHOLD = "THRESHOLD"
+    THRESHOLDS = "THRESHOLDS"
+    DECAY = "DECAY"
     OUTPUT = "OUTPUT"
 
     def name(self):
@@ -66,6 +70,10 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
             "2x threshold)\n"
             "- n_reach: categories reachable within the threshold\n"
             "- score: 0-100 share of categories within the threshold\n\n"
+            "Additional cumulative thresholds create reach_<minutes>min "
+            "fields. gravity applies the selected binary, linear, exponential "
+            "or inverse-power distance decay; mean_min reports the mean time "
+            "to reachable categories.\n\n"
             "Give an optional population field on the origins to get a "
             "population-weighted summary in the log: mean score, residents "
             "with full access and residents missing every category - the "
@@ -112,6 +120,12 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.THRESHOLD, self.tr("Time threshold (minutes)"),
             QgsProcessingParameterNumber.Type.Double, 15.0, minValue=1.0))
+        self.addParameter(QgsProcessingParameterString(
+            self.THRESHOLDS, self.tr("Additional cumulative thresholds in minutes"),
+            defaultValue="5,10,15,30"))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.DECAY, self.tr("Accessibility decay"),
+            options=["Binary threshold", "Linear", "Exponential", "Inverse power"], defaultValue=2))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("Access scores")))
 
@@ -122,18 +136,27 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
         pop_field = self.parameterAsString(parameters, self.POP_FIELD, context)
         speed = self.parameterAsDouble(parameters, self.SPEED, context)
         threshold = self.parameterAsDouble(parameters, self.THRESHOLD, context)
+        decay_method = self.parameterAsEnum(parameters, self.DECAY, context)
+        try:
+            thresholds = sorted(set(float(item.strip()) for item in
+                                    self.parameterAsString(parameters, self.THRESHOLDS, context).replace(";", ",").split(",")
+                                    if item.strip() and float(item.strip()) > 0))
+        except ValueError as exc:
+            raise QgsProcessingException(f"Invalid cumulative threshold list: {exc}")
+        if threshold not in thresholds:
+            thresholds.append(threshold)
+            thresholds.sort()
         self.require_projected(network, "Street network")
         if not amenity_layers:
             raise QgsProcessingException("Select at least one amenity layer.")
 
-        polylines, _ = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         crs = network.sourceCrs()
         o_xy, o_feats = self.source_points(origins, crs, context.transformContext())
         o_nodes = graphs.nearest_nodes(graph, o_xy)
 
         meters_per_min = speed * 1000.0 / 60.0
-        cutoff_m = threshold * 2.0 * meters_per_min  # report up to 2x threshold
+        cutoff_m = max(threshold * 2.0, max(thresholds)) * meters_per_min
 
         used = set()
         tokens = []
@@ -153,7 +176,10 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
             times[li, ok] = node_min[ok] / meters_per_min
             feedback.setProgress(int(100.0 * (li + 1) / len(amenity_layers)))
 
-        specs = [(t, DOUBLE) for t in tokens] + [("n_reach", INT), ("score", DOUBLE)]
+        threshold_fields = [(f"reach_{int(value)}min", INT) for value in thresholds]
+        specs = [(t, DOUBLE) for t in tokens] + threshold_fields + [
+            ("n_reach", INT), ("score", DOUBLE), ("gravity", DOUBLE), ("mean_min", DOUBLE),
+        ]
         fields = self.make_fields(*specs, base=origins.fields())
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields, QgsWkbTypes.Type.Point, crs)
@@ -168,6 +194,19 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
             col = times[:, i]
             reached = int(((col >= 0) & (col <= threshold)).sum())
             score = 100.0 * reached / n_cat
+            valid = col[col >= 0]
+            mean_time = float(np.mean(valid)) if len(valid) else -1.0
+            scaled = np.maximum(col, 0.0) / max(threshold, 1e-9)
+            if decay_method == 0:
+                decay = ((col >= 0) & (col <= threshold)).astype(float)
+            elif decay_method == 1:
+                decay = np.where(col >= 0, np.maximum(0.0, 1.0 - 0.5 * scaled), 0.0)
+            elif decay_method == 2:
+                decay = np.where(col >= 0, np.exp(-scaled), 0.0)
+            else:
+                decay = np.where(col >= 0, 1.0 / (1.0 + scaled ** 2), 0.0)
+            gravity = 100.0 * float(np.mean(decay))
+            cumulative = [int(((col >= 0) & (col <= value)).sum()) for value in thresholds]
             if p_idx >= 0:
                 try:
                     pop = max(0.0, float(feat.attributes()[p_idx] or 0.0))
@@ -184,7 +223,7 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
             out.setAttributes(
                 list(feat.attributes())[:n_src]
                 + [round(float(v), 2) if v >= 0 else -1.0 for v in col]
-                + [reached, round(score, 1)])
+                + cumulative + [reached, round(score, 1), round(gravity, 2), round(mean_time, 2)])
             sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
         if p_idx >= 0 and pop_total > 0:
             feedback.pushInfo(self.tr(

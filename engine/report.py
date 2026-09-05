@@ -631,6 +631,23 @@ def build_rank_html(title, result, weights_note="", generated=""):
         )
     body.append("</table></section>")
 
+    stability = result.get("stability")
+    if stability:
+        body.append("<section><h2>Weight Sensitivity</h2>")
+        body.append(
+            f"<p>{int(stability['simulations'])} Monte Carlo weight sets; "
+            f"weights varied by +/-{100.0 * stability['variation']:.0f}%.</p>")
+        body.append("<table><tr><th>Scenario</th><th>Mean rank</th>"
+                    "<th>Rank deviation</th><th>Probability first</th></tr>")
+        for sc in result["scenarios"]:
+            stats = stability["scenarios"][sc["name"]]
+            body.append(
+                f"<tr><td>{_html.escape(sc['name'])}</td>"
+                f"<td class='num'>{stats['mean_rank']:.2f}</td>"
+                f"<td class='num'>{stats['rank_std']:.2f}</td>"
+                f"<td class='num'>{100.0 * stats['p_best']:.1f}%</td></tr>")
+        body.append("</table></section>")
+
     # (2) Metric Heat Table
     body.append("<section><h2>Metric Details</h2>")
 

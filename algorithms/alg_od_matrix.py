@@ -119,12 +119,7 @@ class ODCostMatrixAlgorithm(PlanXAlgorithm):
         if not dest_id:
             dest_id = dest_id or origin_id
 
-        polylines, line_feats = self.source_polylines(network)
-        costs = None
-        if cost_field:
-            idx = network.fields().lookupField(cost_field)
-            costs = [float(f.attributes()[idx] or 0.0) for f in line_feats]
-        graph = graphs.build_node_graph(polylines, costs=costs)
+        graph, polylines, line_feats = self.network_graph(network, cost_field)
         feedback.pushInfo(self.tr(
             f"Graph: {graph.num_nodes} nodes / {graph.num_edges} edges "
             f"(SciPy fast path: {'yes' if paths.HAS_SCIPY else 'no'})"))

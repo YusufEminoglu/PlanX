@@ -208,13 +208,13 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
         rings = self.parameterAsBoolean(parameters, self.RINGS, context)
         self.require_projected(network, "Street network")
 
-        polylines, line_feats = self.source_polylines(network)
-        costs = None
-        if cost_field:
-            idx = network.fields().lookupField(cost_field)
-            costs = [float(f.attributes()[idx] or 0.0) for f in line_feats]
-        cost_is_length = not cost_field
-        graph = graphs.build_node_graph(polylines, costs=costs)
+        graph, polylines, line_feats = self.network_graph(network, cost_field)
+        field_names = [field.name().lower() for field in network.fields()]
+        has_prepared_cost = any(
+            name == "cost_fwd" or
+            (name.startswith("cost_fwd_") and name[9:].isdigit())
+            for name in field_names)
+        cost_is_length = not cost_field and not has_prepared_cost
         crs = network.sourceCrs()
         f_xy, f_feats = self.source_points(facilities, crs, context.transformContext())
         n_fac = len(f_xy)
@@ -245,8 +245,10 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
 
         max_break = breaks[-1]
         entries = []       # per facility: (edge, t, snap_cost_for_budget)
-        node_src = []      # 2 node entries per facility
+        node_src = []      # allowed endpoint entries across facilities
         node_off = []
+        source_owner = []
+        per_sources = []
         snaps = []
         far = 0
         for i in range(n_fac):
@@ -256,9 +258,18 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             snap_cost = snap if cost_is_length else 0.0
             entries.append((e, t, snap_cost))
             snaps.append(snap)
-            c = float(graph.edge_cost[e])
-            node_src.extend([int(graph.edge_from[e]), int(graph.edge_to[e])])
-            node_off.extend([snap_cost + t * c, snap_cost + (1.0 - t) * c])
+            sources_i, offsets_i = [], []
+            direction = int(graph.edge_direction[e])
+            if direction <= 0:
+                sources_i.append(int(graph.edge_from[e]))
+                offsets_i.append(snap_cost + t * float(graph.edge_rev_cost[e]))
+            if direction >= 0:
+                sources_i.append(int(graph.edge_to[e]))
+                offsets_i.append(snap_cost + (1.0 - t) * float(graph.edge_cost[e]))
+            node_src.extend(sources_i)
+            node_off.extend(offsets_i)
+            source_owner.extend([i] * len(sources_i))
+            per_sources.append((sources_i, offsets_i))
             if snap_cost >= max_break:
                 far += 1
         if far:
@@ -281,9 +292,11 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             for i in range(n_fac):
                 if feedback.isCanceled():
                     break
+                sources_i, offsets_i = per_sources[i]
                 d_i, _ = paths.multi_source_offset(
                     graph.indptr, graph.adj_node, graph.adj_cost, graph.num_nodes,
-                    node_src_a[2 * i:2 * i + 2], node_off_a[2 * i:2 * i + 2],
+                    np.asarray(sources_i, dtype=np.int64),
+                    np.asarray(offsets_i, dtype=np.float64),
                     cutoff=max_break)
                 scopes.append((labels[i], d_i, [entries[i]], i))
                 feedback.setProgress(int(30.0 * (i + 1) / n_fac))
@@ -296,7 +309,8 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                     break
                 reach[(lab, brk)] = isochrone.reach_intervals(
                     dist, graph.edge_from, graph.edge_to, graph.edge_cost,
-                    brk, entries=ent)
+                    brk, entries=ent, reverse_cost=graph.edge_rev_cost,
+                    directions=graph.edge_direction)
             feedback.setProgress(30 + int(30.0 * (si + 1) / len(scopes)))
 
         def pieces_geoms(lab, brk):
@@ -336,7 +350,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                     da = float(dist_all[graph.edge_from[e]])
                     db = float(dist_all[graph.edge_to[e]])
                     win = label_all[graph.edge_from[e] if da <= db else graph.edge_to[e]]
-                    fac_lab = labels[int(win) // 2] if win >= 0 else ""
+                    fac_lab = labels[source_owner[int(win)]] if win >= 0 else ""
                     piece_len = float(graph.edge_len[e]) * (hi - lo)
                     out = QgsFeature(edge_fields)
                     out.setGeometry(QgsGeometry.fromPolylineXY(

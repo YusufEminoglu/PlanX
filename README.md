@@ -20,6 +20,20 @@
 
 ## Why PlanX?
 
+### Advanced analysis platform
+
+PlanX now carries one analytical contract across its tools: prepared networks
+support one-way routing and asymmetric costs in cost-aware tools; generated layers receive readable field
+aliases, useful default styling, and reproducible provenance fingerprints; and
+scenario snapshots retain that lineage. Accessibility includes cumulative
+thresholds, distance decay, gravity and two-step floating catchments. Scenario
+ranking adds Monte Carlo rank stability, while facility siting can certify
+small heuristic solutions against the exact optimum. GTFS routing supports
+walking transfers and departure-window P50/P90 reliability, Mode Split can
+validate against observed shares, and Annual Solar can calibrate clear-sky
+results with an EPW weather file. The Studio adds search, favorites, recents,
+active-layer filtering, presets, and guided workflows.
+
 Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives sixty-nine Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## 📖 Documentation

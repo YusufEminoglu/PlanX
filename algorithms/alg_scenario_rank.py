@@ -14,12 +14,14 @@ from qgis.core import (
     QgsProcessingParameterFile,
     QgsProcessingParameterFileDestination,
     QgsProcessingParameterString,
+    QgsProcessingParameterNumber,
     QgsWkbTypes,
 )
 
 from .base import DOUBLE, GROUP_REPORT, PlanXAlgorithm, STRING, INT
 from ..engine import report as rpt
 from ..engine import scenario
+from ..engine import uncertainty
 
 
 def _read_snapshot(path: str):
@@ -44,6 +46,9 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
     OUT_TABLE = "OUT_TABLE"
     OUT_DETAIL = "OUT_DETAIL"
     OUTPUT_HTML = "OUTPUT_HTML"
+    SIMULATIONS = "SIMULATIONS"
+    WEIGHT_VARIATION = "WEIGHT_VARIATION"
+    RANDOM_SEED = "RANDOM_SEED"
 
     def name(self):
         return "scenariorank"
@@ -60,6 +65,8 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
             "Only metrics that are present in every snapshot, have a non-zero direction registry, and are not constant "
             "across all snapshots are scored. All other metrics are skipped and reported with their reasons (neutral, "
             "not-shared, or constant).\n\n"
+            "Monte Carlo weight perturbation reports each alternative's mean rank, rank deviation and probability "
+            "of ranking first, so a fragile winner is visible instead of hidden behind one weight set.\n\n"
             "How to read the results\n"
             "- The composite score is RELATIVE to the compared set, not an absolute quality index - adding or removing "
             "a scenario rescales all scores.\n"
@@ -78,6 +85,15 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterString(
             self.FILES, self.tr("Snapshot files (paths, ';' or ',' separated)"),
             defaultValue="", optional=True))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.SIMULATIONS, self.tr("Weight-uncertainty simulations (0 = off)"),
+            QgsProcessingParameterNumber.Type.Integer, 200, minValue=0, maxValue=10000))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.WEIGHT_VARIATION, self.tr("Weight variation (+/- proportion)"),
+            QgsProcessingParameterNumber.Type.Double, 0.20, minValue=0.0, maxValue=1.0))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.RANDOM_SEED, self.tr("Uncertainty random seed"),
+            QgsProcessingParameterNumber.Type.Integer, 42, minValue=0))
 
         self.addParameter(QgsProcessingParameterFile(
             self.FOLDER, self.tr("Snapshot folder (contains *.json)"),
@@ -105,6 +121,9 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
         folder_path = self.parameterAsFile(parameters, self.FOLDER, context).strip()
         weights_str = self.parameterAsString(parameters, self.WEIGHTS, context).strip()
         html_path = self.parameterAsFileOutput(parameters, self.OUTPUT_HTML, context)
+        simulations = self.parameterAsInt(parameters, self.SIMULATIONS, context)
+        weight_variation = self.parameterAsDouble(parameters, self.WEIGHT_VARIATION, context)
+        random_seed = self.parameterAsInt(parameters, self.RANDOM_SEED, context)
 
         # Collect paths from FILES + FOLDER
         tokens = []
@@ -162,6 +181,12 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
             result = scenario.rank(snapshots, weights)
         except ValueError as exc:
             raise QgsProcessingException(str(exc))
+        stability = uncertainty.rank_stability(
+            scenario.rank, snapshots, weights, simulations=max(1, simulations),
+            variation=weight_variation, seed=random_seed,
+        ) if simulations > 0 else None
+        if stability:
+            result["stability"] = stability
 
         # Log
         feedback.pushInfo(self.tr(f"Ranking {len(snapshots)} snapshots..."))
@@ -175,7 +200,8 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
         # Sinks
         fields_table = self.make_fields(
             ("rank", INT), ("scenario", STRING), ("score", DOUBLE),
-            ("wins", INT), ("n_metrics", INT)
+            ("wins", INT), ("n_metrics", INT), ("mean_rank", DOUBLE),
+            ("rank_sd", DOUBLE), ("p_best", DOUBLE)
         )
         sink_table, dest_table = self.parameterAsSink(
             parameters, self.OUT_TABLE, context, fields_table,
@@ -186,7 +212,10 @@ class ScenarioRankAlgorithm(PlanXAlgorithm):
             feat = QgsFeature(fields_table)
             feat.setAttributes([
                 int(sc["rank"]), str(sc["name"]), float(sc["score"]),
-                int(sc["wins"]), int(sc["n_metrics"])
+                int(sc["wins"]), int(sc["n_metrics"]),
+                float(stability["scenarios"][sc["name"]]["mean_rank"]) if stability else float(sc["rank"]),
+                float(stability["scenarios"][sc["name"]]["rank_std"]) if stability else 0.0,
+                float(stability["scenarios"][sc["name"]]["p_best"]) if stability else float(sc["rank"] == 1),
             ])
             sink_table.addFeature(feat, QgsFeatureSink.Flag.FastInsert)
 

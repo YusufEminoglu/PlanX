@@ -146,12 +146,7 @@ class CapacitatedSitingAlgorithm(PlanXAlgorithm):
         cost_field = self.parameterAsString(parameters, self.COST_FIELD, context)
         self.require_projected(network, "Street network")
 
-        polylines, line_feats = self.source_polylines(network)
-        costs = None
-        if cost_field:
-            idx = network.fields().lookupField(cost_field)
-            costs = [float(f.attributes()[idx] or 0.0) for f in line_feats]
-        graph = graphs.build_node_graph(polylines, costs=costs)
+        graph, polylines, line_feats = self.network_graph(network, cost_field)
 
         crs = network.sourceCrs()
         xform = context.transformContext()

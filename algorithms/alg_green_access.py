@@ -116,8 +116,7 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
         except ValueError as exc:
             raise QgsProcessingException(str(exc))
 
-        polylines, _f = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _f = self.network_graph(network, use_prepared_costs=False)
         crs = network.sourceCrs()
         xform = context.transformContext()
         d_xy, d_feats = self.source_points(demand, crs, xform)

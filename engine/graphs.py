@@ -24,16 +24,19 @@ import numpy as np
 # Primal graph
 # --------------------------------------------------------------------------- #
 class NodeGraph:
-    """Undirected weighted graph over polyline endpoints (CSR adjacency)."""
+    """Weighted graph over polyline endpoints; optionally directed."""
 
-    __slots__ = ("node_xy", "edge_from", "edge_to", "edge_cost", "edge_len",
+    __slots__ = ("node_xy", "edge_from", "edge_to", "edge_cost", "edge_rev_cost", "edge_direction", "edge_len",
                  "indptr", "adj_node", "adj_edge", "adj_cost")
 
-    def __init__(self, node_xy, edge_from, edge_to, edge_cost, edge_len):
+    def __init__(self, node_xy, edge_from, edge_to, edge_cost, edge_len,
+                 reverse_cost=None, directions=None):
         self.node_xy = node_xy          # (N, 2) float64
         self.edge_from = edge_from      # (E,) int32 - aligned with input polylines
         self.edge_to = edge_to          # (E,) int32
         self.edge_cost = edge_cost      # (E,) float64 (routing cost)
+        self.edge_rev_cost = np.asarray(reverse_cost if reverse_cost is not None else edge_cost, dtype=np.float64)
+        self.edge_direction = np.asarray(directions if directions is not None else np.zeros(len(edge_from)), dtype=np.int8)
         self.edge_len = edge_len        # (E,) float64 (metric length)
         self._build_csr()
 
@@ -47,10 +50,13 @@ class NodeGraph:
 
     def _build_csr(self):
         n = self.num_nodes
-        src = np.concatenate([self.edge_from, self.edge_to])
-        dst = np.concatenate([self.edge_to, self.edge_from])
-        eid = np.concatenate([np.arange(self.num_edges), np.arange(self.num_edges)])
-        cost = np.concatenate([self.edge_cost, self.edge_cost])
+        forward = self.edge_direction >= 0
+        reverse = self.edge_direction <= 0
+        src = np.concatenate([self.edge_from[forward], self.edge_to[reverse]])
+        dst = np.concatenate([self.edge_to[forward], self.edge_from[reverse]])
+        edge_ids = np.arange(self.num_edges)
+        eid = np.concatenate([edge_ids[forward], edge_ids[reverse]])
+        cost = np.concatenate([self.edge_cost[forward], self.edge_rev_cost[reverse]])
         order = np.argsort(src, kind="stable")
         src, dst, eid, cost = src[order], dst[order], eid[order], cost[order]
         counts = np.bincount(src, minlength=n)
@@ -68,12 +74,14 @@ def polyline_length(coords: np.ndarray) -> float:
     return float(np.hypot(d[:, 0], d[:, 1]).sum())
 
 
-def build_node_graph(polylines, tolerance: float = 0.01, costs=None) -> NodeGraph:
+def build_node_graph(polylines, tolerance: float = 0.01, costs=None,
+                     reverse_costs=None, directions=None) -> NodeGraph:
     """Build the primal graph from a list of (k_i, 2) coordinate arrays.
 
     Endpoints are snapped together when within ``tolerance`` (grid
     quantization). ``costs`` (optional, per polyline) overrides length as the
     routing cost; metric length is always kept for radii/statistics.
+    ``directions`` uses 0=both, 1=coordinate order only, -1=reverse only.
     """
     node_index = {}
     node_pts = []
@@ -100,12 +108,25 @@ def build_node_graph(polylines, tolerance: float = 0.01, costs=None) -> NodeGrap
         edge_cost = np.asarray(costs, dtype=np.float64)
         bad = ~np.isfinite(edge_cost) | (edge_cost <= 0)
         edge_cost[bad] = edge_len[bad]
+    if reverse_costs is None:
+        reverse_costs = edge_cost.copy()
+    else:
+        reverse_costs = np.asarray(reverse_costs, dtype=np.float64)
+        bad = ~np.isfinite(reverse_costs) | (reverse_costs <= 0)
+        reverse_costs[bad] = edge_len[bad]
+    if directions is None:
+        directions = np.zeros(len(edge_len), dtype=np.int8)
+    directions = np.asarray(directions, dtype=np.int8)
+    if len(directions) != len(edge_len) or np.any(~np.isin(directions, (-1, 0, 1))):
+        raise ValueError("directions must contain one -1, 0, or 1 value per polyline")
     return NodeGraph(
         np.asarray(node_pts, dtype=np.float64),
         np.asarray(e_from, dtype=np.int32),
         np.asarray(e_to, dtype=np.int32),
         edge_cost,
         edge_len,
+        reverse_costs,
+        directions,
     )
 
 
@@ -123,6 +144,29 @@ def nearest_nodes(graph: NodeGraph, points: np.ndarray) -> np.ndarray:
             d2 = (nodes[:, 0] - p[0]) ** 2 + (nodes[:, 1] - p[1]) ** 2
             out[i] = int(np.argmin(d2))
         return out
+
+
+def weak_components(graph: NodeGraph) -> tuple[np.ndarray, int]:
+    """Return weak component id per node and the component count."""
+    undirected = [[] for _ in range(graph.num_nodes)]
+    for left, right in zip(graph.edge_from, graph.edge_to):
+        undirected[int(left)].append(int(right))
+        undirected[int(right)].append(int(left))
+    labels = np.full(graph.num_nodes, -1, dtype=np.int32)
+    component = 0
+    for root in range(graph.num_nodes):
+        if labels[root] >= 0:
+            continue
+        labels[root] = component
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            for neighbor in undirected[node]:
+                if labels[neighbor] < 0:
+                    labels[neighbor] = component
+                    stack.append(neighbor)
+        component += 1
+    return labels, component
 
 
 # --------------------------------------------------------------------------- #

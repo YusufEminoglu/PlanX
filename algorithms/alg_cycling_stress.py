@@ -147,8 +147,8 @@ class CyclingStressAlgorithm(PlanXAlgorithm):
         except ValueError as exc:
             raise QgsProcessingException(str(exc))
 
-        polylines, feats = self.source_polylines(network, feedback)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, feats = self.network_graph(
+            network, feedback=feedback, use_prepared_costs=False)
         fields_in = network.fields()
         s_idx = fields_in.lookupField(speed_f) if speed_f else -1
         l_idx = fields_in.lookupField(lanes_f) if lanes_f else -1

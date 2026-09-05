@@ -124,8 +124,7 @@ class CapacitatedAllocationAlgorithm(PlanXAlgorithm):
         max_cost = self.parameterAsDouble(parameters, self.MAX_COST, context)
         self.require_projected(network, "Street network")
 
-        polylines, _ = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         crs = network.sourceCrs()
         xform = context.transformContext()
         d_xy, d_feats = self.source_points(demand, crs, xform)

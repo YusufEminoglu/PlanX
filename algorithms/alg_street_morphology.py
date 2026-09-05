@@ -79,8 +79,7 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
         self.require_projected(network, "Street network")
-        polylines, _ = self.source_polylines(network)
-        graph = graphs.build_node_graph(polylines)
+        graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         n, e = graph.num_nodes, graph.num_edges
 
         bearings = np.asarray([

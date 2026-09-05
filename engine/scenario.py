@@ -82,7 +82,7 @@ def metrics_from_summaries(access=None, balance=None, adequacy=None,
     return out
 
 
-def snapshot(name, metrics, generated=None) -> dict:
+def snapshot(name, metrics, generated=None, provenance=None) -> dict:
     """Build a scenario snapshot dict from a metric mapping."""
     clean = {}
     for key, val in dict(metrics).items():
@@ -92,13 +92,16 @@ def snapshot(name, metrics, generated=None) -> dict:
             continue
         if f == f:  # drop NaN
             clean[str(key)] = f
-    return {
+    result = {
         "kind": "planx-scenario-snapshot",
-        "version": 1,
+        "version": 2,
         "name": str(name) or "Scenario",
         "generated": generated or datetime.now().strftime("%Y-%m-%d %H:%M"),
         "metrics": clean,
     }
+    if provenance:
+        result["provenance"] = list(provenance)
+    return result
 
 
 def to_json(snap) -> str:
@@ -119,13 +122,18 @@ def from_json(text):
             metrics[str(key)] = float(val)
         except (TypeError, ValueError):
             continue
-    return {
+    result = {
         "kind": "planx-scenario-snapshot",
         "version": int(data.get("version", 1)),
         "name": str(data.get("name", "Scenario")),
         "generated": str(data.get("generated", "")),
         "metrics": metrics,
     }
+    provenance = data.get("provenance", [])
+    if isinstance(provenance, list):
+        result["provenance"] = [item for item in provenance
+                                if isinstance(item, dict)]
+    return result
 
 
 def label_of(key: str) -> str:

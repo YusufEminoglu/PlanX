@@ -48,7 +48,7 @@ def many_to_many(indptr, adj, weights, n, sources, cutoff=None, cancel=None):
         from scipy.sparse import csgraph
         return csgraph.dijkstra(
             _to_scipy(indptr, adj, weights, n),
-            directed=False, indices=sources,
+            directed=True, indices=sources,
             limit=INF if cutoff is None else float(cutoff),
         )
     out = np.empty((len(sources), n))
@@ -70,7 +70,7 @@ def multi_source(indptr, adj, weights, n, sources, cutoff=None):
         from scipy.sparse import csgraph
         dist, _, src_node = csgraph.dijkstra(
             _to_scipy(indptr, adj, weights, n),
-            directed=False, indices=sources, min_only=True,
+            directed=True, indices=sources, min_only=True,
             return_predecessors=True,
             limit=INF if cutoff is None else float(cutoff),
         )

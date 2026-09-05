@@ -5,7 +5,9 @@ from __future__ import annotations
 import numpy as np
 
 from qgis.core import (
+    QgsProcessingException,
     QgsProcessingParameterBoolean,
+    QgsProcessingParameterFile,
     QgsProcessingParameterNumber,
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterRasterLayer,
@@ -13,7 +15,7 @@ from qgis.core import (
 
 from .base import GROUP_MICRO, PlanXAlgorithm
 from . import _raster
-from ..engine import solar
+from ..engine import solar, weather
 
 
 class AnnualSolarAlgorithm(PlanXAlgorithm):
@@ -26,6 +28,7 @@ class AnnualSolarAlgorithm(PlanXAlgorithm):
     USE_SVF = "USE_SVF"
     SVF_RADIUS = "SVF_RADIUS"
     MAX_SEARCH = "MAX_SEARCH"
+    EPW = "EPW"
     OUTPUT = "OUTPUT"
     OUTPUT_MONTHLY = "OUTPUT_MONTHLY"
 
@@ -51,7 +54,9 @@ class AnnualSolarAlgorithm(PlanXAlgorithm):
             "Outputs the annual irradiation raster (kWh/m2/yr); optionally a "
             "12-band monthly raster (one band per month, named) for seasonal "
             "analysis. The log reports the unobstructed flat-ground annual "
-            "reference, the scene statistics and the peak month.\n\n"
+            "reference, the scene statistics and the peak month. An optional "
+            "EPW file scales each month to measured typical-year horizontal "
+            "irradiation while preserving the urban-form shading pattern.\n\n"
             "The DSM must be in a projected CRS (metric pixels). Screening "
             "quality: clouds, terrain albedo and roof slope/aspect are not "
             "modelled. A coarser time step runs faster; 30-60 min is a good "
@@ -97,6 +102,9 @@ class AnnualSolarAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.MAX_SEARCH, self.tr("Maximum shadow length to scan (map units, 0 = auto)"),
             QgsProcessingParameterNumber.Type.Double, 0.0, minValue=0.0))
+        self.addParameter(QgsProcessingParameterFile(
+            self.EPW, self.tr("EPW weather file for measured-sky calibration (optional)"),
+            extension="epw", optional=True))
         self.addParameter(QgsProcessingParameterRasterDestination(
             self.OUTPUT, self.tr("Annual irradiation (kWh/m2/yr)")))
         monthly = QgsProcessingParameterRasterDestination(
@@ -112,6 +120,7 @@ class AnnualSolarAlgorithm(PlanXAlgorithm):
         use_svf = self.parameterAsBool(parameters, self.USE_SVF, context)
         svf_radius = self.parameterAsDouble(parameters, self.SVF_RADIUS, context)
         max_search = self.parameterAsDouble(parameters, self.MAX_SEARCH, context) or None
+        epw_path = self.parameterAsFile(parameters, self.EPW, context)
         out_path = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)
         monthly_req = bool(parameters.get(self.OUTPUT_MONTHLY))
 
@@ -135,11 +144,29 @@ class AnnualSolarAlgorithm(PlanXAlgorithm):
         res = solar.annual_irradiation(
             arr, pixel, year, utc_offset, lat, lon,
             interval_min=interval, svf=svf, max_search=max_search,
-            keep_monthly=monthly_req,
+            keep_monthly=monthly_req or bool(epw_path),
             progress=lambda p: feedback.setProgress(base + int((100 - base) * p)),
             cancel=feedback.isCanceled)
 
         annual = res["annual"]
+        if epw_path:
+            try:
+                climate = weather.read_epw(epw_path)
+                factors = weather.monthly_solar_factors(
+                    climate, res["flat_monthly"])
+            except (OSError, ValueError) as exc:
+                raise QgsProcessingException(f"Could not calibrate from EPW: {exc}")
+            res["monthly"] = [month * factor for month, factor
+                              in zip(res["monthly"], factors)]
+            res["month_mean"] = [value * factor for value, factor
+                                 in zip(res["month_mean"], factors)]
+            res["flat_monthly"] = list(climate["monthly_ghi"])
+            res["flat_annual"] = float(sum(climate["monthly_ghi"]))
+            annual = np.sum(np.stack(res["monthly"]), axis=0)
+            res["annual"] = annual
+            feedback.pushInfo(self.tr(
+                f"EPW calibration applied ({climate['hours']} hourly records; "
+                f"measured annual GHI {res['flat_annual']:.0f} kWh/m2)."))
         out = np.where(np.isnan(arr), -9999.0, annual).astype(np.float32)
         _raster.write_raster(out_path, out, gt, proj, nodata=-9999.0)
         results = {self.OUTPUT: out_path}
