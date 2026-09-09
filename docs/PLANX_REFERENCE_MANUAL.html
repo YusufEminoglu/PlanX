@@ -369,7 +369,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.10.1 &middot; 69 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.11.0 &middot; 69 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">August 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -394,7 +394,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.10.1). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.11.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
@@ -14700,7 +14700,7 @@ DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.20
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.10.1 &middot; 69 Algorithms &middot; 19 Tool Groups &middot; August 2026</em>
+  Covering PlanX v4.11.0 &middot; 69 Algorithms &middot; 19 Tool Groups &middot; August 2026</em>
 </p>
 
 
@@ -14781,6 +14781,61 @@ btt.addEventListener('click', () => {
 @media (max-width: 768px) { #print-pdf-btn { bottom: 12px; right: 12px; padding: 8px 14px; font-size: 12px; } }
 </style>
 <button id="print-pdf-btn" onclick="window.print()" title="Save as PDF / Print">🖨️ Save as PDF</button>
+
+<!-- Content-aware search augmentation (see packaging/manual_gen/inject_family_b_search.py).
+     "Family B" manuals (planx_urban_resilience, parcelflux, planx_3d_city,
+     zero2cadgis, ...) already ship a TOC search that matches only a link's
+     own data-name/data-display attributes (id and title, two spellings) --
+     a query that only matches words inside an algorithm's actual body text
+     never finds it. This runs as a SECOND 'input' listener alongside
+     whatever the page's own script already does: the first listener hides
+     non-matching links by label; this one un-hides any link whose target
+     section's full text also matches, and keeps its group visible/expanded.
+     Injected verbatim, not hand-copied per file, so every adopter gets an
+     identical, easy-to-audit implementation regardless of that file's own
+     internal variable names. -->
+<script>
+(function () {
+  var input = document.querySelector('#search, #searchInput, #search-box, #s');
+  if (!input) return;
+  var links = document.querySelectorAll('.toc-algs li a[href^="#"]');
+  if (!links.length) return;
+
+  var sectionTextCache = {};
+  function sectionText(href) {
+    if (href in sectionTextCache) return sectionTextCache[href];
+    var el = href ? document.querySelector(href) : null;
+    var text = '';
+    if (el) {
+      var stopTags = el.tagName === 'H2' ? ['H2'] : ['H2', 'H3'];
+      var parts = [el.textContent];
+      var sib = el.nextElementSibling;
+      while (sib && stopTags.indexOf(sib.tagName) === -1) {
+        parts.push(sib.textContent);
+        sib = sib.nextElementSibling;
+      }
+      text = parts.join(' ').toLowerCase();
+    }
+    sectionTextCache[href] = text;
+    return text;
+  }
+
+  input.addEventListener('input', function () {
+    var q = input.value.toLowerCase().trim();
+    if (!q) return; // the page's own listener already restores everything on empty query
+    links.forEach(function (link) {
+      if (!link.classList.contains('hidden')) return; // already visible via the page's own label match
+      if (sectionText(link.getAttribute('href')).indexOf(q) === -1) return;
+      link.classList.remove('hidden');
+      var group = link.closest('.toc-group');
+      if (group) {
+        var btn = group.querySelector('.toc-group-btn');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
