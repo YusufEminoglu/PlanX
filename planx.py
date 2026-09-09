@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import os
 
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsApplication
 
@@ -42,11 +42,21 @@ class PlanX:
         action.setToolTip("Open the PlanX Urban Analytics Studio panel")
         action.triggered.connect(self.open_dock)
         self.iface.addToolBarIcon(action)
+        self.iface.addPluginToMenu("&PlanX", action)
         self.actions.append(action)
+
+        rate_action = QAction("★ Rate PlanX on GeoPhilo...", self.iface.mainWindow())
+        rate_action.setToolTip("Submit rating & verified feedback on GeoPhilo")
+        rate_action.triggered.connect(
+            lambda: QDesktopServices.openUrl(QUrl("https://geophilo.com/feedback/?plugin=planx&v=4.11.0"))
+        )
+        self.iface.addPluginToMenu("&PlanX", rate_action)
+        self.actions.append(rate_action)
 
     def unload(self):
         for action in self.actions:
             self.iface.removeToolBarIcon(action)
+            self.iface.removePluginMenu("&PlanX", action)
         self.actions = []
         if self.dock is not None:
             self.iface.removeDockWidget(self.dock)

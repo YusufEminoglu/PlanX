@@ -55,6 +55,8 @@ QPushButton { background:#e2e8f0; color:#111827; border:1px solid #94a3b8; borde
 QPushButton:hover { background:#cbd5e1; }
 QCheckBox,QLabel { color:#111827; }
 QPushButton#planxDoc { background:#13a0a0; color:white; border:none; font-weight:bold; }
+QPushButton#planxRate { background:#cf9836; color:white; border:none; font-weight:bold; }
+QPushButton#planxRate:hover { background:#b8862d; }
 """
 
 
@@ -92,10 +94,18 @@ class PlanXStudioDock(QDockWidget):
         self.compatible_only.toggled.connect(self._populate)
         layout.addWidget(self.compatible_only)
 
-        docs = QPushButton("Open Reference Manual")
+        button_row = QHBoxLayout()
+        docs = QPushButton("Open Manual")
         docs.setObjectName("planxDoc")
         docs.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOC_BASE_URL)))
-        layout.addWidget(docs)
+        button_row.addWidget(docs)
+
+        rate_btn = QPushButton("★ Rate on GeoPhilo")
+        rate_btn.setObjectName("planxRate")
+        rate_btn.setToolTip("Submit verified rating & feedback on GeoPhilo")
+        rate_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://geophilo.com/feedback/?plugin=planx&v=4.11.0")))
+        button_row.addWidget(rate_btn)
+        layout.addLayout(button_row)
 
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
