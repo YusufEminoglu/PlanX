@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.11.1] - 2026-09-17
+
+- Upgraded official plugin icon to high-end tactile 3D brand identity (isometric 45°, slim teal pedestal, full bleed transparent canvas).
+- Synchronized documentation, repository and issue tracker endpoints to GeoPhilo and GitLab.
+- Fixed field preservation and fid handling in network preparation and service areas algorithms.
+
 ## [4.11.0] - 2026-09-05
 
 ### Added

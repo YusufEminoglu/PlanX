@@ -7,7 +7,7 @@
 **Embedded urban analytics engine for QGIS: space syntax, centrality, urban morphology, OD matrices, isochrones and 15-minute-city scores — no external plugins or services.**
 
 [![QGIS](https://img.shields.io/badge/QGIS-3.22%2B-93b023?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
-[![Version](https://img.shields.io/github/v/tag/YusufEminoglu/PlanX?label=version&color=blue)](https://gitlab.com/geospacephilo/planx/releases)
+[![Version](https://img.shields.io/github/v/tag/YusufEminoglu/PlanX?label=version&color=blue)](https://gitlab.com/geophilo1/planx/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](LICENSE)
 [![QGIS Plugin Hub](https://img.shields.io/badge/QGIS%20Hub-install-589632?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
 [![Documentation](https://img.shields.io/badge/📖_Reference_Manual-69_algorithms-13a0a0)](https://geophilo.com/planx/)
@@ -74,7 +74,7 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 
 **From the QGIS Plugin Hub (recommended):** `Plugins → Manage and Install Plugins…` → search for **"PlanX"** → *Install*.
 
-**From a release zip:** download the latest zip from [Releases](https://gitlab.com/geospacephilo/planx/releases) → `Plugins → Install from ZIP`.
+**From a release zip:** download the latest zip from [Releases](https://gitlab.com/geophilo1/planx/releases) → `Plugins → Install from ZIP`.
 
 Requires QGIS 3.22 or newer. No external Python dependencies.
 
@@ -168,12 +168,12 @@ PlanX is one of 15 open-source QGIS plugins for urban planning by the same autho
 
 | Planning & analysis | CAD & production | 3D & visualization |
 |---|---|---|
-| [PlanX](https://gitlab.com/geospacephilo/planx) — spatial-planning suite | [PlanX CAD Toolset](https://gitlab.com/geospacephilo/planx) — drafting-grade CAD | [PlanX 3D City](https://gitlab.com/geospacephilo/planx) — Three.js city viewer |
-| [GeoStats Lab](https://gitlab.com/geospacephilo/planx) — spatial statistics | [EasyFillet](https://gitlab.com/geospacephilo/planx) — tangent-arc fillet | [3D OSM Model](https://gitlab.com/geospacephilo/planx) — OSM → 3D city in browser |
-| [Suitability Lab](https://gitlab.com/geospacephilo/planx) — raster MCDA | [Settlement Toolset](https://gitlab.com/geospacephilo/planx) — 9-stage settlement plans | [OSM Quick 3D](https://gitlab.com/geospacephilo/planx) — OSM → native QGIS 3D |
-| [DataCube Lab](https://gitlab.com/geospacephilo/planx) — spatiotemporal cubes | [UIP Toolset](https://gitlab.com/geospacephilo/planx) — Turkish master-plan automation | [Urban Procedural 3D](https://gitlab.com/geospacephilo/planx) — parametric zoning lab |
-| [Urban Resilience](https://gitlab.com/geospacephilo/planx) — 28 resilience tools | [ParcelFlux](https://gitlab.com/geospacephilo/planx) — parcel subdivision | [CartoLab](https://gitlab.com/geospacephilo/planx) — publication cartography |
+| [PlanX](https://gitlab.com/geophilo1/planx) — spatial-planning suite | [PlanX CAD Toolset](https://gitlab.com/geophilo1/planx) — drafting-grade CAD | [PlanX 3D City](https://gitlab.com/geophilo1/planx) — Three.js city viewer |
+| [GeoStats Lab](https://gitlab.com/geophilo1/planx) — spatial statistics | [EasyFillet](https://gitlab.com/geophilo1/planx) — tangent-arc fillet | [3D OSM Model](https://gitlab.com/geophilo1/planx) — OSM → 3D city in browser |
+| [Suitability Lab](https://gitlab.com/geophilo1/planx) — raster MCDA | [Settlement Toolset](https://gitlab.com/geophilo1/planx) — 9-stage settlement plans | [OSM Quick 3D](https://gitlab.com/geophilo1/planx) — OSM → native QGIS 3D |
+| [DataCube Lab](https://gitlab.com/geophilo1/planx) — spatiotemporal cubes | [UIP Toolset](https://gitlab.com/geophilo1/planx) — Turkish master-plan automation | [Urban Procedural 3D](https://gitlab.com/geophilo1/planx) — parametric zoning lab |
+| [Urban Resilience](https://gitlab.com/geophilo1/planx) — 28 resilience tools | [ParcelFlux](https://gitlab.com/geophilo1/planx) — parcel subdivision | [CartoLab](https://gitlab.com/geophilo1/planx) — publication cartography |
 
 ## 📜 License & author
 
-GPL-3.0 © [Yusuf Eminoğlu](https://github.com/YusufEminoglu) — bug reports and feature requests welcome in [Issues](https://gitlab.com/geospacephilo/planx/-/issues).
+GPL-3.0 © [Yusuf Eminoğlu](https://github.com/YusufEminoglu) — bug reports and feature requests welcome in [Issues](https://gitlab.com/geophilo1/planx/-/issues).

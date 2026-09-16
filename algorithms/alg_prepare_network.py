@@ -6,6 +6,8 @@ import numpy as np
 from qgis.core import (
     QgsFeature,
     QgsFeatureSink,
+    QgsField,
+    QgsFields,
     QgsGeometry,
     QgsProcessing,
     QgsProcessingException,
@@ -137,6 +139,8 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                            {"INPUT": single, "REFERENCE_LAYER": single,
                             "TOLERANCE": snap_tolerance, "BEHAVIOR": 0,
                             "OUTPUT": "TEMPORARY_OUTPUT"})
+            single = child("native:fixgeometries",
+                           {"INPUT": single, "OUTPUT": "TEMPORARY_OUTPUT"})
         feedback.pushInfo(self.tr("Noding lines at mutual intersections..."))
         noded = child("native:splitwithlines",
                       {"INPUT": single, "LINES": single, "OUTPUT": "TEMPORARY_OUTPUT"})
@@ -156,11 +160,18 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
             if target_crs.isGeographic():
                 feedback.pushWarning(self.tr("The target CRS is geographic. Other PlanX tools require a projected CRS."))
 
+        source_fields = QgsFields()
+        keep_indices = []
+        for idx, fld in enumerate(source.fields()):
+            if fld.name().lower() not in ("fid", "ogc_fid"):
+                source_fields.append(QgsField(fld))
+                keep_indices.append(idx)
+
         fields = self.make_fields(("seg_id", LONG), ("length_m", DOUBLE),
                                   ("dir_code", LONG), ("cost_fwd", DOUBLE),
                                   ("cost_rev", DOUBLE), ("node_from", LONG),
                                   ("node_to", LONG), ("component", LONG),
-                                  base=source.fields())
+                                  base=source_fields)
         sink, dest_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
             QgsWkbTypes.Type.LineString, out_crs)
@@ -214,7 +225,7 @@ class PrepareNetworkAlgorithm(PlanXAlgorithm):
                 out.setGeometry(g_trans)
             else:
                 out.setGeometry(g)
-            attrs = list(f.attributes())[:source_count]
+            attrs = [f.attributes()[i] for i in keep_indices]
             node_from = int(graph.edge_from[seg_id])
             node_to = int(graph.edge_to[seg_id])
             component = int(component_labels[node_from])

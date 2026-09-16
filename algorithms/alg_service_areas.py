@@ -7,6 +7,8 @@ import numpy as np
 from qgis.core import (
     QgsFeature,
     QgsFeatureSink,
+    QgsField,
+    QgsFields,
     QgsGeometry,
     QgsPointXY,
     QgsProcessing,
@@ -329,13 +331,19 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                 for e, iv in reach.get((lab, brk), {}).items()))
 
         # --- EDGES: merged scope, split into cost bands
+        net_fields = QgsFields()
+        keep_indices = []
+        for idx, fld in enumerate(network.fields()):
+            if fld.name().lower() not in ("fid", "ogc_fid"):
+                net_fields.append(QgsField(fld))
+                keep_indices.append(idx)
+
         edge_fields = self.make_fields(
             ("facility", STRING), ("band", DOUBLE), ("cost_from", DOUBLE),
-            ("len_m", DOUBLE), base=network.fields())
+            ("len_m", DOUBLE), base=net_fields)
         edge_sink, edges_dest = self.parameterAsSink(
             parameters, self.EDGES, context, edge_fields,
             QgsWkbTypes.Type.LineString, crs)
-        n_src_fields = len(network.fields())
         n_pieces = 0
         for bi, brk in enumerate(breaks):
             prev = breaks[bi - 1] if bi else None
@@ -356,7 +364,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                     out.setGeometry(QgsGeometry.fromPolylineXY(
                         [QgsPointXY(x, y) for x, y in arr]))
                     out.setAttributes(
-                        list(line_feats[e].attributes())[:n_src_fields]
+                        [line_feats[e].attributes()[i] for i in keep_indices]
                         + [fac_lab, float(brk), float(prev or 0.0), piece_len])
                     edge_sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
                     n_pieces += 1
