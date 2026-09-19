@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/github/v/tag/YusufEminoglu/PlanX?label=version&color=blue)](https://gitlab.com/geophilo1/planx/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](LICENSE)
 [![QGIS Plugin Hub](https://img.shields.io/badge/QGIS%20Hub-install-589632?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
-[![Documentation](https://img.shields.io/badge/📖_Reference_Manual-71_algorithms-13a0a0)](https://geophilo.com/planx/)
+[![Documentation](https://img.shields.io/badge/📖_Reference_Manual-72_algorithms-13a0a0)](https://geophilo.com/planx/)
 
 <img src="docs/hero.png" width="800" alt="PlanX in action"/>
 
@@ -34,11 +34,11 @@ validate against observed shares, and Annual Solar can calibrate clear-sky
 results with an EPW weather file. The Studio adds search, favorites, recents,
 active-layer filtering, presets, and guided workflows.
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-one Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-two Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## 📖 Documentation
 
-**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 71 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (305 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (386 entries, 298 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
+**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 72 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (314 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (388 entries, 298 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
 
 ## ✨ Features
 
@@ -66,8 +66,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the seventy-one tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 570 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the seventy-two tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 627 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio toolbar panel** — click the single PlanX toolbar icon to browse and launch the whole toolset, every tool with its own icon.
 
 ## 🚀 Installation

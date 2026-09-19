@@ -352,6 +352,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <span class="arrow">▼</span> 19. Seismic Risk
 </button>
 <ul class="toc-algs">
+<li><a href="#groundmotion" data-name="groundmotion" data-display="ground motion scenario"><img src="icons/tool_groundmotion.png" alt="" class="alg-icon">Ground Motion Scenario</a></li>
 <li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)"><img src="icons/tool_seismicdebris.png" alt="" class="alg-icon">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
 </ul></li>
 </ul>
@@ -371,7 +372,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.13.0 &middot; 71 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.14.0 &middot; 72 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -396,14 +397,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.13.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.14.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 71 algorithms is documented to an identical eight-section
+<p>Every one of the 72 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -446,7 +447,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 71 algorithms span the
+platform delivered as a QGIS Processing provider. Its 72 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -14742,9 +14743,12 @@ DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(
 <div class="page-break"></div>
 <h2 id="group19" class="group-header">19. Seismic Risk</h2>
 
-<p>The Seismic Risk group contains a single tool — <strong>Seismic Collapse
-and Debris Spread</strong> — that models the chain from earthquake shaking to
-building collapse to street-blocking debris to surviving evacuation corridors.
+<p>The Seismic Risk group contains two tools that form one chain. <strong>Ground
+Motion Scenario</strong> turns an earthquake scenario — magnitude, distance,
+faulting style and site stiffness — into shaking at every receiver, on the model
+that Turkey's 2018 national seismic hazard map puts in its own logic tree. <strong>Seismic
+Collapse and Debris Spread</strong> then carries that shaking through building damage to
+street-blocking debris to surviving evacuation corridors.
 It is a <strong>screening-quality Monte Carlo model</strong>: deterministic in
 the sense that a given seed always produces the same outcome, but stochastic
 in the sense that the seed samples one realisation from the probability
@@ -14757,6 +14761,380 @@ network against which debris spread is measured.</p>
 <div class="page-break"></div>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="groundmotion">Ground Motion Scenario</h2>
+<p><strong>Processing ID:</strong> <code>planx:groundmotion</code>
+&middot; <strong>Engine:</strong> <code>engine/gmpe.py</code>
+&middot; <strong>Group:</strong> Seismic Risk (19)</p>
+
+<h3>1. Overview</h3>
+<p>Predicts how hard the ground shakes at every receiver in one earthquake
+scenario: peak ground acceleration, peak ground velocity and any spectral
+accelerations you ask for, from an explicit magnitude, distance and site
+description. It is the front half of the seismic chain &mdash; shaking, then
+damage, then debris, then blocked streets &mdash; and it exists so that the
+damage half does not have to be fed from outside QGIS.</p>
+
+<p>The companion tool in this group, <strong>Seismic Collapse and Debris
+Spread</strong>, estimates damage from a peak-ground-acceleration field. Until
+now the only way to obtain that field inside QGIS was to join a ShakeMap, USGS
+or AFAD raster. This tool produces the field from a scenario: point it at the
+building layer, take the <code>pga_g</code> column it writes, and the debris
+tool's PGA field is filled from a real model rather than from a nominal
+reference value scaled by magnitude.</p>
+
+<p>The model is <strong>ASB2014</strong> &mdash; Akkar, Sand&#305;kkaya &amp;
+Bommer (2014). The choice is not aesthetic. It is one of the four
+ground-motion models in the logic tree of Turkey's 2018 national seismic hazard
+map, at weight 0.30, so a scenario built on it sits on the same footing as the
+national map's own scenario work. The coefficients are the ones the authors
+supplied with the paper.</p>
+
+<p>What this tool is not: it predicts a <strong>median</strong>, not a design
+level; it is a <strong>scenario</strong>, not a hazard curve; and it carries no
+basin term, so deep soft-soil amplification is not represented. It does not
+replace the national hazard map.</p>
+
+<h3>2. Theoretical Background</h3>
+
+<h4>2.1 Why an empirical model, and what one is</h4>
+<p>A ground-motion prediction equation (GMPE) is a regression of recorded
+shaking on the quantities a seismologist can state before an earthquake
+happens: magnitude, distance, faulting style and near-surface stiffness. It is
+not a simulation. Nobody computes the wavefield; the coefficients are fitted to
+thousands of recorded accelerograms, and the model's credibility comes from how
+well it interpolates within the range of data it was fitted to.</p>
+
+<p>Everything followed from that. A GMPE has a <strong>magnitude range</strong>
+and a <strong>distance range</strong> beyond which it is extrapolating a
+regression into a region where no data constrained it. ASB2014 states its own:
+magnitudes 4.0 to 8.0, distances up to 200 km, Vs30 between 150 and 2200 m/s
+(with the site term itself capped at 1000 m/s). This tool encodes that envelope
+as data, flags every receiver outside it in the output, and counts them in the
+log. It never silently refuses to compute; an out-of-range number with a flag on
+it is more useful than a missing row, but the flag has to be there.</p>
+
+<h4>2.2 Three distances, and why only some apply</h4>
+<p>ASB2014 publishes three coefficient sets, one per distance metric:</p>
+<ul>
+<li><strong>RJB</strong> (Joyner&ndash;Boore) &mdash; the closest horizontal
+distance from the site to the surface projection of the rupture.</li>
+<li><strong>Repi</strong> (epicentral) &mdash; the horizontal distance to the
+epicentre.</li>
+<li><strong>Rhypo</strong> (hypocentral) &mdash; the straight-line distance to
+the focus, which is the epicentral distance plus focal depth.</li>
+</ul>
+<p>The paper publishes no Rrup (closest distance to the rupture plane) model, so
+the tool offers none. A <strong>point source</strong> has no rupture surface at
+all, which makes its Joyner&ndash;Boore and epicentral distances the same
+horizontal distance &mdash; the tool computes them as equal rather than
+pretending a difference exists. An <strong>extended rupture</strong> drawn as a
+fault trace has no single epicentre or hypocentre, so only RJB is offered there:
+naming one point of a 100 km rupture as "the" epicentre would be a fabrication
+the output could not show. For the near-vertical crustal ruptures this model was
+built for, the distance to the trace <em>is</em> the Joyner&ndash;Boore
+distance. On a shallow-dipping thrust the surface projection extends beyond the
+trace, so the real RJB is shorter and the shaking this tool reports is
+understated &mdash; which the log says on every fault run.</p>
+
+<h4>2.3 The site term, and the trap in it</h4>
+<p>ASB2014 takes its site term from Vs30 alone &mdash; there are no site classes
+in it. Above the reference velocity of 750 m/s, the term is a straight
+logarithm, so stiffer rock gives weaker shaking and the ordering is obvious. At
+or below 750 m/s the term is <strong>nonlinear and conditioned on the rock peak
+acceleration at the same site</strong>, which means the reference (rock) motion
+has to be computed first and the site correction applied to it second. That is
+the order the tool uses, and it is the reason a naive "multiply by a site
+factor" rewrite gives smooth, plausible and wrong numbers.</p>
+
+<p>The consequence surprises people the first time: <strong>at short periods the
+site term is not monotone in Vs30.</strong> Because the nonlinear term
+suppresses short-period motion on soft soil, PGA at a fixed magnitude and
+distance peaks at intermediate stiffness and falls away on both sides. Measured
+at Mw 7 and R = 20 km, PGA runs 0.1459 g, 0.1625 g, 0.1742 g, 0.1461 g and
+0.1295 g at Vs30 of 150, 200, 400, 750 and 1000 m/s: the peak is at 400 m/s.
+This is the model working, not a defect, and it is why "softer always shakes
+harder" is not a safe assumption at short periods. At long periods the ordering
+is clean: Sa(1.0 s) over the same sweep falls 0.2775, 0.2603, 0.1846, 0.1066,
+0.0797 g &mdash; monotone the whole way.</p>
+
+<p>Two further details are worth knowing before reading output. First, Vs30 is
+<strong>capped at 1000 m/s by the model itself</strong>, so 1000 and 1200 m/s
+give bit-identical numbers; a row above the cap is flagged rather than silently
+clamped. Second, the default Vs30 of 750 m/s <strong>is</strong> the reference
+velocity, at which the site term is exactly zero &mdash; so a default run
+reports the rock-reference motion, and every bit of soil amplification in a
+result is a decision the user made.</p>
+
+<h4>2.4 The dispersion, and epsilon</h4>
+<p>A GMPE predicts the median; the scatter around it is as much a part of the
+model as the median. ASB2014 splits its dispersion into a between-event and a
+within-event component and reports their combination. Epsilon (&epsilon;) is how
+many standard deviations away from the median a scenario is placed, which is the
+standard way to ask "what does the 84th-percentile motion look like" instead of
+the median: &epsilon; = 1 gives the 84th percentile, &epsilon; = 0 the median,
+&epsilon; = &minus;1 the 16th.</p>
+
+<h3>3. Mathematical Formulation</h3>
+
+<p><strong>Magnitude saturation.</strong> The coefficient on the magnitude term
+changes at the reference magnitude $c_1 = 6.75$, which is the model's
+saturation behaviour above that value:</p>
+$$s(M_w) = \begin{cases} a_2 (M_w - c_1) & M_w \le c_1 \\ a_7 (M_w - c_1) & M_w > c_1 \end{cases} \tag{1}$$
+
+<p><strong>Reference (rock) median.</strong> With $R$ the chosen distance metric
+and $\delta$ the indicator of the faulting style &mdash; strike-slip is the
+reference class, so a strike-slip event adds nothing:</p>
+$$\ln Y_{\text{ref}} = a_1 + a_3 (8.5 - M_w)^2 + \big[a_4 + a_5 (M_w - c_1)\big] \ln \sqrt{R^2 + a_6^2} + s(M_w) + a_8 \delta_{\text{NS}} + a_9 \delta_{\text{RS}} \tag{2}$$
+
+<p><strong>Reference rock acceleration.</strong> The site term is conditioned on
+the reference motion at PGA, so that term is taken from the same expression
+before any site correction is applied:</p>
+$$\text{PGA}_{\text{ref}} = \exp\left( \ln Y_{\text{ref}}^{(\text{PGA})} \right) \tag{3}$$
+
+<p><strong>Nonlinear site term.</strong> With the velocity ratio
+$r = V_{S30} / 750$ and the reference velocity $v_{\text{ref}} = 750$ m/s:</p>
+$$\ln Y = \ln Y_{\text{ref}} + \begin{cases}
+b_1 \ln r + b_2 \ln \dfrac{\text{PGA}_{\text{ref}} + c\,r^{\,n}}{\left(\text{PGA}_{\text{ref}} + c\right) r^{\,n}} & V_{S30} \le v_{\text{ref}} \\[10pt]
+b_1 \ln \dfrac{\min(V_{S30},\, 1000)}{v_{\text{ref}}} & V_{S30} > v_{\text{ref}}
+\end{cases} \tag{4}$$
+
+<p><strong>Median intensity measure.</strong> The model is tabulated at 62
+spectral periods, and at PGA and PGV. $Y$ is evaluated row by row with that
+period's own coefficients; nothing is interpolated between periods, because an
+interpolated value would be one no source supports:</p>
+$$Y = \exp\left( \ln Y \right), \qquad IM \in \{\text{PGA}, \text{PGV}, S_a(T_1), \dots, S_a(T_k)\} \tag{5}$$
+
+<p><strong>Standard-deviation shift.</strong> With the total dispersion
+$\sigma_{\text{total}}$ of the chosen period row, $\varepsilon = 0$ returns the
+median:</p>
+$$Y_\varepsilon = \exp\left( \ln Y + \varepsilon \, \sigma_{\text{total}} \right) \tag{6}$$
+
+<p><strong>Distances.</strong> For a point source at $(x_e, y_e)$ with focal
+depth $h$, and a site at $(x, y)$ &mdash; both in the receivers' projected CRS:</p>
+$$R_{\text{JB}} = R_{\text{epi}} = \frac{1}{s}\sqrt{(x - x_e)^2 + (y - y_e)^2}, \qquad R_{\text{hypo}} = \sqrt{R_{\text{epi}}^2 + h^2} \tag{7}$$
+
+<p>where $s$ is the CRS's linear units per kilometre (1000 for a metres-based
+projection). Every term of the model is in kilometres &mdash; distances, the
+focal depth $h$ and the $a_6$ site-scale constant that is added to
+$R^2$ &mdash; so the division is not cosmetic: skip it and the depth, correct
+at 10 km, disappears beneath a horizontal distance read as 40 000.</p>
+
+<p>For an extended rupture given as a fault trace, the Joyner&ndash;Boore
+distance is the smallest distance from the site to any segment of the trace,
+likewise divided by $s$:</p>
+$$R_{\text{JB}} = \frac{1}{s} \min_{\text{segments}} \; \min_{t \in [0,1]} \; \left\| \mathbf{p} - \big( \mathbf{a} + t (\mathbf{b} - \mathbf{a}) \big) \right\| \tag{8}$$
+
+<p>and the published dispersion components satisfy</p>
+$$\sigma_{\text{total}} \approx \sqrt{\sigma_{\text{between}}^2 + \sigma_{\text{within}}^2} \tag{9}$$
+
+<p>to within the four-decimal rounding of the coefficients themselves (measured
+worst deviation 4.8 &times; 10<sup>&minus;5</sup> across all three metric
+tables). The engine asserts that identity as a transcription check: a
+mis-typed digit breaks it, and nothing else would notice.</p>
+
+<h3>4. Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Receivers</td><td>Vector, any geometry</td><td>Yes</td><td>The layer to evaluate &mdash; building footprints, districts, a grid, critical facilities. Projected CRS required: the model is parameterised in kilometres, and a geographic CRS has no kilometre to measure in. The layer's own linear units are read off the CRS and converted, so a metres-based projection and a feet-based one both give the same distances.</td></tr>
+<tr><td>Epicentre</td><td>Vector point, one feature</td><td>Geometry A only</td><td>The surface position of the event. Reprojected into the receivers' CRS. A layer with more than one point is refused &mdash; one run is one earthquake.</td></tr>
+<tr><td>Fault trace</td><td>Vector line</td><td>Geometry B only</td><td>The surface expression of the rupture. Reprojected into the receivers' CRS before distances are measured, so a trace in a different projection is not silently mixed in. Its length is reported in the log, in kilometres.</td></tr>
+<tr><td>Vs30 field</td><td>Numeric field on the receivers</td><td>No</td><td>Real site stiffness per receiver. Receivers with an empty or non-positive value fall back to the constant and are flagged.</td></tr>
+</table>
+
+<h3>5. Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>SCENARIO</code></td><td>Enum</td><td>A &mdash; point source</td><td>A: one epicentre plus a focal depth. B: a fault trace. See &sect;2.2 for which distance metrics each geometry allows.</td></tr>
+<tr><td><code>MAGNITUDE</code></td><td>Number</td><td>7.0</td><td>Moment magnitude. The model's published range is 4.0&ndash;8.0; values outside it are computed and flagged rather than refused.</td></tr>
+<tr><td><code>EPICENTRE</code></td><td>Vector layer (Point)</td><td>&mdash;</td><td>One point. Ignored under geometry B.</td></tr>
+<tr><td><code>DEPTH_KM</code></td><td>Number</td><td>10.0</td><td>Focal depth. Enters the hypocentral distance only; the model has no depth term of its own. Above 30 km the run is flagged as outside the shallow-crustal convention the model is used for.</td></tr>
+<tr><td><code>FAULT_TRACE</code></td><td>Vector layer (Line)</td><td>&mdash;</td><td>Rupture trace for geometry B. Ignored under geometry A.</td></tr>
+<tr><td><code>DISTANCE_METRIC</code></td><td>Enum</td><td>RJB</td><td>Which published coefficient set to use. Written to every output row, the log and the manifest, so a number can never be read without its metric. RJB is the default because it is the one metric that means the same thing under both geometries.</td></tr>
+<tr><td><code>FAULT_MECHANISM</code></td><td>Enum</td><td>SS</td><td>Strike-slip, normal or reverse. Strike-slip is the reference class; normal and reverse are offsets from it.</td></tr>
+<tr><td><code>VS30</code></td><td>Number</td><td>750.0</td><td>The model's own reference velocity, at which the site term is exactly zero. Lower values amplify short-period motion; above 1000 m/s the model caps the value and the row says so.</td></tr>
+<tr><td><code>VS30_FIELD</code></td><td>Numeric field</td><td>&mdash;</td><td>Overrides the constant where it holds a usable value. Empty or non-positive cells fall back to the constant and are flagged.</td></tr>
+<tr><td><code>SPECTRAL_PERIODS</code></td><td>String</td><td>empty</td><td>Spectral periods in seconds, comma-separated (for example <code>0.3, 1.0, 2.0</code>). Empty writes PGA and PGV only. A period the model does not tabulate is refused and the nearest published values are named.</td></tr>
+<tr><td><code>EPSILON</code></td><td>Number</td><td>0.0</td><td>Standard deviations from the median, between &minus;3 and 3. 0 gives the median; 1 gives the 84th percentile.</td></tr>
+<tr><td><code>RECEIVERS</code></td><td>Vector layer</td><td>&mdash;</td><td>The evaluation layer. Projected CRS required.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector layer</td><td>&mdash;</td><td>Receivers with the motion appended. Geometry and attributes are carried through unchanged.</td></tr>
+</table>
+
+<h3>6. Output Description</h3>
+<table class="field-table">
+<tr><th>Fields</th><th>Description</th></tr>
+<tr><td><code>pga_g</code></td><td>Peak ground acceleration in g. The field the default renderer colours by, and the field the debris tool's PGA parameter wants.</td></tr>
+<tr><td><code>pgv_cms</code></td><td>Peak ground velocity in cm/s.</td></tr>
+<tr><td><code>sa_1.0_g</code>, &hellip;</td><td>One field per requested period, named by the period in seconds: <code>sa_0.3_g</code>, <code>sa_1.0_g</code>. Only periods named in the parameters appear.</td></tr>
+<tr><td><code>r_km</code></td><td>The distance actually used, in km, under the metric that was selected.</td></tr>
+<tr><td><code>dist_metric</code></td><td>Which metric produced <code>r_km</code>. Written per row so a table can never be read against the wrong distance definition after the fact.</td></tr>
+<tr><td><code>vs30</code></td><td>The site velocity actually used, including where it came from the constant after an empty field cell.</td></tr>
+<tr><td><code>pga_rock_g</code></td><td>The reference rock acceleration the site term was conditioned on &mdash; the input to the nonlinearity. Comparing it with <code>pga_g</code> shows directly how much of the result is site response.</td></tr>
+<tr><td><code>sigma_pga</code></td><td>Total dispersion at PGA, in natural-log units. The number to multiply by an epsilon to judge how far a row sits from the median.</td></tr>
+<tr><td><code>caveat</code></td><td>Semicolon-separated codes for every reason to distrust the row. Empty means the row is inside the model's published envelope with a stated site velocity.</td></tr>
+</table>
+
+<p>The caveat codes are:</p>
+<table>
+<tr><th>Code</th><th>Meaning</th></tr>
+<tr><td><code>mag_below</code>, <code>mag_above</code></td><td>Magnitude outside the published 4.0&ndash;8.0 range.</td></tr>
+<tr><td><code>dist_above</code></td><td>Distance beyond the published 200 km ceiling.</td></tr>
+<tr><td><code>vs30_below</code>, <code>vs30_above</code></td><td>Vs30 outside the published 150&ndash;1200 m/s range.</td></tr>
+<tr><td><code>depth_above</code></td><td>Focal depth beyond the 30 km shallow-crustal convention.</td></tr>
+<tr><td><code>vs30_missing</code></td><td>The Vs30 field cell was empty or non-positive, so the constant was used instead.</td></tr>
+<tr><td><code>vs30_capped</code></td><td>Vs30 above the model's 1000 m/s ceiling; the motion was computed at the ceiling.</td></tr>
+</table>
+
+<h3>7. Symbolic Representation</h3>
+<p>Graduated colour on <code>pga_g</code> is applied automatically on a five-class
+ramp from pale green to dark red. What to do next depends on the question:</p>
+<ul>
+<li><strong>Shaking map:</strong> keep the graduated ramp on <code>pga_g</code>.
+For a smoother field, run the tool on a grid &mdash; QGIS's own
+<em>Create grid</em> produces one in a few seconds, and any polygon layer works
+as receivers.</li>
+<li><strong>Damage potential:</strong> colour by the spectral acceleration at the
+period that matches the building stock (see &sect;8.3) rather than by PGA. PGA
+is the right scale for low-rise, short-period structures and the wrong one for
+tall buildings.</li>
+<li><strong>Site-response map:</strong> colour by the ratio
+<code>pga_g / pga_rock_g</code> on a diverging ramp centred on 1.0. This shows
+where soil is doing the work, independent of how far the event was.</li>
+<li><strong>Uncertainty:</strong> rerun with &epsilon; = &minus;1 and &epsilon; =
++1 and map the two side by side, or colour by <code>caveat</code> filtered to the
+non-empty rows so out-of-envelope receivers are visible rather than buried.</li>
+</ul>
+
+<h3>8. Interpretation Guide</h3>
+
+<h4>8.1 Reading a scenario</h4>
+<p>Magnitude and distance trade off against each other, and the trade is not
+linear. At rock reference velocity (Vs30 = 750 m/s, the default, so no site term
+at all), a strike-slip event gives:</p>
+<table>
+<tr><th>Mw</th><th>PGA at 1 km</th><th>PGA at 10 km</th><th>Sa(1.0 s) at 10 km</th><th>PGA at 50 km</th></tr>
+<tr><td>4.0</td><td>0.0722 g</td><td>0.0274 g</td><td>0.0020 g</td><td>0.0018 g</td></tr>
+<tr><td>5.0</td><td>0.1511 g</td><td>0.0651 g</td><td>0.0120 g</td><td>0.0063 g</td></tr>
+<tr><td>6.0</td><td>0.2992 g</td><td>0.1464 g</td><td>0.0539 g</td><td>0.0200 g</td></tr>
+<tr><td>6.75</td><td>0.4814 g</td><td>0.2590 g</td><td>0.1377 g</td><td>0.0461 g</td></tr>
+<tr><td>7.0</td><td>0.4928 g</td><td>0.2737 g</td><td>0.1598 g</td><td>0.0533 g</td></tr>
+<tr><td>7.5</td><td>0.5110 g</td><td>0.3024 g</td><td>0.2039 g</td><td>0.0702 g</td></tr>
+<tr><td>8.0</td><td>0.5224 g</td><td>0.3294 g</td><td>0.2422 g</td><td>0.0913 g</td></tr>
+</table>
+<p>Read the magnitude columns carefully: PGA at 10 km rises steeply from Mw 6 to
+6.75 and then almost flattens &mdash; 0.2590 g to 0.3294 g across a magnitude
+unit and a quarter, a rise of 27&#37;. That is saturation, and it is why
+magnitude alone is a bad proxy for severity: over the same interval the rupture
+has grown many times longer and the <em>area</em> shaken hard grows with it.
+Sa(1.0 s) keeps climbing over the same interval, 0.1598 g to 0.2422 g or
++52&#37;, because long-period energy scales differently from short-period.
+Scenario ranking should therefore be done on the quantity that matters for the
+exposure, not on magnitude.</p>
+
+<p>The distance column is where the leverage is: at Mw 7, PGA falls from
+0.4928 g at 1 km to 0.0533 g at 50 km and 0.0106 g at 200 km. Moving a
+project site 10 km closer to a ruptured fault can matter more than the
+difference between a Mw 6 and a Mw 7 event at the same distance.</p>
+
+<p>Mechanism, at Mw 7 and R = 20 km on rock, is a modest but real offset:
+strike-slip 0.1461 g, normal 0.1310 g, reverse 0.1605 g. Strike-slip is the
+model's reference class, so the other two carry the whole adjustment from it.</p>
+
+<h4>8.2 Why softer soil can mean weaker shaking</h4>
+<p>The site sweep at Mw 7 and R = 20 km, already quoted in &sect;2.3, is the
+single most misread table this tool produces:</p>
+<table>
+<tr><th>Vs30 (m/s)</th><th>PGA (g)</th><th>Sa(1.0 s) (g)</th><th>Reading</th></tr>
+<tr><td>150</td><td>0.1459</td><td>0.2775</td><td>Very soft</td></tr>
+<tr><td>200</td><td>0.1625</td><td>0.2603</td><td>Soft</td></tr>
+<tr><td>400</td><td>0.1742</td><td>0.1846</td><td>Stiff soil</td></tr>
+<tr><td>750</td><td>0.1461</td><td>0.1066</td><td>Rock reference (default; no site term)</td></tr>
+<tr><td>1000</td><td>0.1295</td><td>0.0797</td><td>Hard rock</td></tr>
+</table>
+<p>At short periods the softest site is <em>not</em> the strongest: PGA peaks at
+400 m/s. At 1.0 second the same sites order monotonically, and the very soft
+site shakes 3.5 times as hard as hard rock. Both are the model being right. The
+practical consequence is that PGA and long-period Sa can point in opposite
+directions for the same site, so a "worst" site depends entirely on which period
+your buildings care about.</p>
+
+<h4>8.3 Choosing the period</h4>
+<p>The period to read is set by the building, not by preference. A rough
+mapping, adequate for screening:</p>
+<ul>
+<li><strong>1&ndash;3 storeys (masonry, low-rise frame):</strong> PGA or Sa(0.3 s).
+Short-period demand is what cracks walls and drops infill.</li>
+<li><strong>4&ndash;8 storeys (mid-rise concrete frame):</strong> Sa(0.5&ndash;1.0 s).
+This is also the band where Hazus fragility curves &mdash; and therefore the
+debris tool in this group &mdash; are anchored.</li>
+<li><strong>9+ storeys and long-span structures:</strong> Sa(2.0&ndash;4.0 s).
+Long-period motion is where soft basins amplify, which is precisely what this
+model does not represent.</li>
+</ul>
+
+<h4>8.4 Cross-references to other PlanX tools</h4>
+<ul>
+<li><strong>Seismic Collapse and Debris Spread:</strong> the direct consumer. Run
+this tool on the building layer, then give the debris tool <code>pga_g</code> as
+its PGA field. The magnitude fallback in that tool exists for when no shaking
+model is available; with this tool there is no reason to use it.</li>
+<li><strong>Nearest Facility / Service Areas:</strong> run those tools on the
+navigable core the debris tool produces and compare against the intact network.
+The difference in travel distance is the population that loses emergency access.</li>
+<li><strong>Density Grid / Plan Standards QA:</strong> use a density grid as the
+receiver layer to turn a point scenario into a rasterised shaking surface for
+reporting.</li>
+<li><strong>Link Criticality:</strong> a road link that is both structurally
+critical and in the highest shaking band is a stronger resilience argument than
+either test alone.</li>
+</ul>
+
+<h4>8.5 Pitfalls</h4>
+<ul>
+<li><strong>It is a median, not a design level.</strong> Half of the realisations
+of the scenario you just described exceed the number on the map. For a design or
+emergency-planning question, use &epsilon; = 1, state that you did, and remember
+that the national hazard map already carries a probabilistic answer to that
+question.</li>
+<li><strong>One scenario is not a hazard.</strong> This tool answers "if this
+event happens, how hard is the shaking here". It cannot answer "what is the
+probability of exceeding X in 50 years" &mdash; that requires integrating over
+all magnitudes and distances, which is a different computation and a different
+document.</li>
+<li><strong>No basin term and no directivity.</strong> Deep soft-soil basins
+amplify long-period motion well beyond what a Vs30 term can express, and
+forward-directivity pulses on a unilateral rupture are not represented. In a
+city on a deep basin, treat long-period results as a lower bound.</li>
+<li><strong>The fault branch measures to the trace.</strong> Correct for the
+near-vertical ruptures the model targets; understated for a shallow-dipping
+thrust. If the rupture geometry matters, that is a reason to be conservative,
+not to trust this number.</li>
+<li><strong>Check the caveat column before using a row.</strong> A flagged row is
+an extrapolation, and extrapolating a regression is exactly where a smooth,
+plausible number can be wrong.</li>
+<li><strong>Projected CRS is not optional.</strong> A geographic receiver layer
+is refused, because measuring distance in degrees would produce confident
+nonsense.</li>
+</ul>
+
+<h3>9. Academic References</h3>
+<p class="ref">Akkar, S., Sand&#305;kkaya, M.A. &amp; Bommer, J.J. (2014).
+"Empirical ground-motion models for point- and extended-source crustal
+earthquake scenarios in Europe and the Middle East." <em>Bulletin of Earthquake
+Engineering</em>, 12(1), 359&ndash;387. The model this tool implements; one of
+the four ground-motion models in the logic tree of Turkey's 2018 national
+seismic hazard map. The coefficients are the authors' own, supplied with the
+paper.
+DOI: <a href="https://doi.org/10.1007/s10518-013-9461-4">10.1007/s10518-013-9461-4</a>
+</p>
+<p class="ref">Kottke, A.R. <em>pyGMM &mdash; a Python library of ground motion
+models</em> (MIT licence). Reference implementation used to validate this
+engine's coefficients: the committed regression fixture was computed by pyGMM,
+whose reference values come from the paper authors' own spreadsheet, so the
+check is independent of the code being checked.
+Available at: <a href="https://github.com/arkottke/pygmm">github.com/arkottke/pygmm</a>
+</p>
+
+<div class="page-break"></div>
 <!-- SEISMIC DEBRIS                                                      -->
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <h2 id="seismicdebris">Seismic Collapse and Debris Spread (Monte Carlo)</h2>
@@ -14781,11 +15159,14 @@ subtracted from the street space; and what remains is opened to the minimum clea
 width, so a sliver of pavement no vehicle fits through stops counting as a route.</p>
 
 <p>Ground motion arrives one of two ways. The recommended route is a
-<strong>PGA field</strong> on the buildings &mdash; a ShakeMap, USGS or AFAD
-raster joined to the footprints &mdash; which drives the curves from real site
-shaking and carries distance and site effects for free. Without such a field, a
-scenario magnitude scales a nominal reference PGA instead. Both routes reach the
-same curves; only the first is a ground-motion estimate.</p>
+<strong>PGA field</strong> on the buildings which drives the curves from real
+site shaking and carries distance and site effects for free. Take it either
+from outside QGIS &mdash; a ShakeMap, USGS or AFAD raster joined to the
+footprints &mdash; or from the <strong>Ground Motion Scenario</strong> tool in
+this group, which evaluates the same fields from a scenario you describe and is
+the only one of the two that shows its own inputs. Without such a field, a
+scenario magnitude scales a nominal reference PGA instead. All three routes
+reach the same curves; the magnitude route is not a ground-motion estimate.</p>
 
 <p>The road network can be defined in four ways: (A) existing street/open-space
 polygons used as-is; (B) OSM highway centreline classes buffered by standard
@@ -15366,7 +15747,7 @@ DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.20
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.13.0 &middot; 71 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.14.0 &middot; 72 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 

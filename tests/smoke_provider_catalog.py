@@ -35,7 +35,7 @@ STUDIO_DOCK = ROOT / "studio_dock.py"
 MANUAL = ROOT / "docs" / "PLANX_REFERENCE_MANUAL.html"
 
 #: The count may only go up. A drop means algorithms were dropped by accident.
-MIN_EXPECTED_ALGORITHM_COUNT = 71
+MIN_EXPECTED_ALGORITHM_COUNT = 72
 
 #: GROUP_* slugs in the order algorithms/base.py declares them. The manual
 #: numbers its group sections 1..N in this same order, so a reorder here
@@ -493,8 +493,12 @@ def test_readme_counts_match_the_manual() -> None:
     gate checks will always drift."""
     text = _manual_text()
     equations = len(re.findall(r"\\tag\{", text))
-    references = len(re.findall(r'class="ref"', text))
-    dois = len(re.findall(r"doi\.org", text))
+    ref_blocks = re.findall(r'<p class="ref">.*?</p>', text, re.S)
+    references = len(ref_blocks)
+    # Entries that carry a DOI, not DOI links: counting occurrences let one
+    # reference listing two DOIs pay for one listing none, so the README's
+    # "with DOIs" figure read one higher than the manual supports.
+    dois = sum("doi.org" in block for block in ref_blocks)
 
     readme = README.read_text(encoding="utf-8")
     claimed_equations = re.search(r"\((\d+) numbered display equations\)", readme)

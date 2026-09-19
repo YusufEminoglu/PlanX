@@ -62,6 +62,14 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
     #: per-tool icon file under icons/ (falls back to the plugin icon)
     ICON = ""
 
+    #: Optional name of the output field the default renderer must colour.
+    #: Left None, the renderer falls back to its preference-token heuristic,
+    #: which is what every tool written before this attribute existed relies
+    #: on. Set it where the field worth colouring does not happen to contain
+    #: one of those tokens - naming a ground-motion field "risk" to satisfy a
+    #: substring search would put the heuristic's vocabulary into the data.
+    RENDER_FIELD = None
+
     def __init__(self):
         super().__init__()
         self._planx_existing_layers = set()
@@ -165,15 +173,18 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
                 layer.setFieldAlias(index, label)
             except (AttributeError, TypeError):
                 pass
-        self._apply_default_renderer(layer, fields)
+        self._apply_default_renderer(layer, fields, getattr(self, "RENDER_FIELD", None))
 
     @staticmethod
-    def _apply_default_renderer(layer, fields):
+    def _apply_default_renderer(layer, fields, preferred_field=None):
         if not fields or not hasattr(layer, "geometryType"):
             return
         preferred = ("score", "risk", "access", "criticality", "centrality", "coverage", "prob", "index", "cost")
         numeric = [field.name() for field in fields if field.isNumeric()]
-        field_name = next((name for name in reversed(numeric) if any(token in name.lower() for token in preferred)), None)
+        if preferred_field:
+            field_name = preferred_field if preferred_field in numeric else None
+        else:
+            field_name = next((name for name in reversed(numeric) if any(token in name.lower() for token in preferred)), None)
         if field_name is None:
             return
         values = [feature[field_name] for feature in layer.getFeatures() if feature[field_name] is not None]
@@ -210,17 +221,33 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
             )
 
     @staticmethod
-    def source_polylines(source, feedback=None, min_length: float = 1e-6):
+    def source_polylines(source, feedback=None, min_length: float = 1e-6,
+                         target_crs=None, transform_context=None):
         """Explode a line source into single-part polylines.
 
         Returns (polylines, features): ``polylines`` is a list of (k, 2)
         float arrays; ``features`` is the parent QgsFeature for each part.
+
+        Coordinates come back in the source layer's own CRS unless
+        ``target_crs`` is given, in which case every geometry is transformed
+        into it first. Pass it whenever the polylines are to be measured
+        against something else - a distance in the layer's own units is only
+        that layer's units, and mixing two projected CRSs (or a projected CRS
+        in feet) yields numbers that are wrong without ever looking wrong.
+        Callers that only want the geometry in place can leave both unset.
         """
+        xform = None
+        if target_crs is not None and source.sourceCrs() != target_crs:
+            xform = QgsCoordinateTransform(source.sourceCrs(), target_crs,
+                                           transform_context)
         polylines, features = [], []
         for f in source.getFeatures():
             g = f.geometry()
             if g is None or g.isEmpty():
                 continue
+            g = QgsGeometry(g)
+            if xform is not None:
+                g.transform(xform)
             parts = g.asMultiPolyline() if g.isMultipart() else [g.asPolyline()]
             for part in parts:
                 if len(part) < 2:

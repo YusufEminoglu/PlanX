@@ -7,6 +7,7 @@ No qgis imports - pure engine.
 """
 from __future__ import annotations
 
+import json
 import math
 import os
 import sys
@@ -16,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, graphs, hydro, isochrone, morphology,
+    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, isochrone, morphology,
     optimize, parking, paths, provenance, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
@@ -1726,6 +1727,198 @@ check("population: allocate_growth uniform fallback for zero weights",
       alloc_3.tolist() == [1, 1, 0])
 
 # --------------------------------------------------------------------------- #
+# Ground motion (ASB2014)
+# --------------------------------------------------------------------------- #
+def _one(value):
+    return np.array([float(value)])
+
+
+def _mech(code):
+    return np.array([code])
+
+
+def _gmpe_at(mag, distance_km, vs30, mechanism="SS", metric="RJB"):
+    """One scenario, one receiver - the shape every check below needs."""
+    return gmpe.predict(metric, _one(mag), _one(distance_km), _one(vs30),
+                        _mech(mechanism))
+
+
+def _gmpe_raises(exc_type, func, *args):
+    try:
+        func(*args)
+    except exc_type:
+        return True
+    except Exception:
+        return False
+    return False
+
+
+check("gmpe: the table is 64 rows - PGA, PGV and 62 spectral periods",
+      (gmpe.INDEX_PGA, gmpe.INDEX_PGV, gmpe.N_ROWS, len(gmpe.PERIODS)) == (0, 1, 64, 62))
+
+# The load-bearing check. tests/data/asb14_pygmm_reference.json holds four
+# scenarios evaluated by pyGMM, an independent implementation, in all three
+# distance tables - 744 spectral values plus PGA and PGV. Both engines use the
+# same coefficient table, so what this tests is the part written from the
+# paper: the equations, the site-term branching, the per-metric wiring and the
+# row indexing. A test built from this engine's own output would pass whatever
+# the engine did, which is the failure mode this fixture exists to avoid.
+_fixture_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "data", "asb14_pygmm_reference.json")
+with open(_fixture_path, encoding="utf-8") as _handle:
+    _reference = json.load(_handle)
+
+_periods = list(_reference["periods"])
+check("gmpe: the fixture's period grid is this engine's period grid",
+      _periods == list(gmpe.PERIODS))
+
+_worst_sa = 0.0
+_worst_pga = 0.0
+_worst_pgv = 0.0
+_cases = 0
+for _case in _reference["cases"]:
+    for _metric, _expected in _case["metrics"].items():
+        _out = _gmpe_at(
+            _case["magnitude"], _case["distance_km"], _case["vs30"],
+            _case["mechanism"], _metric)
+        _cases += 1
+        _worst_pga = max(_worst_pga, abs(float(_out["pga_g"][0]) - _expected["pga_g"])
+                         / _expected["pga_g"])
+        _worst_pgv = max(_worst_pgv, abs(float(_out["pgv_cms"][0]) - _expected["pgv_cms"])
+                         / _expected["pgv_cms"])
+        for _period, _value in zip(_periods, _expected["sa_g"]):
+            _mine = float(_out["im"][0, gmpe.period_index(_period)])
+            _worst_sa = max(_worst_sa, abs(_mine - _value) / _value)
+
+check("gmpe: all 12 pyGMM scenario-metric cases were exercised", _cases == 12)
+check(f"gmpe: PGA reproduces pyGMM to 1e-9 relative (worst {_worst_pga:.2e})",
+      _worst_pga < 1e-9)
+check(f"gmpe: PGV reproduces pyGMM to 1e-9 relative (worst {_worst_pgv:.2e})",
+      _worst_pgv < 1e-9)
+check(f"gmpe: all 744 spectral values reproduce pyGMM to 1e-9 (worst {_worst_sa:.2e})",
+      _worst_sa < 1e-9)
+
+# A Vs30 of 1200 in the fixture exercises the cap: the fourth scenario sits
+# above the model's 1000 m/s ceiling, and the reference agrees with this engine
+# only if both evaluate it at the ceiling.
+check("gmpe: the fixture covers a Vs30 above the model's ceiling",
+      any(_case["vs30"] > gmpe.SITE_VS30_CAP for _case in _reference["cases"]))
+
+_at_ref = gmpe.predict("RJB", _one(7.0), _one(20.0), _one(gmpe.V_REF), _mech("SS"))
+check("gmpe: at the reference velocity the site term is exactly zero",
+      float(_at_ref["pga_g"][0]) == float(_at_ref["rock_pga_g"][0]))
+
+_cap_a = gmpe.predict("RJB", _one(7.0), _one(20.0), _one(1000.0), _mech("SS"))
+_cap_b = gmpe.predict("RJB", _one(7.0), _one(20.0), _one(1200.0), _mech("SS"))
+check("gmpe: Vs30 above the ceiling is evaluated at the ceiling, bit for bit",
+      np.array_equal(_cap_a["pga_g"], _cap_b["pga_g"])
+      and not bool(_cap_a["vs30_capped"][0]) and bool(_cap_b["vs30_capped"][0]))
+
+_mech_pga = {}
+for _code in gmpe.MECHANISMS:
+    _mech_pga[_code] = float(_gmpe_at(7.0, 20.0, 750.0, _code)["pga_g"][0])
+check("gmpe: fault mechanism moves the median, strike-slip in the middle",
+      _mech_pga["NS"] < _mech_pga["SS"] < _mech_pga["RS"])
+check("gmpe: strike-slip is the reference, so a solid-rock site reproduces "
+      "the measured Mw 7 / 20 km value",
+      close(_mech_pga["SS"], 0.1461, tol=5e-5))
+
+# Short-period site response is NOT monotone in Vs30: the measured sweep at
+# Mw 7 / 20 km peaks at 400 m/s and falls away on both sides, because the
+# nonlinear term is conditioned on rock PGA. Long periods are monotone over the
+# same sweep. Both halves are asserted, because the first is the surprising one
+# and a later "fix" that made it monotone would be a regression, not a repair.
+_sweep = [150.0, 200.0, 400.0, 750.0, 1000.0]
+_sa1_row = gmpe.period_index(1.0)
+_pga_sweep = [float(_gmpe_at(7.0, 20.0, v)["pga_g"][0]) for v in _sweep]
+_sa1_sweep = [float(_gmpe_at(7.0, 20.0, v)["im"][0, _sa1_row]) for v in _sweep]
+check("gmpe: short-period amplification peaks at 400 m/s, so it is not monotone",
+      _pga_sweep[2] == max(_pga_sweep) and not all(
+          _pga_sweep[i] <= _pga_sweep[i + 1] for i in range(len(_pga_sweep) - 1)))
+check("gmpe: Sa(1.0 s) is monotone decreasing over the same site sweep",
+      all(_sa1_sweep[i] > _sa1_sweep[i + 1] for i in range(len(_sa1_sweep) - 1)))
+
+# The dispersion the tool reports is a total. The paper gives within- and
+# between-event terms per period; the total must be their quadrature sum.
+check("gmpe: sigma_total is the quadrature sum of the two event terms",
+      all(gmpe.sigma_invariant_worst(metric) < 1e-4
+          for metric in gmpe.DISTANCE_METRICS))
+
+_parsed = gmpe.parse_periods(" 1.0 , 0.3,1.0 , 0.3 ")
+check("gmpe: requested periods are de-duplicated and sorted", _parsed == [0.3, 1.0])
+check("gmpe: an empty period request asks for no spectral columns",
+      gmpe.parse_periods("") == [] and gmpe.parse_periods("  ") == [])
+check("gmpe: a non-numeric period is refused",
+      _gmpe_raises(ValueError, gmpe.parse_periods, "0.3,soon"))
+check("gmpe: a period the paper does not tabulate is refused, not interpolated",
+      _gmpe_raises(ValueError, gmpe.parse_periods, "0.33"))
+try:
+    gmpe.parse_periods("0.33")
+    _offgrid_message = ""
+except ValueError as _exc:
+    _offgrid_message = str(_exc)
+check("gmpe: the refusal names the nearest published periods",
+      "0.32" in _offgrid_message and "0.34" in _offgrid_message)
+
+check("gmpe: a fault scenario offers Joyner-Boore only",
+      gmpe.check_metric("RJB", "fault") is None
+      and "epicentre" in (gmpe.check_metric("Repi", "fault") or "")
+      and "epicentre" in (gmpe.check_metric("Rhypo", "fault") or ""))
+check("gmpe: a point source supports all three distances",
+      all(gmpe.check_metric(metric, "point") is None
+          for metric in gmpe.DISTANCE_METRICS))
+
+#: Receivers in a metre-based projection, which is the normal case: the
+#: engine works in kilometres, so every call states the factor. Testing this
+#: with metre-scale coordinates is the point - synthetic coordinates small
+#: enough to pass as either unit are how a 1000x distance error once shipped.
+_UNITS_PER_KM = 1000.0
+_site = np.array([[0.0, 0.0], [30_000.0, 0.0]])
+_point = gmpe.distances(
+    "point", _site, _UNITS_PER_KM,
+    epicentre_xy=np.array([30_000.0, 40_000.0]), depth_km=10.0)
+check("gmpe: a point source measures Repi on the surface and Rhypo through the depth",
+      close(float(_point["Repi"][0]), 50.0, tol=1e-9)
+      and close(float(_point["Rhypo"][0]), math.sqrt(50.0 ** 2 + 10.0 ** 2), tol=1e-9))
+check("gmpe: a point source's Joyner-Boore distance is its epicentral distance",
+      np.array_equal(_point["RJB"], _point["Repi"]))
+check("gmpe: the focal depth is in kilometres, so it is commensurate with the "
+      "horizontal term rather than lost beneath it",
+      close(float(_point["Rhypo"][1]), math.sqrt(40.0 ** 2 + 10.0 ** 2), tol=1e-9))
+
+_metre_call = gmpe.point_distances(_site, np.array([30_000.0, 40_000.0]), _UNITS_PER_KM)
+_kilometre_call = gmpe.point_distances(_site / 1000.0, np.array([30.0, 40.0]), 1.0)
+check("gmpe: the same ground expressed at two unit scales gives the same km",
+      all(np.allclose(_metre_call[key], _kilometre_call[key], rtol=0, atol=1e-12)
+          for key in gmpe.DISTANCE_METRICS))
+
+try:
+    gmpe.point_distances(_site, np.array([30_000.0, 40_000.0]))
+    _scale_message = ""
+except TypeError as _exc:
+    _scale_message = str(_exc)
+check("gmpe: the distance functions refuse to assume a unit scale",
+      "units_per_km" in _scale_message)
+
+_trace_polyline = np.array([[0.0, 0.0], [0.0, 100_000.0]])
+_trace = gmpe.distances("fault", _site, _UNITS_PER_KM, polylines=[_trace_polyline])
+check("gmpe: RJB is measured to the trace, and a site on the trace reads zero",
+      close(float(_trace["RJB"][0]), 0.0, tol=1e-9)
+      and close(float(_trace["RJB"][1]), 30.0, tol=1e-9))
+
+_far = gmpe.envelope_flags(_one(9.0), _one(500.0), _one(50.0))
+check("gmpe: a scenario outside every published limit is flagged on all three",
+      _far == [["mag_above", "dist_above", "vs30_below"]])
+_near = gmpe.envelope_flags(_one(7.0), _one(20.0), _one(750.0))
+check("gmpe: a scenario inside the envelope carries no flags", _near == [[]])
+_deep = gmpe.envelope_flags(
+    _one(7.0), _one(20.0), _one(750.0), depth_km=gmpe.SHALLOW_DEPTH_KM + 1.0)
+check("gmpe: the depth flag is raised above the shallow-crustal limit",
+      _deep == [["depth_above"]])
+check("gmpe: envelope_report and envelope_flags cannot disagree",
+      len(gmpe.envelope_report(_one(9.0), _one(500.0), _one(50.0))) == 3)
+
+# --------------------------------------------------------------------------- #
 # Seismic collapse and debris spread (Monte Carlo)
 # --------------------------------------------------------------------------- #
 def _seismic_raises(exc_type, func, *args):
@@ -2608,7 +2801,7 @@ def test_engine_checks():
 
     Every check in this module executes at module level, so by the time pytest
     calls this function the whole suite has already run and CHECKS is full -
-    this assertion is only the verdict. It is what makes the 570 checks
+    this assertion is only the verdict. It is what makes the 627 checks
     enforced by the monorepo's pure-test gate.
 
     Without it the module is invisible to pytest: it used to end in a bare

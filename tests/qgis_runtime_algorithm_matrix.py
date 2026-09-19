@@ -111,7 +111,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 71
+MIN_EXPECTED_CASE_COUNT = 72
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -373,6 +373,15 @@ LAYER_OVERRIDES = {
     ("planx:populationprojection", "INPUT"): "demand",
     ("planx:preparenetwork", "INPUT"): "network",
     ("planx:heatriskgrid", "GREEN"): "green",
+    # groundmotion's EPICENTRE matches no role in ROLE_BY_PARAM, and it needs a
+    # layer holding exactly one point: the study area's point-on-surface is a
+    # real single epicentre at the centre of the demo city, which puts every
+    # receiver a plausible distance away instead of on top of the event. The
+    # tool refuses a multi-feature epicentre layer outright, so this is also
+    # the case that holds that refusal honest. Its FAULT_TRACE is deliberately
+    # left unset - geometry B has no fixture line, and the fault branch is
+    # covered by the engine tests where a trace can be constructed directly.
+    ("planx:groundmotion", "EPICENTRE"): "study_area",
     # seismicdebris takes the street centreline twice: once as a routable
     # NETWORK and once as NETWORK_LINES carrying road width.
     ("planx:seismicdebris", "NETWORK"): "network",
@@ -517,6 +526,7 @@ SKIP_OPTIONAL = {
     "EXTENT",          # raster tools default to the input raster extent
     "WATER",           # no water body in the demo city
     "PGA_FIELD",       # seismicdebris: no shaking raster to sample into a column
+    "VS30_FIELD",      # groundmotion: the demo city has no measured site velocity
 }
 
 # Outputs an algorithm may legitimately decline to write even when asked, and
@@ -1256,6 +1266,89 @@ def _verify_file(path):
     return True, f"{target.stat().st_size} byte(s)"
 
 
+# --------------------------------------------------------------------------
+# Value expectations
+# --------------------------------------------------------------------------
+# Everything above answers "did the tool produce something?". For most tools
+# that is all a smoke matrix can honestly ask. For a tool that converts units
+# it is not enough: planx:groundmotion once measured every distance in the
+# receivers' own metres and fed it to a model that takes kilometres, so a demo
+# city 750 m across reported receivers out to 472 km - and this matrix stayed
+# green, because a number wrong by 1000x is still a number in a non-empty
+# layer. Entries below are checks on the *values* of the demo run, and they
+# belong wherever a silent factor of a thousand is the plausible failure.
+
+DEMO_CITY_SPAN_KM = 0.75
+
+
+def _expect_groundmotion_distances_are_kilometres(path):
+    """The demo city is under a kilometre across, so no distance may be larger.
+
+    The epicentre is the study area's point-on-surface - the centre of a
+    ~750 m square - which puts every receiver well inside a kilometre of it.
+    A ceiling far above the real geometry but far below the metre-reading of
+    it (472 km) separates the two without pinning a figure that the fixture
+    could legitimately move.
+
+    Note what this case is not: every receiver is in the near field, where the
+    model saturates at about 0.5 g, so it exercises the site term and the row
+    indexing but not the distance decay. That belongs to the engine tests.
+    """
+    layer = QgsVectorLayer(str(path), "matrix_values", "ogr")
+    if not layer.isValid():
+        return f"did not load as a vector layer: {path}"
+    names = [field.name() for field in layer.fields()]
+    if "r_km_2" in names:
+        # make_fields renames a computed column that would collide with an
+        # input field of the same name, so the column called r_km here would
+        # be the input's, not the tool's - the same way a fixture that already
+        # carried `score` made every access metric read back identical. Fail
+        # loudly rather than measure the wrong column.
+        return (f"the layer carries both 'r_km' and 'r_km_2', so 'r_km' is an "
+                f"input field and the computed distance was renamed: {names}")
+    index = layer.fields().indexOf("r_km")
+    if index < 0:
+        return "no r_km column to read a distance from"
+    distances = []
+    for feature in layer.getFeatures():
+        value = feature.attributes()[index]
+        if value is None:
+            return "an r_km value is NULL"
+        distances.append(float(value))
+    if not distances:
+        return "no receiver to read a distance from"
+    worst = max(distances)
+    ceiling = 10.0 * DEMO_CITY_SPAN_KM
+    if not 0.0 < worst < ceiling:
+        return (f"the furthest receiver is {worst:.3f} km from the epicentre, "
+                f"but the demo city is only about {DEMO_CITY_SPAN_KM:g} km "
+                f"across - the distances look like the CRS's own units being "
+                f"passed off as kilometres")
+    return None
+
+
+#: algorithm id -> callable(output path) -> complaint or None. Run only when
+#: the ordinary output verification passed, so a complainer here is always
+#: describing a wrong value rather than a missing output.
+VALUE_EXPECTATIONS = {
+    "planx:groundmotion": {
+        "OUTPUT": _expect_groundmotion_distances_are_kilometres,
+    },
+}
+
+
+def check_values(algorithm_id, produced):
+    """Apply this tool's value expectations. Returns a complaint, or None."""
+    for output_name, expectation in VALUE_EXPECTATIONS.get(algorithm_id, {}).items():
+        path = produced.get(output_name)
+        if path is None:
+            continue
+        complaint = expectation(path)
+        if complaint:
+            return f"{output_name}: {complaint}"
+    return None
+
+
 def verify_outputs(algorithm, produced, result, only=None):
     ok = True
     for definition in algorithm.parameterDefinitions():
@@ -1391,6 +1484,11 @@ def run_matrix(only=None, verbose=False):
                 result.ok = verify_outputs(algorithm, produced, result)
                 if not result.ok:
                     result.error = "one or more outputs failed verification"
+                else:
+                    complaint = check_values(algorithm_id, produced)
+                    if complaint:
+                        result.ok = False
+                        result.error = f"wrong value: {complaint}"
                 for definition in algorithm.parameterDefinitions():
                     if definition.isDestination() and definition.name() in produced:
                         artifacts[f"{algorithm_id}/{definition.name()}"] = \
