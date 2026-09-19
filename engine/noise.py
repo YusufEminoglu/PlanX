@@ -41,16 +41,22 @@ def sample_level(lm25, seg_len):
 
 
 def receiver_level(src_xy, src_level, rx, ry, blocked=None, screen_db=10.0,
-                   min_dist=1.0, cutoff=None):
+                   min_dist=1.0, cutoff=None, scale=1.0):
     """Energetic sum of all samples at one receiver.
 
     ``blocked`` is an optional boolean array (line of sight to that sample
     interrupted -> subtract ``screen_db``). ``cutoff`` drops samples
     farther than it. Returns dB (or -inf with no audible source).
+
+    ``scale`` is how many of the coordinates' own units one ground metre is,
+    and it is 1.0 for a layer that already measures in metres. Every other
+    quantity here - ``min_dist``, ``cutoff`` - is a distance in metres, and a
+    caller on a layer that is not in metres must say so, or the 20 lg r
+    spreading term comes out of a distance the sound never travelled.
     """
     src_xy = np.asarray(src_xy, dtype=float)
     lvl = np.asarray(src_level, dtype=float)
-    d = np.hypot(src_xy[:, 0] - rx, src_xy[:, 1] - ry)
+    d = np.hypot(src_xy[:, 0] - rx, src_xy[:, 1] - ry) / float(scale)
     keep = np.isfinite(lvl)
     if cutoff is not None:
         keep &= d <= cutoff

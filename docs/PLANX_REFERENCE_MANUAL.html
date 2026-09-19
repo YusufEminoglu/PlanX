@@ -375,7 +375,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.17.0 &middot; 75 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.18.0 &middot; 75 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -400,7 +400,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.17.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.18.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
@@ -4037,7 +4037,7 @@ $$
 <li><strong>Plan tracking:</strong> run on each iteration of a street layout to trend $\alpha$ and intersection density — objective evidence that connectivity is improving or degrading.</li>
 <li><strong>Data quality:</strong> more than one connected component = the network is disconnected. Run <strong>Prepare Network</strong> first to fix topology before morphological analysis.</li>
 <li><strong>Limitations:</strong> indices are highly scale-dependent — comparing a 1 km² neighbourhood to a 100 km² city requires normalisation by area. The orientation order is sensitive to the bin count; 36 bins is standard for degree-scale resolution. Curved streets approximated as single line segments lose intermediate bearing information; densify the network first for organic street patterns.</li>
-<li><strong>Units:</strong> <code>total_length_km</code>, <code>avg_segment_length_m</code> and <code>intersection_density_km2</code> are ground metres, converted from the layer's own coordinate units through the CRS and its ellipsoid. Lengths and areas are otherwise only as metric as the projection: a metre CRS away from its standard parallel, and any CRS whose unit is the foot, make the layer's own numbers read wrong by a constant factor with nothing in the table to suggest it — 1.33× and 1.76× on EPSG:3857 at 41°N, 3.28× and 10.76× in US survey feet.</li>
+<li><strong>Units:</strong> <code>total_length_km</code>, <code>avg_segment_length_m</code> and <code>intersection_density_km2</code> are ground metres, converted from the layer's own coordinate units through the CRS and its ellipsoid. That conversion now runs through every tool in the studio that publishes an area, a length, a density or a rate, so a column named <code>area_m2</code> is square metres of ground on any CRS, a foot-based one included: on EPSG:3857 at 41°N the unconverted reading was 1.33× too long and 1.76× too large, and 3.28× and 10.76× on a state-plane layer in US survey feet — wrong by a constant factor, with nothing in the table to suggest it. A ratio of two quantities in one layer's units needs no conversion, because the factor cancels in it. Two things are deliberately <em>not</em> converted: <strong>Prepare Network</strong>'s <code>length_m</code>, which is documented as being in the source CRS and is the unit the whole network family reads its costs in, and any parameter whose own label says map units — a search radius, a grid cell size, a source cutoff, an extent — which stays in the layer's coordinates because it is also what gates the counts and the tessellation built around it.</li>
 </ul>
 
 <h3>2. Mathematical Formulation</h3>
@@ -17160,7 +17160,7 @@ Available at: <a href="https://pubs.usgs.gov/of/1998/ofr-98-113/">pubs.usgs.gov/
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.17.0 &middot; 75 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.18.0 &middot; 75 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 

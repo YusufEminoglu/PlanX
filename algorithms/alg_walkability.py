@@ -23,6 +23,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_WALK, INT, PlanXAlgorithm
+from . import _units
 from ..engine import graphs, walkability
 
 
@@ -176,8 +177,16 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
 
         mids = np.asarray([_midpoint(c) for c in polylines])
         junctions = graph.node_xy[graph.degrees() >= 3]
+        # The radius stays what its label says - map units - because it is also
+        # what gates the junction and destination counts around a segment. The
+        # quantities that are compared with published thresholds are physical:
+        # a junction density per km2 has to be per km2 of ground, and a block
+        # length and a slope are metres over metres. See algorithms/_units.py.
+        per_unit = _units.GroundUnits(
+            network.sourceCrs(), context.transformContext()
+        ).scale(network.sourceExtent())
         r2 = radius * radius
-        area_km2 = math.pi * radius * radius / 1e6
+        area_km2 = math.pi * (radius / per_unit) ** 2 / 1e6
 
         crs = network.sourceCrs()
         xform = context.transformContext()
@@ -219,7 +228,7 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
                 d2 = (junctions[:, 0] - mx) ** 2 + (junctions[:, 1] - my) ** 2
                 inter_density[s] = float((d2 <= r2).sum()) / area_km2
             near = ((mids[:, 0] - mx) ** 2 + (mids[:, 1] - my) ** 2) <= r2
-            block_len[s] = float(graph.edge_len[near].mean())
+            block_len[s] = float(graph.edge_len[near].mean()) / per_unit
             if dest_count is not None and len(poi_xy):
                 d2 = (poi_xy[:, 0] - mx) ** 2 + (poi_xy[:, 1] - my) ** 2
                 dest_count[s] = float((d2 <= r2).sum())
@@ -238,7 +247,7 @@ class WalkabilityAlgorithm(PlanXAlgorithm):
                 coords = polylines[s]
                 z0, ok0 = provider.sample(QgsPointXY(*coords[0]), 1)
                 z1, ok1 = provider.sample(QgsPointXY(*coords[-1]), 1)
-                seg_len = float(graph.edge_len[s])
+                seg_len = float(graph.edge_len[s]) / per_unit
                 if ok0 and ok1 and seg_len > 0:
                     slope_pct[s] = abs(z1 - z0) / seg_len * 100.0
                 else:

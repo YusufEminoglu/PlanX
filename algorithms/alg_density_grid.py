@@ -20,6 +20,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_STANDARDS, INT, PlanXAlgorithm
+from . import _units
 
 
 class DensityGridAlgorithm(PlanXAlgorithm):
@@ -89,6 +90,12 @@ class DensityGridAlgorithm(PlanXAlgorithm):
         value_field = self.parameterAsString(parameters, self.VALUE_FIELD, context)
         cell = self.parameterAsDouble(parameters, self.CELL_SIZE, context)
         self.require_projected(source, "Source features")
+        # The grid itself is built in the layer's own coordinate units, which is
+        # what the cell-size parameter says. dens_ha is not: a hectare is a
+        # hectare, and a coordinate-unit hectare is 1.757x the real one on
+        # EPSG:3857 at 41 N, so every density would be published that much too
+        # high. See algorithms/_units.py.
+        units = _units.GroundUnits(source.sourceCrs(), context.transformContext())
 
         v_idx = source.fields().lookupField(value_field) if value_field else -1
         feats = []   # (geometry, value, area_or_None)
@@ -128,7 +135,15 @@ class DensityGridAlgorithm(PlanXAlgorithm):
         sink, dest = self.parameterAsSink(
             parameters, self.OUTPUT, context, fields,
             QgsWkbTypes.Type.Polygon, source.sourceCrs())
-        cell_ha = cell * cell / 10000.0
+        # One probe cell, at the extent's centre, stands for all of them: every
+        # cell in the grid is this rectangle translated, and a rigid
+        # translation moves no area. Probed at the centre rather than at the
+        # layer's origin because a Web Mercator square is not the same number
+        # of ground metres everywhere - at the equator it is exact, at 41 N it
+        # is three quarters of one.
+        cell_ha = units.area(QgsGeometry.fromRect(QgsRectangle(
+            extent.center().x(), extent.center().y(),
+            extent.center().x() + cell, extent.center().y() + cell))) / 10000.0
         cid = 0
         for iy in range(ny):
             if feedback.isCanceled():

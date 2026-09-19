@@ -20,6 +20,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_MICRO, INT, PlanXAlgorithm
+from . import _units
 from .alg_building_metrics import _main_rings
 from ..engine import solar
 
@@ -103,6 +104,12 @@ class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
         wind_dir = self.parameterAsDouble(parameters, self.WIND_DIR, context)
         cell = self.parameterAsDouble(parameters, self.CELL_SIZE, context)
         self.require_projected(source, "Buildings")
+        # lambda_f is a frontal AREA over a cell AREA, and the frontal area
+        # multiplies a width measured in the layer's own coordinates by a height
+        # the user gives in metres. Untouched, the ratio carries one factor of
+        # the projection's scale - 1.325x on EPSG:3857 at 41 N. See
+        # algorithms/_units.py.
+        units = _units.GroundUnits(source.sourceCrs(), context.transformContext())
 
         h_idx = source.fields().lookupField(height_field) if height_field else -1
         blds = []   # (geometry, frontal_area, footprint_area)
@@ -131,6 +138,8 @@ class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
         extent = QgsRectangle()
         for g, _, _ in blds:
             extent.combineExtentWith(g.boundingBox())
+
+        per_unit = units.scale(extent)
 
         fields = self.make_fields(("cell_id", INT), ("b_count", INT),
                                   ("lambda_f", DOUBLE), ("lambda_p", DOUBLE))
@@ -165,7 +174,10 @@ class FrontalAreaIndexAlgorithm(PlanXAlgorithm):
                     if a <= 0 or fp_area <= 0:
                         continue
                     share = a / fp_area
-                    lam_f += frontal * share / cell_area
+                    # lam_p is a share of the cell and cancels its own units.
+                    # lam_f does not, so the width inside `frontal` is put back
+                    # on the ground here - the last step of the conversion above.
+                    lam_f += frontal * share / cell_area * per_unit
                     lam_p += a / cell_area
                     count += 1
                 if count == 0:

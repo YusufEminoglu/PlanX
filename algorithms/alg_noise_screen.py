@@ -26,6 +26,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_MICRO, PlanXAlgorithm, STRING
+from . import _units
 from ..engine import noise
 
 
@@ -71,9 +72,11 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
             "population field - each receiver's level plus a population "
             "exposure table by 5 dB bands (the classic 55/65 dB counts in "
             "the log).\n\n"
-            "Keep the cutoff moderate (default 300 m): distant roads "
-            "rarely dominate a screening and cost most of the runtime. "
-            "Use a projected CRS.\n\n"
+            "Keep the cutoff moderate (default 300 map units): distant "
+            "roads rarely dominate a screening and cost most of the "
+            "runtime. Use a projected CRS; the grid, the cell size and the "
+            "cutoff are in the layer's own coordinates, while the acoustics "
+            "are in metres.\n\n"
             "How to read the results\n"
             "- Anchor on the two classic thresholds: 55 dB(A) is where "
             "annoyance and sleep disturbance start in most guidance; "
@@ -166,6 +169,19 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
         if extent is None or extent.isEmpty():
             extent = roads.sourceExtent().buffered(cutoff)
 
+        # The grid, the cell and the cutoff are in the layer's own coordinates -
+        # that is what their labels say. The acoustics are not: the 25 m
+        # reference of the source term, the 20 lg r spreading and the floor on r
+        # are all physical distances, so the map-unit distances are put on the
+        # ground before they reach the model and nowhere else. On EPSG:3857 at
+        # 41 N the unconverted version spread the sound over a distance 1.325x
+        # the one it travelled. See algorithms/_units.py.
+        per_unit = _units.GroundUnits(
+            roads.sourceCrs(), context.transformContext()).scale(extent)
+        # The floor on r, in metres: half a cell is the classic choice - a
+        # receiver at the centre of its own cell is never nearer than that.
+        min_dist = max(1.0, cell / per_unit / 2.0)
+
         vol_i = roads.fields().lookupField(vol_f)
         heavy_i = roads.fields().lookupField(heavy_f) if heavy_f else -1
         step = max(cell, 5.0)
@@ -194,7 +210,7 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
             length = g.length()
             n_seg = max(1, int(round(length / step)))
             seg_len = length / n_seg
-            lvl = float(noise.sample_level(lm25, seg_len))
+            lvl = float(noise.sample_level(lm25, seg_len / per_unit))
             for k in range(n_seg):
                 p = g.interpolate((k + 0.5) * seg_len).asPoint()
                 src_pts.append((p.x(), p.y()))
@@ -242,9 +258,9 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
             if not len(keep):
                 return -np.inf
             return noise.receiver_level(
-                src_xy[keep], src_lvl[keep], rx, ry,
+                src_xy[keep], src_lvl[keep], rx, ry, scale=per_unit,
                 blocked=blocked_mask(rx, ry, keep), screen_db=screen_db,
-                min_dist=max(1.0, cell / 2.0))
+                min_dist=min_dist)
 
         cols = max(2, int(math.ceil(extent.width() / cell)))
         rows = max(2, int(math.ceil(extent.height() / cell)))
@@ -255,7 +271,6 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
         x0, y1 = extent.xMinimum(), extent.yMaximum()
         grid = np.full((rows, cols), -1.0, dtype=np.float32)
         rxs = x0 + (np.arange(cols) + 0.5) * cell
-        min_dist = max(1.0, cell / 2.0)
         for r in range(rows):
             if feedback.isCanceled():
                 break
@@ -273,7 +288,7 @@ class NoiseScreenAlgorithm(PlanXAlgorithm):
                 if not len(keep):
                     lv = -np.inf
                 else:
-                    d_keep = np.maximum(d[keep], min_dist)
+                    d_keep = np.maximum(d[keep] / per_unit, min_dist)
                     contrib = src_lvl[keep] - 20.0 * np.log10(d_keep)
                     blocked = blocked_mask(rx, cy, keep)
                     if blocked is not None:

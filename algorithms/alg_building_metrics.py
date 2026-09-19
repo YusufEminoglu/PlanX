@@ -15,6 +15,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_MORPHOLOGY, INT, PlanXAlgorithm
+from . import _units
 from ..engine import morphology
 
 
@@ -94,6 +95,14 @@ class BuildingFormMetricsAlgorithm(PlanXAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.BUILDINGS, context)
         self.require_projected(source, "Buildings")
+        # area_m2, perim_m and court_m2 are metric claims; shape_metrics works
+        # in the layer's own coordinates. On EPSG:3857 at 41 N that is 1.757x in
+        # area and 1.325x in the perimeter. The ratios built from them -
+        # compact, convexity, court_idx, fractal, sharedwall - are ratios of the
+        # same quantity and are unaffected. See algorithms/_units.py.
+        per_unit = _units.GroundUnits(
+            source.sourceCrs(), context.transformContext()
+        ).scale(source.sourceExtent())
 
         fields = self.make_fields(
             ("area_m2", DOUBLE), ("perim_m", DOUBLE), ("compact", DOUBLE),
@@ -144,9 +153,10 @@ class BuildingFormMetricsAlgorithm(PlanXAlgorithm):
             out = QgsFeature(fields)
             out.setGeometry(g)
             out.setAttributes(list(f.attributes())[:n_src] + [
-                m["area"], m["perimeter"], m["ipq"], m["convexity"],
+                m["area"] / per_unit ** 2, m["perimeter"] / per_unit,
+                m["ipq"], m["convexity"],
                 m["rectangularity"], m["elongation"], m["orientation"],
-                m["courtyard_area"], m["courtyard_index"],
+                m["courtyard_area"] / per_unit ** 2, m["courtyard_index"],
                 m["fractal_dimension"], int(m["corners"]),
                 min(1.0, ratio)])
             sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)

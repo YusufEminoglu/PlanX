@@ -20,6 +20,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_POPULATION, INT, PlanXAlgorithm, STRING
+from . import _units
 from ..engine import population
 
 
@@ -122,6 +123,14 @@ class ResidentialCapacityAlgorithm(PlanXAlgorithm):
         unit_size = self.parameterAsDouble(parameters, self.UNIT_SIZE, context)
         efficiency = self.parameterAsDouble(parameters, self.EFFICIENCY, context)
         self.require_projected(parcels, "Parcels")
+        # A floor-area ratio is dimensionless and a parcel area is not.
+        # buildable_m2 is the product, so a parcel measured in the layer's own
+        # coordinates puts the projection's own scale into every capacity
+        # figure - 1.757x on EPSG:3857 at 41 N. Named `ground` rather than
+        # `units` because this tool already uses `units` for the dwelling count
+        # the model returns. See algorithms/_units.py.
+        ground = _units.GroundUnits(
+            parcels.sourceCrs(), context.transformContext())
 
         fields = parcels.fields()
         far_i = fields.lookupField(far_f)
@@ -150,7 +159,7 @@ class ResidentialCapacityAlgorithm(PlanXAlgorithm):
                 bad += 1
                 far = 0.0
             feats.append(f)
-            areas.append(g.area())
+            areas.append(ground.area(g))
             fars.append(far)
             exists.append(num(ex_i, 0.0) if ex_i >= 0 else 0.0)
             dists.append(str(attrs[d_i]) if d_i >= 0 else "(all)")

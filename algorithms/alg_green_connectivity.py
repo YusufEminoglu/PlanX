@@ -18,6 +18,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_GREEN, INT, PlanXAlgorithm, STRING
+from . import _units
 from ..engine import green
 
 
@@ -96,6 +97,11 @@ class GreenConnectivityAlgorithm(PlanXAlgorithm):
         greens = self.parameterAsSource(parameters, self.GREENS, context)
         max_gap = self.parameterAsDouble(parameters, self.MAX_GAP, context)
         self.require_projected(greens, "Green patches")
+        # area_m2 and comp_m2 are metric claims; the patches are measured in the
+        # layer's own coordinate units. On a state-plane layer in feet that is
+        # 10.76x, on EPSG:3857 at 41 N it is 1.757x. dpc is a share of the total
+        # and is unaffected either way. See algorithms/_units.py.
+        units = _units.GroundUnits(greens.sourceCrs(), context.transformContext())
 
         feats, geoms, areas = [], [], []
         index = QgsSpatialIndex()
@@ -108,7 +114,7 @@ class GreenConnectivityAlgorithm(PlanXAlgorithm):
             index.insertFeature(qf)
             feats.append(f)
             geoms.append(g)
-            areas.append(g.area())
+            areas.append(units.area(g))
         if len(feats) < 2:
             raise QgsProcessingException(
                 "At least two green patches are needed.")

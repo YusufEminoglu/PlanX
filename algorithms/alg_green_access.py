@@ -20,6 +20,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_GREEN, INT, PlanXAlgorithm
+from . import _units
 from ..engine import graphs, green, paths
 
 
@@ -124,7 +125,15 @@ class GreenAccessAlgorithm(PlanXAlgorithm):
 
         g_xy, g_feats = self.source_points(greens, crs, xform)
         g_nodes = graphs.nearest_nodes(graph, g_xy)
-        g_area = np.asarray([f.geometry().area() for f in g_feats])
+        # A hectare is a physical hectare: the hierarchy's minimum size is a
+        # planning standard, not a coordinate-unit number, so a patch has to be
+        # measured on the ground before it is compared with one. Measured here in
+        # the greens layer's own CRS, because source_points hands back the
+        # features it was given rather than transformed copies. On EPSG:3857 at
+        # 41 N the unconverted reading lets patches 43 percent under the
+        # standard qualify. See algorithms/_units.py.
+        ground = _units.GroundUnits(greens.sourceCrs(), xform)
+        g_area = np.asarray([ground.area(f.geometry()) for f in g_feats])
         g_snap = np.hypot(g_xy[:, 0] - graph.node_xy[g_nodes, 0],
                           g_xy[:, 1] - graph.node_xy[g_nodes, 1])
 

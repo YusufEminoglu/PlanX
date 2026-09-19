@@ -17,6 +17,7 @@ from qgis.core import (
 
 from .base import DOUBLE, PlanXAlgorithm, STRING
 from .base import GROUP_STANDARDS
+from . import _units
 from ..engine import standards as std
 
 DEFAULT_STANDARDS = "green=10, park=10, playground=1.5, education=4, school=4, health=1.5, social=1.5, sport=3.5, market=0.5"
@@ -100,6 +101,12 @@ class LandUseBalanceAlgorithm(PlanXAlgorithm):
         except ValueError as exc:
             raise QgsProcessingException(str(exc))
 
+        # The standards are in square metres per capita and the areas were being
+        # summed in the layer's own coordinates, so on EPSG:3857 at 41 N every
+        # city looked 1.757x closer to its own targets than it is. See
+        # algorithms/_units.py.
+        units = _units.GroundUnits(source.sourceCrs(), context.transformContext())
+
         cat_idx = source.fields().lookupField(cat_field)
         areas = {}
         for f in source.getFeatures():
@@ -107,7 +114,7 @@ class LandUseBalanceAlgorithm(PlanXAlgorithm):
             if g is None or g.isEmpty():
                 continue
             category = str(f.attributes()[cat_idx])
-            areas[category] = areas.get(category, 0.0) + g.area()
+            areas[category] = areas.get(category, 0.0) + units.area(g)
         if not areas:
             raise QgsProcessingException("No polygons with a category value found.")
 

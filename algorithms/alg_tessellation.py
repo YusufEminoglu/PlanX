@@ -20,6 +20,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_MORPHOLOGY, LONG, PlanXAlgorithm
+from . import _units
 
 
 class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
@@ -94,6 +95,10 @@ class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
         limit = self.parameterAsDouble(parameters, self.LIMIT, context)
         self.require_projected(source, "Buildings")
         crs = source.sourceCrs()
+        # cell_m2 is a metric claim, and the cells are built in the layer's own
+        # coordinate units - so on EPSG:3857 at 41 N every cell would be
+        # published 1.757x too large. See algorithms/_units.py.
+        units = _units.GroundUnits(crs, context.transformContext())
 
         # 1) Seed points: shrunken, densified footprint boundaries.
         # Quantize + dedupe: near-coincident seeds (buffer arc vertices) make
@@ -190,7 +195,7 @@ class MorphologicalTessellationAlgorithm(PlanXAlgorithm):
             out = QgsFeature(fields)
             out.setGeometry(merged)
             out.setAttributes(list(feats[key].attributes())[:n_src] +
-                              [key, float(merged.area())])
+                              [key, float(units.area(merged))])
             sink.addFeature(out, QgsFeatureSink.Flag.FastInsert)
             written += 1
         feedback.pushInfo(self.tr(f"Wrote {written} tessellation cells."))

@@ -45,7 +45,9 @@ prints, so those claims are checkable rather than asserted.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
+import math
 import os
 import shutil
 import sqlite3
@@ -122,6 +124,28 @@ CITY_SEED = 42
 CITY_BLOCKS_X = 5
 CITY_BLOCKS_Y = 5
 CITY_BLOCK_SIZE = 150.0
+
+# The demo city is generated on a local grid starting at (0, 0), so on EPSG:3857
+# it lands on the projection's origin in the Gulf of Guinea. Every fixture layer
+# and every fixture raster is therefore slid here, by the Web Mercator
+# coordinates of 29 E 41 N - a real place in Turkiye, and a real latitude.
+#
+# This matters more than realism. EPSG:3857's "metre" is the equator's, and its
+# scale is 1/cos(lat) away from it: exactly 1 at the origin, 1.325 in length and
+# 1.757 in area at 41 N. At the origin, a tool that hands QgsGeometry.area() - a
+# number in the layer's own coordinate units - straight to a column named
+# area_m2 is *accidentally right*, and this whole file goes green while the tool
+# is 1.757x wrong for every user who digitises in Web Mercator, which is most of
+# them. Sliding the fixture north is what makes the matrix able to see the
+# defect class algorithms/_units.py exists to remove; see docs/TRAPS.md 5.12.
+#
+# The two numbers are the projection's, not the fixture's: 3228265.2330049337 and
+# 5012341.663847516 are what PROJ returns for 29 E 41 N on the sphere 3857 is
+# defined on, and they are written out rather than computed at import so that a
+# transform that cannot run reports itself instead of looking like a fixture
+# that quietly moved somewhere else.
+FIXTURE_DX = 3228265.2330049337
+FIXTURE_DY = 5012341.663847516
 
 DOUBLE = QVariant.Double
 INT = QVariant.Int
@@ -217,7 +241,18 @@ FACILITIES_EXTRA = (
     ("dest_id", INT),
 )
 
-GREEN_EXTRA = (("area_m2", DOUBLE),)
+# Deliberately empty, and deliberately not `area_m2`. A green layer that
+# already carries an area column is the ordinary case in the wild, and
+# planx:greenconnectivity publishes one of its own - so `make_fields` renamed
+# the tool's converted column to `area_m2_2` and left the *fixture's* raw
+# coordinate-unit area under the name every reader, and every value check,
+# looks under. The case then failed for a defect the tool does not have, with
+# the tool's correct column sitting next to it in the same file. No case binds
+# a field on the green layer, so the column bought nothing to weigh against
+# that. Same reasoning as the `score` column in DEMAND_EXTRA above; the
+# rename-without-warning fragility underneath is real and belongs to
+# `make_fields`, not to a fixture that hides it.
+GREEN_EXTRA = ()
 
 FLOWS_EXTRA = (
     ("flow", DOUBLE),
@@ -460,8 +495,8 @@ def _facility_attrs(index, _feature, values):
     return [index + 1, _number(values, "cap", 100.0), 1000.0, 0.0, index + 1]
 
 
-def _green_attrs(_index, feature, _values):
-    return [_geometry_area(feature)]
+def _green_attrs(_index, _feature, _values):
+    return []
 
 
 def _flows_attrs(index, _feature, values):
@@ -1116,12 +1151,63 @@ def _write_raster(path, array, template, double_precision=False):
     return str(path)
 
 
+def _reregister_raster(src_path, dst_path, geotransform):
+    """A copy of a fixture raster, re-registered on ``geotransform``.
+
+    The pixels are copied rather than re-derived from the array the fixture was
+    built from, so the two bundles differ in where the raster sits and in
+    nothing else - which is the property the translation comparison depends on,
+    and which a re-derived copy would only approximate through the storage
+    type. Only the geotransform moves, so an LZW-compressed copy costs a read
+    and a write of a small city raster.
+    """
+    from osgeo import gdal
+
+    source = gdal.Open(str(src_path), gdal.GA_ReadOnly)
+    if source is None:
+        raise RuntimeError(f"could not open the fixture raster {src_path}")
+    driver = gdal.GetDriverByName("GTiff")
+    if Path(dst_path).exists():
+        driver.Delete(str(dst_path))
+    copied = driver.CreateCopy(str(dst_path), source,
+                               options=["COMPRESS=LZW"])
+    copied.SetGeoTransform(tuple(geotransform))
+    copied.FlushCache()
+    copied = None
+    source = None
+    return str(dst_path)
+
+
 def _classify(dsm, threshold, above=1.0, below=0.0):
     import numpy as np
 
     out = np.where(np.isfinite(dsm), below, -9999.0)
     out[np.isfinite(dsm) & (dsm > threshold)] = above
     return out
+
+
+def _north_shift(layer, name, out_dir, transform_context):
+    """``layer`` slid to 29 E 41 N, keeping its own CRS and fields.
+
+    See :data:`FIXTURE_DX`. Translating the geometries rather than declaring a
+    shifted CRS is deliberate: an SRS definition no EPSG code names does not
+    survive the round trip through a GeoPackage, and a fixture whose layers come
+    back with an invalid CRS fails every GDAL call in a way that reads like the
+    tool's fault. A plain EPSG:3857 layer whose coordinates happen to be at 41 N
+    is a layer any user could have made.
+    """
+    rows = []
+    for feature in layer.getFeatures():
+        geometry = QgsGeometry(feature.geometry())
+        geometry.translate(FIXTURE_DX, FIXTURE_DY)
+        rows.append((geometry, list(feature.attributes())))
+    path = Path(out_dir) / f"{name}_north.gpkg"
+    _write_layer(path, name, layer.fields(), layer.wkbType(), layer.crs(),
+                 rows, transform_context)
+    shifted = QgsVectorLayer(str(path), name, "ogr")
+    if not shifted.isValid():
+        raise RuntimeError(f"the north copy of '{name}' did not load")
+    return shifted
 
 
 def build_fixtures(processing, work_dir, transform_context):
@@ -1149,77 +1235,116 @@ def build_fixtures(processing, work_dir, transform_context):
         "OUTPUT_DSM": str(raw_dir / "dsm.tif"),
     })
 
-    def load(key):
+    fix_dir = Path(work_dir) / "fixtures"
+    fix_dir.mkdir(parents=True, exist_ok=True)
+    north_dir = Path(work_dir) / "north"
+    north_dir.mkdir(parents=True, exist_ok=True)
+    south_dir = Path(work_dir) / "south"
+    south_dir.mkdir(parents=True, exist_ok=True)
+
+    # Each call gets its own north copy: several fixtures are widened from the
+    # same demo output, and pointing two live QgsVectorLayers at one path while
+    # that path is rewritten underneath them is how a bundle ends up half one
+    # layer and half another.
+    copies = itertools.count(1)
+
+    def from_raw(key):
         layer = QgsVectorLayer(str(raw[key]), key, "ogr")
         if not layer.isValid():
             raise RuntimeError(f"demo output '{key}' did not load")
         return layer
 
-    fix_dir = Path(work_dir) / "fixtures"
-    fix_dir.mkdir(parents=True, exist_ok=True)
+    def north(key):
+        return _north_shift(from_raw(key), f"{key}_{next(copies)}", north_dir,
+                            transform_context)
 
-    layers = {
-        "network": _augment(load("OUTPUT_STREETS"), "network", NETWORK_EXTRA,
-                            _network_attrs, fix_dir, transform_context),
-        "buildings": _augment(load("OUTPUT_BUILDINGS"), "buildings",
-                              BUILDINGS_EXTRA, _building_attrs, fix_dir,
-                              transform_context),
-        "landuse": _augment(load("OUTPUT_LANDUSE"), "landuse", LANDUSE_EXTRA,
-                            _landuse_attrs, fix_dir, transform_context),
-        "demand": _augment(load("OUTPUT_DEMAND"), "demand", DEMAND_EXTRA,
-                           _demand_attrs, fix_dir, transform_context),
-        "pois": _augment(load("OUTPUT_POIS"), "pois", POIS_EXTRA,
-                         _poi_attrs, fix_dir, transform_context),
-        "facilities": _augment(load("OUTPUT_FACILITIES"), "facilities",
-                               FACILITIES_EXTRA, _facility_attrs, fix_dir,
-                               transform_context),
-        "green": _augment(load("OUTPUT_GREEN"), "green", GREEN_EXTRA,
-                          _green_attrs, fix_dir, transform_context),
-        "flows": _augment(load("OUTPUT_STREETS"), "flows", FLOWS_EXTRA,
-                          _flows_attrs, fix_dir, transform_context),
-    }
-    # PARCELS is the land-use polygons again: the tools that take PARCELS want
-    # an area field and per-use suitability columns, which this layer carries.
-    layers["parcels"] = layers["landuse"]
+    def widen(base, out_dir):
+        """The widened fixture set, built from ``base(key)`` into ``out_dir``.
 
-    # A second copy of the buildings carrying occupancy, population, dwelling
-    # units and a damage-state column. Kept separate rather than folded into
-    # BUILDINGS_EXTRA: every tool that reads the buildings fixture would then
-    # carry columns only the casualty model has a use for, and a renderer that
-    # picks its field by name scan could start colouring by one of them.
-    source = load("OUTPUT_BUILDINGS")
-    layers["buildings_occupancy"] = _augment(
-        source, "buildings_occupancy", BUILDINGS_EXTRA + OCCUPANCY_EXTRA,
-        lambda index, feature, values: _building_attrs(index, feature, values)
-        + _occupancy_attrs(index, feature, values),
-        fix_dir, transform_context)
+        Called twice: once on the north copies, once on the demo output where it
+        already sits. The second bundle exists so that a tool can be run on the
+        same city at two latitudes and have its metric columns compared - see
+        :data:`METRIC_COLUMNS`. A rigid translation leaves the map geometry
+        identical and moves only the projection's own scale factor, so a column
+        that carries the layer's own coordinate units lands on the ratio 1.0
+        whatever its name claims, while one that is really in ground metres
+        moves by that factor: 1.325x in length and 1.757x in area at 41 N.
+        """
+        made = {
+            "network": _augment(base("OUTPUT_STREETS"), "network",
+                                NETWORK_EXTRA, _network_attrs, out_dir,
+                                transform_context),
+            "buildings": _augment(base("OUTPUT_BUILDINGS"), "buildings",
+                                  BUILDINGS_EXTRA, _building_attrs, out_dir,
+                                  transform_context),
+            "landuse": _augment(base("OUTPUT_LANDUSE"), "landuse",
+                                LANDUSE_EXTRA, _landuse_attrs, out_dir,
+                                transform_context),
+            "demand": _augment(base("OUTPUT_DEMAND"), "demand", DEMAND_EXTRA,
+                               _demand_attrs, out_dir, transform_context),
+            "pois": _augment(base("OUTPUT_POIS"), "pois", POIS_EXTRA,
+                             _poi_attrs, out_dir, transform_context),
+            "facilities": _augment(base("OUTPUT_FACILITIES"), "facilities",
+                                   FACILITIES_EXTRA, _facility_attrs, out_dir,
+                                   transform_context),
+            "green": _augment(base("OUTPUT_GREEN"), "green", GREEN_EXTRA,
+                              _green_attrs, out_dir, transform_context),
+            "flows": _augment(base("OUTPUT_STREETS"), "flows", FLOWS_EXTRA,
+                              _flows_attrs, out_dir, transform_context),
+        }
+        # PARCELS is the land-use polygons again: the tools that take PARCELS
+        # want an area field and per-use suitability columns, which this layer
+        # carries.
+        made["parcels"] = made["landuse"]
 
-    # The land-use polygons again, carrying a liquefaction category column
-    # instead of a land-use one. The susceptibility half of planx:liquefaction
-    # is driven entirely by these six names, and it refuses a column of
-    # anything else - an unclassified unit read as zero would report "no
-    # liquefaction hazard" for a unit nobody classified. The city's own
-    # `category` column holds land-use words, so covering that half of the
-    # tool needs a layer that speaks the model's vocabulary.
-    layers["hazus_units"] = _augment(
-        load("OUTPUT_LANDUSE"), "hazus_units", (("liq_category", STRING),),
-        _liq_category_attrs, fix_dir, transform_context)
+        # A second copy of the buildings carrying occupancy, population,
+        # dwelling units and a damage-state column. Kept separate rather than
+        # folded into BUILDINGS_EXTRA: every tool that reads the buildings
+        # fixture would then carry columns only the casualty model has a use
+        # for, and a renderer that picks its field by name scan could start
+        # colouring by one of them.
+        made["buildings_occupancy"] = _augment(
+            base("OUTPUT_BUILDINGS"), "buildings_occupancy",
+            BUILDINGS_EXTRA + OCCUPANCY_EXTRA,
+            lambda index, feature, values: _building_attrs(index, feature, values)
+            + _occupancy_attrs(index, feature, values),
+            out_dir, transform_context)
 
-    # The land-use polygons a third time, now carrying the columns the
-    # coseismic landslide screen's three routes read. Kept as its own layer for
-    # the same reason hazus_units is: the tool refuses a column it cannot read
-    # rather than guessing, so a fixture that speaks its vocabulary is the only
-    # way to reach the arithmetic at all - and its `category` column holds
-    # land-use words, which no route here accepts.
-    layers["seismic_units"] = _augment(
-        load("OUTPUT_LANDUSE"), "seismic_units",
-        (("hazus_group", STRING), ("hazus_ac_g", DOUBLE),
-         ("hazus_category", STRING), ("sample_x", DOUBLE)),
-        _seismic_unit_attrs, fix_dir, transform_context)
+        # The land-use polygons again, carrying a liquefaction category column
+        # instead of a land-use one. The susceptibility half of
+        # planx:liquefaction is driven entirely by these six names, and it
+        # refuses a column of anything else - an unclassified unit read as zero
+        # would report "no liquefaction hazard" for a unit nobody classified.
+        # The city's own `category` column holds land-use words, so covering
+        # that half of the tool needs a layer that speaks the model's
+        # vocabulary.
+        made["hazus_units"] = _augment(
+            base("OUTPUT_LANDUSE"), "hazus_units", (("liq_category", STRING),),
+            _liq_category_attrs, out_dir, transform_context)
 
-    parcels = QgsVectorLayer(str(layers["landuse"]), "landuse", "ogr")
-    study_area = _bounding_layer("study_area", parcels.extent(), parcels.crs(),
-                                 fix_dir, transform_context)
+        # The land-use polygons a third time, now carrying the columns the
+        # coseismic landslide screen's three routes read. Kept as its own layer
+        # for the same reason hazus_units is: the tool refuses a column it
+        # cannot read rather than guessing, so a fixture that speaks its
+        # vocabulary is the only way to reach the arithmetic at all - and its
+        # `category` column holds land-use words, which no route here accepts.
+        made["seismic_units"] = _augment(
+            base("OUTPUT_LANDUSE"), "seismic_units",
+            (("hazus_group", STRING), ("hazus_ac_g", DOUBLE),
+             ("hazus_category", STRING), ("sample_x", DOUBLE)),
+            _seismic_unit_attrs, out_dir, transform_context)
+
+        parcels = QgsVectorLayer(str(made["landuse"]), "landuse", "ogr")
+        if not parcels.isValid():
+            raise RuntimeError(f"the widened landuse fixture in {out_dir} "
+                               "did not load")
+        made["study_area"] = _bounding_layer("study_area", parcels.extent(),
+                                            parcels.crs(), out_dir,
+                                            transform_context)
+        return made
+
+    layers = widen(north, fix_dir)
+    south = widen(from_raw, south_dir)
 
     dsm_layer = QgsRasterLayer(str(raw["OUTPUT_DSM"]), "dsm", "gdal")
     if not dsm_layer.isValid():
@@ -1229,12 +1354,23 @@ def build_fixtures(processing, work_dir, transform_context):
     if finite.size == 0:
         raise RuntimeError("demo DSM has no finite cells")
 
+    # The rasters go north with the vectors, on one shifted geotransform, so a
+    # tool that samples a raster at a feature's own coordinates finds the
+    # terrain that belongs to that feature rather than a city 5000 km south.
+    demo_geotransform = tuple(geotransform)
+    geotransform = list(geotransform)
+    geotransform[0] += FIXTURE_DX
+    geotransform[3] += FIXTURE_DY
+    geotransform = tuple(geotransform)
+
     template = (dsm, geotransform, projection)
+    dsm_path = fix_dir / "dsm_north.tif"
+    _write_raster(dsm_path, dsm, template)
     rasters = {
         # A city DSM stands in wherever a tool wants a terrain DEM. That proves
         # the plumbing, not the geomorphology: real hydrology wants real relief.
-        "dsm": str(raw["OUTPUT_DSM"]),
-        "dem": str(raw["OUTPUT_DSM"]),        "inundation": _write_raster(
+        "dsm": str(dsm_path),
+        "dem": str(dsm_path),        "inundation": _write_raster(
             fix_dir / "inundation.tif",
             _classify(dsm, float(np.percentile(finite, 25.0)), 1.0, 0.0),
             template),
@@ -1311,6 +1447,16 @@ def build_fixtures(processing, work_dir, transform_context):
         fix_dir / "terrain.tif",
         np.where(np.isfinite(dsm), np.broadcast_to(ramp, dsm.shape), -9999.0),
         template, double_precision=True)
+    # `dem` is the role the terrain consumers read, and it used to point at the
+    # DSM - which is the raster described above, a surface of roof heights whose
+    # only gradients are roof pitches. Along every street it reads 0.0, so the
+    # five tools that take a DEM from this role computed a slope of zero in both
+    # runs, and the translation check could not tell a slope that was converted
+    # from one that was not: it found the column summing to zero at the origin
+    # and stopped. A fixture that makes a metric identically zero has not checked
+    # it. The ramp is the surface those tools were asking for; the coseismic
+    # screen has read it through TERRAIN since the day it was added.
+    rasters["dem"] = rasters["terrain"]
     # The grid the ramp is a function of, so that the value check can put every
     # output row back on it. `step` is the real column spacing, which is what
     # the samplers divide by to find a cell; `pixel` is the same mean of the
@@ -1321,13 +1467,32 @@ def build_fixtures(processing, work_dir, transform_context):
                          step=float(geotransform[1]),
                          pixel=float(_pixel))
 
+    # The southern twin of every raster: the same values, re-registered on the
+    # geotransform `planx:democity` drew the city on. Needed by the translation
+    # comparison below, which runs a tool on the same city at two latitudes -
+    # and a tool that samples a DEM at its features' own coordinates would
+    # otherwise read a city 5000 km from those features. The values are copied
+    # rather than re-derived, so a difference between the two bundles is a
+    # difference in position and in nothing else.
+    south_rasters, written = {}, {}
+    for key, path in rasters.items():
+        if path not in written:
+            written[path] = _reregister_raster(
+                path, south_dir / Path(path).name, demo_geotransform)
+        south_rasters[key] = written[path]
+
     demand_layer = QgsVectorLayer(str(layers["demand"]), "demand", "ogr")
     gtfs_path = fix_dir / "demo_gtfs.zip"
-    _write_gtfs(demand_layer, parcels.crs(), gtfs_path, transform_context)
+    # The demand layer's own CRS, not a `parcels` that used to be a local of
+    # this function and is now a local of `widen` - which left this call
+    # raising NameError while reading as an ordinary line.
+    _write_gtfs(demand_layer, demand_layer.crs(), gtfs_path, transform_context)
 
     return {
         "layers": layers,
-        "study_area": study_area,
+        "south_rasters": south_rasters,
+        "south": south,
+        "study_area": layers["study_area"],
         "rasters": rasters,
         "files": {"gtfs": str(gtfs_path)},
         "raw": raw,
@@ -1696,8 +1861,14 @@ def _verify_file(path):
 DEMO_CITY_SPAN_KM = 0.75
 
 
-def _read_gpkg(path):
+def _read_gpkg(path, aspatial=False):
     """``(column names, rows as dicts, complaint)`` for a written GeoPackage.
+
+    ``aspatial`` widens the search to attribute tables as well, which is what a
+    tool whose sink is a ``NoGeometry`` layer writes: GDAL registers those under
+    ``data_type = 'attributes'``, so the default search would report a perfectly
+    good table as absent. Off by default, because a caller checking a *feature*
+    output wants an aspatial file to be a complaint rather than a surprise.
 
     Read with ``sqlite3``, never with a ``QgsVectorLayer`` - and that is the
     whole point of this function. **Reading attributes** out of a written
@@ -1734,11 +1905,14 @@ def _read_gpkg(path):
         return None, None, f"could not open {path} as a GeoPackage: {exc}"
     try:
         connection.row_factory = sqlite3.Row
+        kinds = ("features", "attributes") if aspatial else ("features",)
         tables = [row[0] for row in connection.execute(
-            "SELECT table_name FROM gpkg_contents WHERE data_type = 'features'"
-            " ORDER BY table_name")]
+            "SELECT table_name FROM gpkg_contents WHERE data_type IN "
+            f"({','.join('?' * len(kinds))}) ORDER BY table_name", kinds)]
         if not tables:
-            return None, None, f"{path} holds no feature table"
+            return None, None, (
+                f"{path} holds no feature or attribute table" if aspatial
+                else f"{path} holds no feature table")
         if len(tables) > 1:
             return None, None, (
                 f"{path} holds {len(tables)} feature tables ({', '.join(tables)}), "
@@ -1754,6 +1928,724 @@ def _read_gpkg(path):
     if not rows:
         return names, rows, f"{path} holds no row to read a value from"
     return names, rows, None
+
+
+#: Bytes of envelope a GeoPackage geometry blob carries, by the flags byte's
+#: envelope indicator: none, XY, XYZ, XYM, XYZM. The spec fixes these sizes.
+_GPKG_ENVELOPE_BYTES = {0: 0, 1: 32, 2: 48, 3: 48, 4: 64}
+
+
+def _decode_gpkg_geometry(blob):
+    """The ``QgsGeometry`` inside a GeoPackage geometry blob, or None.
+
+    The blob is a magic pair, a version byte, a flags byte, an srs_id and an
+    optional envelope, and everything after that header is ordinary WKB. It is
+    unpacked here rather than read through a ``QgsVectorLayer`` for the reason
+    spelled out in :func:`_read_gpkg`: iterating features through QGIS leaves
+    the file locked for the rest of the process on Windows, and a check that
+    measures a written feature must not be the thing that stops the next run
+    from recreating it.
+    """
+    if not blob or len(blob) < 8 or bytes(blob[0:2]) != b"GP":
+        return None
+    envelope = (blob[3] >> 1) & 0x07
+    offset = 8 + _GPKG_ENVELOPE_BYTES.get(envelope, 0)
+    if len(blob) <= offset:
+        return None
+    return _geometry_from_wkb(bytes(blob[offset:]))
+
+
+def _geometry_from_wkb(wkb):
+    """A ``QgsGeometry`` from a WKB blob, on either QGIS runtime.
+
+    3.44 binds ``QgsGeometry.fromWkb`` as an *instance* method that fills in
+    ``self`` and returns None, and calling it on the class raises "first
+    argument of unbound method must have type 'QgsGeometry'" - a message that
+    names a C++ type rather than the runtime, which is how it reads like a
+    malformed blob instead of a binding difference. It was measured on 3.44,
+    not assumed: the same call returns the geometry on 4.x, where the static
+    binding matches the C++ signature.
+    """
+    try:
+        return QgsGeometry.fromWkb(wkb)
+    except TypeError:
+        holder = QgsGeometry()
+        holder.fromWkb(wkb)
+        return None if holder.isNull() else holder
+
+
+def _read_gpkg_geometries(path):
+    """``(crs, rows, complaint)``, each row carrying a decoded ``geometry``.
+
+    A sibling of :func:`_read_gpkg` rather than a flag on it, because only the
+    checks that re-derive a metric quantity from the feature it belongs to need
+    the geometry, and the CRS they need with it. The CRS comes out of
+    ``gpkg_geometry_columns.srs_id`` - the number the file itself records -
+    which is enough for every layer these tools write, and which makes the check
+    fail loudly on an output that is not in the fixture's own CRS rather than
+    quietly measuring it as if it were.
+    """
+    uri = Path(path).resolve().as_uri() + "?mode=ro"
+    try:
+        connection = sqlite3.connect(uri, uri=True)
+    except sqlite3.Error as exc:
+        return None, None, f"could not open {path} as a GeoPackage: {exc}"
+    try:
+        connection.row_factory = sqlite3.Row
+        declared = connection.execute(
+            "SELECT table_name, column_name, srs_id FROM gpkg_geometry_columns"
+        ).fetchall()
+        if not declared:
+            return None, None, f"{path} declares no geometry column"
+        if len(declared) > 1:
+            return None, None, (
+                f"{path} declares {len(declared)} geometry columns, so a "
+                f"feature's own geometry cannot be read unambiguously")
+        table = declared[0]["table_name"]
+        column = declared[0]["column_name"]
+        srs_id = declared[0]["srs_id"]
+        rows = []
+        for row in connection.execute(f'SELECT * FROM "{table}"'):
+            values = dict(row)
+            values["geometry"] = _decode_gpkg_geometry(values.get(column))
+            rows.append(values)
+    except sqlite3.Error as exc:
+        return None, None, f"could not read {path}: {exc}"
+    finally:
+        connection.close()
+    if not rows:
+        return None, rows, f"{path} holds no row to measure"
+    try:
+        crs = QgsCoordinateReferenceSystem.fromEpsgId(int(srs_id))
+    except (TypeError, ValueError):
+        crs = QgsCoordinateReferenceSystem()
+    return crs, rows, None
+
+
+def _shadow_of(row, column, ground, tolerance):
+    """The tool's own column, renamed out of the way by a fixture collision.
+
+    ``make_fields`` renames a collision against a base field with a ``_2``
+    suffix rather than overwriting it, so an output layer whose input already
+    carried a column of the same name holds *both*: the fixture's under the
+    real name and the tool's under ``<name>_2``. A check that reads the name
+    therefore measures the fixture and accuses the tool. This returns the
+    sibling's key when it is the one holding ``ground``, so the check can say
+    what actually happened; None when there is no such sibling, which means the
+    mismatch is real.
+    """
+    for key, value in row.items():
+        if key.lower() != f"{column.lower()}_2" or value is None:
+            continue
+        if abs(float(value) - ground) <= tolerance * ground:
+            return key
+    return None
+
+
+def _area_column_is_ground_metres(column, tolerance=0.02):
+    """A value expectation: ``column`` must be the row's own geometry in m2.
+
+    Re-derived rather than pinned. The check measures each feature's geometry
+    with the same ``algorithms/_units`` mechanism the tool is supposed to use
+    and compares, so it answers the question a count cannot: *did this tool
+    measure the ground, or did it read the layer's own coordinates and call them
+    metres?*
+
+    It tests the wiring, not the conversion - mutate ``_units`` and run and
+    check move together and stay green, which is what ``test_engine.py`` and
+    ``smoke_plugin._assert_ground_units`` are for. What it catches is a tool
+    that never converted at all: on this fixture, EPSG:3857 at 41 N, that is
+    1.757x in area, twenty times the tolerance, and no other check in this file
+    can see it. It also catches the subtler wiring mistake of measuring the
+    wrong layer's CRS - a tool that takes its footprints from one layer and its
+    scale from another.
+    """
+    def expectation(path):
+        from planx.algorithms import _units
+
+        expected_crs = QgsCoordinateReferenceSystem(CITY_CRS)
+        crs, rows, complaint = _read_gpkg_geometries(path)
+        if complaint:
+            return complaint
+        if not crs.isValid() or crs != expected_crs:
+            return (f"the output is in {crs.authid() or 'an unnamed CRS'} and the "
+                    f"fixture is in {CITY_CRS}, so its areas cannot be checked "
+                    f"against the ground")
+        units = _units.GroundUnits(crs, None)
+        measured = 0
+        for row in rows:
+            geometry = row.get("geometry")
+            if geometry is None or geometry.isEmpty():
+                continue
+            value = row.get(column)
+            if value is None:
+                return f"{column} is NULL on a feature that has a geometry"
+            ground = units.area(geometry)
+            if ground <= 0.0:
+                continue
+            measured += 1
+            if abs(float(value) - ground) > tolerance * ground:
+                twin = _shadow_of(row, column, ground, tolerance)
+                if twin is not None:
+                    return (f"a feature reports {column} = {float(value):.3f} m2 "
+                            f"while its own geometry measures {ground:.3f} m2 of "
+                            f"ground - but the output also carries {twin} = "
+                            f"{float(row[twin]):.3f}, which *is* that measurement. "
+                            f"The fixture layer already had a {column} column, so "
+                            f"make_fields renamed the tool's own out of the way and "
+                            f"this check read the fixture's. The tool converted; "
+                            f"drop {column} from the fixture's EXTRA fields (see "
+                            f"GREEN_EXTRA)")
+                return (f"a feature reports {column} = {float(value):.3f} m2 while "
+                        f"its own geometry measures {ground:.3f} m2 of ground "
+                        f"({float(value) / ground:.3f}x) - the column is in the "
+                        f"layer's coordinate units, not ground metres")
+        if not measured:
+            return f"no feature carried both a geometry and a {column} value"
+        return None
+    return expectation
+
+
+# --------------------------------------------------------------------------
+# Translation invariance
+# --------------------------------------------------------------------------
+# The general form of the defect in docs/TRAPS.md 5.12: a column whose name
+# claims a ground unit but whose value carries the layer's own coordinate
+# units. A per-row check cannot reach it wherever the measured geometry is not
+# the output geometry - a sum of intersections, a network cost, a decibel
+# level, a score built from several of them - so those tools are run a second
+# time on the same city moved to another latitude, and the two runs are
+# compared column by column.
+#
+# A rigid translation leaves the map geometry identical and moves only the
+# projection's own scale factor, so every column has a predicted movement,
+# stated as north over south, where the south copy is the city where
+# `planx:democity` drew it - on the equator, where a map unit is a ground metre
+# to within one part in 10^8:
+#
+#   a share, a ratio, a count gated by a map-unit threshold  -> unchanged
+#   a ground area, a ground length                           -> x cos, x cos^2
+#   a count per ground area, per ground metre                -> x 1/cos^2, 1/cos
+#
+# The five factors are 0.57, 0.755, 1.0, 1.33 and 1.76, far enough apart that a
+# misclassified column announces itself instead of passing quietly. A column
+# carrying the layer's own units lands on 1.0 whatever its name says, which is
+# what makes the comparison falsifiable.
+#
+# Columns are compared as the *sum over the column of absolute values*, not row
+# by row. A sum is immune to the order the two runs happen to write their rows
+# in and to the round(x, 1) most of these tools format with - neither says
+# anything about units. Absolute values, so that a column whose rows straddle
+# zero still scales linearly: a signed sum of one can land near zero and take
+# the ratio with it.
+#
+# What this cannot see: a number the tool read out of a fixture *column* rather
+# than measured from a geometry. The two bundles carry the same such numbers,
+# so a tool that trusts one does not move with either run. Those are the
+# fixture's own claims about itself; a tool that publishes one is checked by
+# `_area_column_is_ground_metres` instead.
+
+#: How many ground metres one EPSG:3857 unit is at the north fixture's
+#: latitude, and therefore the whole of the difference between the two runs.
+#: `_north_shift` puts the city at 29 E 41 N; it is under a kilometre tall,
+#: over which cos varies in the sixth decimal, so one latitude serves both for a
+#: tool that scales itself over its own layer's extent and for one that scales
+#: over a buffered version of it.
+GROUND_PER_UNIT_NORTH = math.cos(math.radians(41.0))
+
+#: Column kind -> (the factor the north run's column has to be of the south
+#: run's, how far off it may be). The tolerances are two different sizes on
+#: purpose. A "same" column is the same arithmetic over the same numbers in
+#: both runs, so anything past the last bits of a division and a rounding is a
+#: defect; the scaled ones are measured over an extent each tool chooses for
+#: itself, so they get a percent range wide enough to cover the fifth decimal
+#: of cos and nowhere near wide enough to confuse any two factors above.
+COLUMN_KINDS = {
+    "same": (1.0, 1e-3),
+    "area": (GROUND_PER_UNIT_NORTH ** 2, 0.10),
+    "length": (GROUND_PER_UNIT_NORTH, 0.10),
+    "per_area": (1.0 / GROUND_PER_UNIT_NORTH ** 2, 0.10),
+    "per_length": (1.0 / GROUND_PER_UNIT_NORTH, 0.10),
+    # Numerically the same claim as "same" - it must not move - and kept apart
+    # because the *way* it can be got wrong is not: a vertical difference is
+    # already in metres, in both runs, because it comes out of a raster value
+    # that no projection rescales, and the failure this is here to catch is a
+    # tool that divides it by the horizontal scale on the way out. That would
+    # move it by 0.755x, which "same" reports and "length" would have blessed.
+    # The band is wider than "same"'s because the elevation comes off a
+    # pixel-quantised raster: the two runs sample it at points a different
+    # distance apart, so a sum of differences lands on a slightly different
+    # number than exact equality would demand - measured at 0.9 percent on this
+    # fixture, and 2 percent leaves room for the fixture to change without
+    # leaving room for a factor of 1.325 to hide.
+    "vertical": (1.0, 0.02),
+}
+
+#: Column kind -> the words a complaint about it should use.
+_KIND_WORDS = {
+    "same": "a pure number",
+    "area": "ground square metres",
+    "length": "ground metres",
+    "per_area": "a count per ground hectare",
+    "per_length": "a rate per ground metre",
+    "vertical": "a vertical difference in metres",
+}
+
+
+def _fixture_key(path_or_layer):
+    """A path that can be compared across the two bundles' spellings.
+
+    A layer is reduced to the file it was opened from: a fixture reaches an
+    algorithm as a ``QgsVectorLayer`` in the primary run and as a path in the
+    translated one, and the two have to meet in the middle. An OGR URI may
+    carry ``|layername=...`` after the path itself, which is not part of the
+    file's identity here.
+    """
+    if isinstance(path_or_layer, (QgsVectorLayer, QgsRasterLayer)):
+        source = path_or_layer.source()
+    else:
+        source = str(path_or_layer)
+    return os.path.normcase(os.path.normpath(source.split("|", 1)[0]))
+
+
+def _south_map(bundle):
+    """Fixture in the north bundle -> the same fixture at the origin.
+
+    Layers and rasters both, keyed by normalised path because a tool may be
+    handed either and both are built twice. A fixture that is not in this map -
+    the GTFS feed, an artefact an earlier case wrote - has no southern twin,
+    and :func:`_translated_inputs` reports a registered tool that depends on
+    one rather than half-translating the run.
+    """
+    paired = {}
+    for north, south in ((bundle["layers"], bundle["south"]),
+                         (bundle["rasters"], bundle["south_rasters"])):
+        for role in north:
+            paired[_fixture_key(north[role])] = str(south[role])
+    return paired
+
+
+def _moved(value, south_map):
+    """``value`` with the fixture it names swapped for the origin copy.
+
+    The original object comes back when nothing matches, so that callers can
+    tell the two cases apart by identity rather than by a second lookup.
+    """
+    if isinstance(value, (QgsVectorLayer, QgsRasterLayer, str)):
+        return south_map.get(_fixture_key(value), value)
+    return value
+
+
+def _is_moved(value, south_map):
+    """True when ``value`` names at least one fixture that has a twin."""
+    if isinstance(value, (list, tuple)):
+        return any(_is_moved(item, south_map) for item in value)
+    return _moved(value, south_map) is not value
+
+
+def _translated_inputs(algorithm, values, south_map, out_dir):
+    """``values`` with every fixture swapped for its origin counterpart.
+
+    ``(translated, complaint)``. Every layer parameter has to move with the
+    city, and one that cannot is reported rather than left pointing north: a
+    run that is half translated measures a city that does not exist, and the
+    comparison it feeds would then be a comparison of two different cities -
+    which reads as a passing case whenever the tool happens not to notice.
+    Destinations are redirected, so the origin run cannot write over the very
+    outputs it is being compared with.
+    """
+    translated = {}
+    for name, value in values.items():
+        if isinstance(value, (list, tuple)):
+            translated[name] = [_moved(item, south_map) for item in value]
+        else:
+            translated[name] = _moved(value, south_map)
+
+    unmoved = []
+    for definition in algorithm.parameterDefinitions():
+        name = definition.name()
+        if definition.isDestination():
+            translated[name] = _destination_path(name, out_dir, algorithm.id())
+            continue
+        # The same four classes build_inputs can bind a fixture to. A type that
+        # is added there without being added here shows up as a complaint
+        # rather than as a silent half-translation.
+        if isinstance(definition, (QgsProcessingParameterFeatureSource,
+                                   QgsProcessingParameterVectorLayer,
+                                   QgsProcessingParameterMultipleLayers,
+                                   QgsProcessingParameterRasterLayer)):
+            if not _is_moved(values.get(name), south_map):
+                unmoved.append(name)
+    if unmoved:
+        return translated, (
+            "the origin run would read " + ", ".join(sorted(unmoved))
+            + " from the north fixture, so the two runs would not be the "
+              "same city")
+    return translated, None
+
+
+def _kind_verdict(column, kind, north, south):
+    """The complaint for one column, or None when it moved as it should."""
+    if kind == "count_at_most":
+        # A threshold that is a physical size: every candidate measures smaller
+        # on the ground at 41 N, so no class can count more members than it did
+        # at the origin, and a class with members straddling the threshold has
+        # to count strictly fewer. Equality everywhere means the threshold was
+        # never being compared against a ground measure at all.
+        higher = [(a, b) for a, b in zip(north, south) if a > b]
+        if higher:
+            return (f"{column} is higher at 41 N than at the origin "
+                    f"({higher[0][0]:g} against {higher[0][1]:g}), where every "
+                    f"candidate is 1.32x smaller on the ground - the threshold "
+                    f"behind it is not being measured there")
+        if not any(a < b for a, b in zip(north, south)):
+            return (f"{column} reads the same in both runs. The city is 1.32x "
+                    f"smaller on the ground at 41 N, so a threshold that is a "
+                    f"physical size has to exclude something it admitted at "
+                    f"the origin - see docs/TRAPS.md 5.12")
+        return None
+
+    north_total = math.fsum(abs(value) for value in north)
+    south_total = math.fsum(abs(value) for value in south)
+    expected, tolerance = COLUMN_KINDS[kind]
+    if south_total <= 0.0:
+        return (f"{column} sums to zero at the origin, so the units it is in "
+                f"cannot be told apart from any other column's")
+    if north_total == 0.0:
+        return (f"{column} sums to zero at 41 N but to {south_total:g} at the "
+                f"origin")
+    ratio = north_total / south_total
+    if abs(ratio - expected) > tolerance * expected:
+        return (f"{column} moves by {ratio:.4f}x between the two runs, where a "
+                f"column that really holds {_KIND_WORDS[kind]} has to move by "
+                f"{expected:.4f}x. A rigid translation moves no metre, so this "
+                f"column is carrying the layer's own coordinate units - see "
+                f"docs/TRAPS.md 5.12")
+    return None
+
+
+def _compare_columns(north_path, south_path, spec, allow_repartition=False):
+    """Every column in ``spec`` has to move between the runs as its kind says.
+
+    ``allow_repartition`` drops the row-count check for an output whose rows are
+    a partition of the city rather than one row per input feature - see
+    :data:`PARTITIONED_OUTPUTS`. It cannot be combined with a row-wise kind,
+    which compares the two runs' rows to each other and needs them to be the
+    same rows.
+    """
+    if allow_repartition and any(kind == "count_at_most" for kind in spec.values()):
+        return ("this output is exempt from the row-count check as a spatial "
+                "partition, and a count_at_most column is compared row by row, "
+                "which a partition cannot promise")
+    n_names, n_rows, complaint = _read_gpkg(north_path, aspatial=True)
+    if complaint:
+        return complaint
+    s_names, s_rows, complaint = _read_gpkg(south_path, aspatial=True)
+    if complaint:
+        return complaint
+    if len(n_rows) != len(s_rows) and not allow_repartition:
+        return (f"{len(n_rows)} row(s) at 41 N against {len(s_rows)} at the "
+                f"origin - a rigid translation changed how many rows the tool "
+                f"wrote")
+    for column in spec:
+        if column not in n_names:
+            return f"{column} is not a column of the 41 N output"
+        if column not in s_names:
+            return f"{column} is not a column of the origin output"
+    for column, kind in spec.items():
+        columns = {}
+        for label, rows in (("41 N", n_rows), ("the origin", s_rows)):
+            values = []
+            for row in rows:
+                value = row[column]
+                if value is None:
+                    return f"{column} is NULL on a feature at {label}"
+                if not isinstance(value, (int, float)):
+                    return f"{column} is not a number at {label} ({value!r})"
+                values.append(float(value))
+            columns[label] = values
+        complaint = _kind_verdict(column, kind, columns["41 N"],
+                                  columns["the origin"])
+        if complaint:
+            return complaint
+    return None
+
+
+def _compare_rasters(north_path, south_path, output_name):
+    """A noise grid, whose level moves by the model's own two terms.
+
+    Not a factor between two columns but a decibel shift, and it is stated as
+    one: when the same map city is measured on a ground 1.32x smaller, every
+    sample stands for 10 lg 1.32 less road and every source is 20 lg 1.32
+    nearer, which is 10 lg (1/cos 41) = +1.22 dB together. The floor on r and
+    the cutoff are in the layer's own units and do not scale with the ground,
+    so they can only take part of that back - hence a band rather than a value,
+    and one that starts above zero, where a grid carrying the layer's own
+    coordinates sits. Such a grid reads *identically* in the two runs, to the
+    last bit, because every number that reaches the model is then the same
+    number in both.
+    """
+    import numpy as np
+    from osgeo import gdal
+
+    populated = []
+    for path in (north_path, south_path):
+        handle = gdal.Open(str(path), gdal.GA_ReadOnly)
+        if handle is None:
+            return f"GDAL could not open {path}"
+        band = handle.GetRasterBand(1)
+        array = band.ReadAsArray()
+        nodata = band.GetNoDataValue()
+        handle = None
+        if array is None:
+            return f"{path} has no band to read"
+        good = np.isfinite(array)
+        if nodata is not None:
+            good &= array != nodata
+        populated.append(array[good].astype(np.float64))
+    if not populated[0].size:
+        return "no populated cell in the 41 N grid"
+    if not populated[1].size:
+        return "no populated cell in the origin grid"
+    shift = float(populated[0].mean()) - float(populated[1].mean())
+    expected = 10.0 * math.log10(1.0 / GROUND_PER_UNIT_NORTH)
+    if not 0.2 <= shift <= expected + 0.3:
+        return (f"{output_name} reads {shift:+.2f} dB at 41 N against the "
+                f"origin, where the model's own two terms put the difference "
+                f"between +0.2 and {expected + 0.3:+.2f} dB. A grid that is "
+                f"identical in the two runs is a grid in the layer's own "
+                f"coordinate units - see docs/TRAPS.md 5.12")
+    return None
+
+
+def _check_translation_invariance(processing, algorithm, values, bundle, out_dir,
+                                  algorithm_id, transform_context):
+    """Run the tool again on the same city at the origin, and compare.
+
+    Registered per output in :data:`METRIC_COLUMNS` (a table) and
+    :data:`TRANSLATED_RASTERS` (a raster). A tool that is not registered is not
+    checked here at all, and neither is a column of a registered tool that is
+    not named: the movement above is only knowable for a column whose units the
+    code and the name agree on, and a column that fails that test is a question
+    for docs/TRAPS.md, not for this harness.
+    """
+    spec = METRIC_COLUMNS.get(algorithm_id, {})
+    raster_outputs = TRANSLATED_RASTERS.get(algorithm_id, ())
+    if not spec and not raster_outputs:
+        return None
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    translated, complaint = _translated_inputs(algorithm, values,
+                                               _south_map(bundle), out_dir)
+    if complaint:
+        return complaint
+    produced = processing.run(
+        algorithm_id, translated,
+        context=_new_context(transform_context, MatrixFeedback()),
+        feedback=MatrixFeedback())
+    for output_name, columns in spec.items():
+        north_path = values.get(output_name)
+        south_path = produced.get(output_name)
+        if not north_path or not south_path:
+            return (f"{output_name} has no path in one of the two runs, so it "
+                    f"cannot be compared")
+        complaint = _compare_columns(
+            str(north_path), str(south_path), columns,
+            allow_repartition=(algorithm_id, output_name) in PARTITIONED_OUTPUTS)
+        if complaint:
+            return f"{output_name}: {complaint}"
+    for output_name in raster_outputs:
+        north_path = values.get(output_name)
+        south_path = produced.get(output_name)
+        if not north_path or not south_path:
+            return (f"{output_name} has no path in one of the two runs, so it "
+                    f"cannot be compared")
+        complaint = _compare_rasters(north_path, south_path, output_name)
+        if complaint:
+            return f"{output_name}: {complaint}"
+    return None
+
+
+#: algorithm id -> output parameter -> {column: kind}. The columns named here
+#: are the ones whose units the code and the name agree on, and each kind is a
+#: claim about physics a reader can check against the algorithm.
+#:
+#: Six groups are deliberately absent, each for its own reason. A *truncated*
+#: count - residentialcapacity's cap_units comes out of int() - has no factor
+#: at all, because truncation is not a linear map. A *difference of two
+#: quantities that do not scale together* has none either: landusebalance's
+#: balance_m2 is a ground area less a per-capita requirement that is not an
+#: area of the city, so it moves without one. A *non-linear function of a
+#: moving quantity* moves without one too - Tobler speed, the walk score, the
+#: comfort class. Those three are still covered by the fact that the tool
+#: computing them now measures on the ground; what is not claimed here is what
+#: number they should land on.
+#:
+#: The last three were found by running the comparison rather than by reading
+#: the code, and each is a column a fixture can be made to *look* like it
+#: checks. A *count of features in a spatial partition* is not comparable when
+#: the partition moves (frontalarea's b_count). A *maximum over samples whose
+#: spacing moves* is not comparable at all, because the discretisation is part
+#: of the answer (walkingslope's max_pct). And a column that is *identically
+#: zero in both runs* agrees with itself and can never turn red
+#: (buildingsmetrics's court_m2, walkingslope's descent_m) - those are named in
+#: place with the measurement that showed it, rather than quietly left out.
+#:
+#: preparenetwork is registered nowhere in this harness on purpose. Its length_m
+#: is the one column in this family that is *documented* as being in the source
+#: CRS, and the whole network family reads its costs in that same unit, so
+#: converting it in isolation would silently rescale every break and every cost
+#: downstream. The honest fix is a rename plus a documented unit switch, which
+#: is a separate breaking change.
+#: (algorithm id, output name) whose rows are a *spatial partition* of the city
+#: rather than one row per input feature, so the two runs need not write the
+#: same number of rows.
+#:
+#: planx:frontalarea lays its grid out from the map origin - `x0 = floor(x_min /
+#: cell) * cell` - and a translated city's origin does not sit at the same place
+#: inside its own extent, so the two runs cut the same buildings into a
+#: different number of cells (66 against 56 on this fixture). That is the tool
+#: behaving as documented, not a unit defect, and the row count carries no
+#: information either way. The sums still do: every building's frontal area is
+#: shared among the cells it overlaps, so the shares add up to one in both runs
+#: and the column totals stay comparable.
+PARTITIONED_OUTPUTS = {
+    ("planx:frontalarea", "OUTPUT"),
+}
+
+
+METRIC_COLUMNS = {
+    "planx:spacematrix": {
+        "OUTPUT": {
+            "fp_m2": "area",       # a sum of ground footprint areas
+            "gfa_m2": "area",
+            # Shares of the block, all four built from the same converted
+            # quantities, so the conversion has to cancel in each of them.
+            "gsi": "same", "fsi": "same", "osr": "same", "levels": "same",
+            "b_count": "same",
+        },
+    },
+    "planx:density_grid": {
+        "OUTPUT": {
+            # Features per cell over the *ground* area of a cell. The cell is a
+            # map-unit square and the feature count is gated by it, so only the
+            # denominator moves.
+            "dens_ha": "per_area",
+            "n_feat": "same",
+        },
+    },
+    "planx:frontalarea": {
+        "OUTPUT": {
+            # A frontal area over a cell area: both are ground, so a metre of
+            # ground holds 1.32x as many of them.
+            "lambda_f": "per_length",
+            # lambda_p is a packing density, and it is conserved across the
+            # repartition because each building's footprint enters exactly one
+            # cell: measured 19.2938 north against 19.2937 south.
+            "lambda_p": "same",
+            # b_count is NOT registered, and it is the one column of this output
+            # that a translation genuinely changes without saying anything about
+            # units. It counts buildings per cell, so its total is the number of
+            # (cell, building) pairs - and a cell boundary drawn somewhere else
+            # cuts a different number of buildings in half. Measured 191 against
+            # 155, a ratio of 1.232 that is nowhere near any of the five factors
+            # and would read as a defect. A count of *features* is only
+            # comparable between two runs that wrote the same features, which is
+            # exactly what PARTITIONED_OUTPUTS gives up.
+        },
+    },
+    "planx:buildingmetrics": {
+        "OUTPUT": {
+            "area_m2": "area", "perim_m": "length",
+            # court_m2 is deliberately not registered. Not because it is unit-
+            # clean - it is the same converted quantity as area_m2 - but because
+            # the demo city has no courtyard buildings, so the column is 0.0 on
+            # every row of both runs and the comparison would be two zeros
+            # agreeing with each other. Registering it would add a green line to
+            # the report that no defect could ever turn red, which is worse than
+            # not checking it. The conversion itself is the same code path as
+            # area_m2's, which is checked.
+            # Both are ratios of the two columns above. If the perimeter were
+            # left unconverted while the area was converted, compact would
+            # move - which is what this pair is here to catch.
+            "compact": "same", "convexity": "same",
+        },
+    },
+    "planx:landusebalance": {
+        "OUTPUT": {
+            "area_m2": "area",
+            # Area over a population that does not move with the city.
+            "m2_capita": "area",
+        },
+    },
+    "planx:residentialcapacity": {
+        "OUT_PARCELS": {"buildable_m2": "area"},
+        "OUT_DISTRICTS": {"area_m2": "area", "buildable_m2": "area"},
+    },
+    "planx:serviceareas": {
+        # The fixture network carries a cost field, so cost_is_length is False
+        # and these are in the graph's own cost units by design - the
+        # documented behaviour. Claiming they stay put is what breaks if
+        # someone ever makes the conversion unconditional.
+        "EDGES": {"len_m": "same"},
+        "SUMMARY": {"street_len": "same", "pedshed": "same"},
+    },
+    "planx:walkingslope": {
+        "OUTPUT": {
+            # The same rise over a run 1.32x shorter, so the gradient steepens.
+            # Measured 1.3196 against a predicted 1.3250 - the mean over a
+            # segment's steps is stable enough to hold a 10 percent band.
+            "slope_pct": "per_length",
+            # max_pct is NOT registered, though it is the same quantity as
+            # slope_pct taken to its maximum. The samples are stepped in *ground*
+            # metres while the surface they read is fixed in map coordinates, so
+            # at 41 N a step covers 1.325x more map distance and the maximum of a
+            # curved surface is taken over a coarser grid. Measured 2.1677 - off
+            # the 1.325 the name predicts and off every other factor too, because
+            # it is a discretisation artifact and not a unit. The mean beside it,
+            # which averages the same effect away, is what carries the claim.
+            # climb_m must *not* scale: it is a sum of elevation differences, and
+            # an elevation is a raster value, which no projection rescales.
+            # "length" here would be the horizontal answer to a vertical
+            # question. Its band is wider than a ratio's because the raster is
+            # pixel-quantised and the samples land on different pixels when the
+            # step changes size - measured 1.0090, with the 0.755 a spurious
+            # division by per_unit would produce a quarter of the way outside it.
+            "climb_m": "vertical",
+            # descent_m is NOT registered: the demo city's streets are all
+            # digitised in the +x direction over a ramp that rises in +x, so the
+            # column is 0.0 on every row of both runs. A column that is
+            # identically zero agrees with itself and checks nothing.
+        },
+    },
+    "planx:greenaccess": {
+        # Each class counts the greens that reach its minimum size, so a class
+        # whose members straddle the threshold has to lose some of them.
+        "OUT_SUMMARY": {"n_greens": "count_at_most"},
+    },
+    "planx:walkability": {
+        "OUT_SEGMENTS": {
+            # Junctions within a map-unit radius, over a ground area.
+            "int_km2": "per_area",
+            "blk_len": "length", "slope_pct": "per_length",
+        },
+    },
+    "planx:tessellation": {
+        "OUTPUT": {"cell_m2": "area"},
+    },
+    "planx:greenconnectivity": {
+        "OUT_PATCHES": {
+            "area_m2": "area", "comp_m2": "area",
+            "dpc": "same",     # a distance over the patch's own size
+        },
+    },
+}
+
+#: algorithm id -> outputs whose *raster* has to move between the runs, checked
+#: by :func:`_compare_rasters` rather than column by column.
+TRANSLATED_RASTERS = {
+    "planx:noisescreen": ("OUTPUT",),
+}
 
 
 def _expect_groundmotion_distances_are_kilometres(path):
@@ -2420,6 +3312,16 @@ VALUE_EXPECTATIONS = {
     "planx:coseismiclandslide": {
         "OUTPUT": _expect_coseismic_group_route,
     },
+    # The ground-unit block. Every entry here is a metric column that was, at
+    # some point, the layer's own coordinate unit under a metre's name - see
+    # docs/TRAPS.md 5.12. They are grouped here rather than beside the seismic
+    # checks because they share one expectation factory and one failure mode.
+    "planx:tessellation": {
+        "OUTPUT": _area_column_is_ground_metres("cell_m2"),
+    },
+    "planx:greenconnectivity": {
+        "OUT_PATCHES": _area_column_is_ground_metres("area_m2"),
+    },
 }
 
 
@@ -2525,7 +3427,7 @@ def _teardown(application):
         pass
 
 
-def run_matrix(only=None, verbose=False):
+def run_matrix(only=None, verbose=False, keep_work_dir=False):
     from processing.core.Processing import Processing
 
     from planx.provider import PlanXProvider
@@ -2602,6 +3504,20 @@ def run_matrix(only=None, verbose=False):
                     if complaint:
                         result.ok = False
                         result.error = f"wrong value: {complaint}"
+                    else:
+                        # Only worth running the tool a second time on the same
+                        # city elsewhere if it produced a well-formed answer
+                        # here. A tool that failed its own outputs, or its own
+                        # values, has said enough already, and comparing two
+                        # runs of a broken tool reports noise.
+                        complaint = _check_translation_invariance(
+                            processing, algorithm, values, bundle,
+                            Path(work_dir) / "translated"
+                            / algorithm_id.split(":")[-1],
+                            algorithm_id, transform_context)
+                        if complaint:
+                            result.ok = False
+                            result.error = f"translation: {complaint}"
                 for definition in algorithm.parameterDefinitions():
                     if definition.isDestination() and definition.name() in produced:
                         artifacts[f"{algorithm_id}/{definition.name()}"] = \
@@ -2710,11 +3626,18 @@ def run_matrix(only=None, verbose=False):
                 print(f"  {mark} {algorithm_id} refusal "
                       f"{result.seconds:7.2f}s {result.error}", flush=True)
     finally:
-        shutil.rmtree(work_dir, ignore_errors=True)
+        # --keep leaves the fixtures and the outputs in place, because the
+        # report names their paths: a failing case is diagnosed by measuring the
+        # file it wrote, and an earlier version of this file deleted that file
+        # (and, on Windows, half of the fixture directory with it - the GPKGs a
+        # live QgsVectorLayer still holds cannot be removed) a few lines after
+        # printing where to find it.
+        if not keep_work_dir:
+            shutil.rmtree(work_dir, ignore_errors=True)
         _teardown(application)
 
     ok_count = sum(1 for item in results if item.ok)
-    return {
+    payload = {
         "qgis_version": Qgis.version(),
         "qgis_release": Qgis.releaseName(),
         "fixture_seconds": round(fixture_seconds, 3),
@@ -2727,6 +3650,9 @@ def run_matrix(only=None, verbose=False):
                    for item in results if not item.ok],
         "cases": [item.as_dict() for item in results],
     }
+    if keep_work_dir:
+        payload["work_dir"] = str(work_dir)
+    return payload
 
 
 def main(argv=None):
@@ -2737,10 +3663,14 @@ def main(argv=None):
     parser.add_argument("--verbose", action="store_true",
                         help="print one line per case as it runs")
     parser.add_argument("--report", help="write the full JSON report here")
+    parser.add_argument("--keep", action="store_true",
+                        help="keep the fixture and output files and name their "
+                             "directory in the report, so a failing case can be "
+                             "measured rather than guessed at")
     args = parser.parse_args(argv)
 
     payload = run_matrix(only=set(args.only) if args.only else None,
-                         verbose=args.verbose)
+                         verbose=args.verbose, keep_work_dir=args.keep)
     if args.report:
         Path(args.report).write_text(
             json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")

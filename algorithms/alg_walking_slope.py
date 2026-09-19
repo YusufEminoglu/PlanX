@@ -20,6 +20,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_WALK, INT, PlanXAlgorithm, STRING
+from . import _units
 from ..engine import comfort
 
 
@@ -85,6 +86,15 @@ class WalkingSlopeAlgorithm(PlanXAlgorithm):
         step = self.parameterAsDouble(parameters, self.SAMPLE_STEP, context)
         breaks_str = self.parameterAsString(parameters, self.BREAKS, context)
         self.require_projected(network, "Street network")
+        # The sample spacing is declared in metres and every quantity below it -
+        # the run a grade is measured over, the length a Tobler speed is turned
+        # into minutes with - is physical. The geometry is not: it is in the
+        # layer's own coordinates, so on EPSG:3857 at 41 N a 10 m walk was being
+        # profiled every 13.25 m and every slope was reported 1.325x too
+        # shallow. See algorithms/_units.py.
+        per_unit = _units.GroundUnits(
+            network.sourceCrs(), context.transformContext()
+        ).scale(network.sourceExtent())
 
         if dem is None:
             raise QgsProcessingException("A valid DEM raster layer is required.")
@@ -128,9 +138,9 @@ class WalkingSlopeAlgorithm(PlanXAlgorithm):
 
             geom = QgsGeometry.fromPolylineXY(
                 [QgsPointXY(x, y) for x, y in polylines[s]])
-            length = geom.length()
+            length = geom.length() / per_unit
 
-            # Determine sample distances
+            # Determine sample distances, along the ground
             dists = []
             d_curr = 0.0
             while d_curr < length - 1e-9:
@@ -141,11 +151,13 @@ class WalkingSlopeAlgorithm(PlanXAlgorithm):
             else:
                 dists[-1] = length
 
-            # Sample the DEM at distances
+            # Sample the DEM at distances. interpolate() walks the line in the
+            # layer's coordinates, so the metre distances go back the other way
+            # here - and only here, which is the whole point of doing it once.
             z = []
             d = []
             for dist_val in dists:
-                pt = geom.interpolate(dist_val).asPoint()
+                pt = geom.interpolate(dist_val * per_unit).asPoint()
                 val, ok = provider.sample(pt, 1)
                 if ok and np.isfinite(val):
                     z.append(val)

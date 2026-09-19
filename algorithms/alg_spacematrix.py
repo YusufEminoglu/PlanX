@@ -15,6 +15,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_MORPHOLOGY, INT, PlanXAlgorithm, STRING
+from . import _units
 
 
 def spacematrix_class(fsi: float, gsi: float, levels: float) -> str:
@@ -109,6 +110,11 @@ class SpacematrixDensityAlgorithm(PlanXAlgorithm):
         levels_field = self.parameterAsString(parameters, self.LEVELS_FIELD, context)
         default_levels = self.parameterAsDouble(parameters, self.DEFAULT_LEVELS, context)
         self.require_projected(blocks, "Blocks")
+        # fp_m2 and gfa_m2 are metric claims, and the intersections are measured
+        # in the layer's own coordinate units. block_area is converted with them
+        # so gsi/fsi/osr/levels - ratios of the same quantity - read exactly as
+        # before. See algorithms/_units.py.
+        units = _units.GroundUnits(blocks.sourceCrs(), context.transformContext())
 
         lvl_idx = buildings.fields().lookupField(levels_field) if levels_field else -1
         bld = []
@@ -146,7 +152,7 @@ class SpacematrixDensityAlgorithm(PlanXAlgorithm):
             g = f.geometry()
             if g is None or g.isEmpty():
                 continue
-            block_area = g.area()
+            block_area = units.area(g)
             fp = gfa = 0.0
             count = 0
             for bid in index.intersects(g.boundingBox()):
@@ -154,7 +160,11 @@ class SpacematrixDensityAlgorithm(PlanXAlgorithm):
                 inter = g.intersection(bg)
                 if inter is None or inter.isEmpty():
                     continue
-                a = inter.area()
+                # fp_m2 and gfa_m2 are metric claims. gsi, fsi, osr and levels
+                # are ratios of the same quantity, so they read the same either
+                # way - which is exactly why the raw measurement survived this
+                # long. See algorithms/_units.py.
+                a = units.area(inter)
                 if a <= 0:
                     continue
                 fp += a

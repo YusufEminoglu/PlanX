@@ -25,6 +25,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_NETWORK, INT, STRING, PlanXAlgorithm
+from . import _units
 from ..engine import graphs, isochrone, paths
 
 ALL_LABEL = "ALL"
@@ -217,6 +218,20 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
             (name.startswith("cost_fwd_") and name[9:].isdigit())
             for name in field_names)
         cost_is_length = not cost_field and not has_prepared_cost
+        # len_m and street_len name metres, and they carry the graph's own edge
+        # length - the layer's coordinate units. On EPSG:3857 at 41 N that is
+        # 1.325x. When the graph's own costs are in use - a cost field, or a
+        # prepared network whose cost_fwd may be minutes rather than metres -
+        # the graph length is that cost and no conversion is meaningful, so the
+        # factor stays 1 and the columns go on carrying cost units. The pedshed
+        # ratio is untouched
+        # either way: it is a catchment over a circle, both in the same units.
+        # See algorithms/_units.py.
+        len_scale = 1.0
+        if cost_is_length:
+            len_scale = 1.0 / _units.GroundUnits(
+                network.sourceCrs(), context.transformContext()
+            ).scale(network.sourceExtent())
         crs = network.sourceCrs()
         f_xy, f_feats = self.source_points(facilities, crs, context.transformContext())
         n_fac = len(f_xy)
@@ -328,7 +343,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
         def street_len(lab, brk):
             return float(sum(
                 isochrone.interval_length(iv) * float(graph.edge_len[e])
-                for e, iv in reach.get((lab, brk), {}).items()))
+                for e, iv in reach.get((lab, brk), {}).items())) * len_scale
 
         # --- EDGES: merged scope, split into cost bands
         net_fields = QgsFields()
@@ -359,7 +374,7 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                     db = float(dist_all[graph.edge_to[e]])
                     win = label_all[graph.edge_from[e] if da <= db else graph.edge_to[e]]
                     fac_lab = labels[source_owner[int(win)]] if win >= 0 else ""
-                    piece_len = float(graph.edge_len[e]) * (hi - lo)
+                    piece_len = float(graph.edge_len[e]) * (hi - lo) * len_scale
                     out = QgsFeature(edge_fields)
                     out.setGeometry(QgsGeometry.fromPolylineXY(
                         [QgsPointXY(x, y) for x, y in arr]))
@@ -473,10 +488,15 @@ class ServiceAreasAlgorithm(PlanXAlgorithm):
                                  float(ratio), street_len(lab, brk)])
                 sum_sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
                 if lab == ALL_LABEL:
+                    # The break is in map units either way - that is what the
+                    # parameter says - but the length beside it is only a length
+                    # when the graph carries distances, and then it is metres.
                     feedback.pushInfo(self.tr(
-                        f"Break {brk:g}: {street_len(lab, brk):.0f} map "
-                        f"units of street reached, catchment "
-                        f"{n_area:.0f}, pedshed {ratio:.2f}"))
+                        f"Break {brk:g} (map units): "
+                        f"{street_len(lab, brk):.0f} "
+                        f"{'m' if cost_is_length else 'cost units'} of street "
+                        f"reached, catchment {n_area:.0f}, "
+                        f"pedshed {ratio:.2f}"))
         feedback.setProgress(100)
 
         return {self.EDGES: edges_dest, self.AREAS: areas_dest,
