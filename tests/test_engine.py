@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from planx.engine import (  # noqa: E402
     HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, graphs, hydro, isochrone, morphology,
-    optimize, paths, provenance, report, robustness, scenario, seismic, solar,
+    optimize, parking, paths, provenance, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
 
@@ -2322,6 +2322,73 @@ check("transit: walking transfer connects access stop to a route",
 check("weather: monthly measured-sky factors",
       weather.monthly_solar_factors(
           {"monthly_ghi": [50.0, 200.0]}, [100.0, 100.0]) == [0.5, 2.0])
+
+# --------------------------------------------------------------------------- #
+# Parking generation rates
+# --------------------------------------------------------------------------- #
+_pk_rates = parking.parse_rates(
+    "residential=unit:1.5, office=sqm:2.5, assembly=seat:0.15")
+check("parking: parse_rates yields (category, basis, rate) triples",
+      _pk_rates == [("residential", "unit", 1.5),
+                    ("office", "sqm", 2.5),
+                    ("assembly", "seat", 0.15)])
+check("parking: semicolons and padding are accepted",
+      parking.parse_rates(" green = unit:10 ; park = sqm:2 ") ==
+      [("green", "unit", 10.0), ("park", "sqm", 2.0)])
+
+
+def _pk_raises(text):
+    try:
+        parking.parse_rates(text)
+    except ValueError:
+        return True
+    return False
+
+
+check("parking: a rate without a basis is rejected",
+      _pk_raises("residential=1.5"))
+check("parking: an unknown basis is rejected", _pk_raises("office=acre:2"))
+check("parking: a non-numeric rate is rejected", _pk_raises("office=sqm:lots"))
+check("parking: a negative rate is rejected", _pk_raises("office=sqm:-1"))
+check("parking: an empty category keyword is rejected", _pk_raises("=unit:1"))
+check("parking: an empty rate table is rejected", _pk_raises("   "))
+
+# The three bases are not one denominator: unit and seat multiply, sqm is
+# per 1000 m2 of gross floor area.
+check("parking: unit basis multiplies",
+      close(parking.demand_for_size("unit", 1.5, 120), 180.0))
+check("parking: seat basis multiplies",
+      close(parking.demand_for_size("seat", 0.15, 80), 12.0))
+check("parking: sqm basis is per 1000 m2",
+      close(parking.demand_for_size("sqm", 2.5, 4000.0), 10.0))
+check("parking: sqm basis on exactly 1000 m2 equals the rate",
+      close(parking.demand_for_size("sqm", 3.5, 1000.0), 3.5))
+
+_pk_demand = parking.parking_demand(
+    ["residential low-rise", "Office tower", "Assembly hall", "Vacant land"],
+    np.array([120.0, 4000.0, 80.0, 999.0]), _pk_rates)
+check("parking: worked example demands [180, 10, 12, 0] spaces",
+      np.allclose(_pk_demand, [180.0, 10.0, 12.0, 0.0]))
+check("parking: category matching is case-insensitive and by containment",
+      parking.match_rate("HOTEL / OFFICE", _pk_rates)[0] == "office")
+check("parking: the first matching rate row wins",
+      parking.match_rate("retail office", parking.parse_rates(
+          "retail=sqm:3.0, office=sqm:2.5"))[0] == "retail")
+check("parking: a matched but zero-size zone demands zero",
+      close(parking.parking_demand(["Office"], np.array([0.0]), _pk_rates)[0], 0.0))
+check("parking: unmatched categories are reported, not silently dropped",
+      parking.unmatched_categories(
+          ["Office", "Vacant land", "Vacant land", "School"], _pk_rates) ==
+      ["School", "Vacant land"])
+check("parking: subtotals aggregate per category and sort",
+      parking.category_subtotals(
+          ["Office", "Office", "Vacant land"], np.array([10.0, 4.0, 0.0])) ==
+      [("Office", 14.0), ("Vacant land", 0.0)])
+check("parking: the demand total does not depend on feature order",
+      close(parking.parking_demand(
+                ["Office", "Office"], np.array([4000.0, 1000.0]), _pk_rates).sum(),
+            parking.parking_demand(
+                ["Office", "Office"], np.array([1000.0, 4000.0]), _pk_rates).sum()))
 
 # --------------------------------------------------------------------------- #
 def _failures():

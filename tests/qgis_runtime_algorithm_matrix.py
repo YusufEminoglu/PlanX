@@ -111,7 +111,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 69
+MIN_EXPECTED_CASE_COUNT = 70
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -379,6 +379,18 @@ LAYER_OVERRIDES = {
     ("planx:seismicdebris", "NETWORK_LINES"): "network",
     ("planx:seismicdebris", "BLOCKS"): "parcels",
     ("planx:seismicdebris", "ROI"): "study_area",
+    # parkingdemand reads a land-use category and a size in the rate table's
+    # own terms. The `demand` layer that ZONES would otherwise match carries a
+    # constant category ("all"), which no rate row can match: every zone would
+    # come back with demand 0 and the case would go green having tested
+    # nothing. The parcels layer carries real varied categories
+    # (residential/commercial/green/school) and a real `area_m2`, so it
+    # exercises the sqm branch, the unit branch and the unmatched-category
+    # report path at once. Only the sqm row is physically meaningful here: the
+    # default table's residential row is per dwelling unit and this layer has
+    # no dwelling count, so that row's magnitude is arithmetic, not a planning
+    # figure. The case checks execution and wiring, not the totals.
+    ("planx:parkingdemand", "ZONES"): "landuse",
 }
 
 # A `MultipleLayers` parameter takes a list, not a single role.
@@ -434,6 +446,7 @@ FIELD_BY_PARAM = {
     "REVERSE_COST": "rev_cost",
     "SCORE_FIELD": "score",
     "SITE_COST": "site_cost",
+    "SIZE_FIELD": "area_m2",
     "SPEED_FIELD": "speed",
     "SURVIVAL_FIELD": "survival",
     "VALUE_FIELD": "value",

@@ -73,6 +73,7 @@ from .algorithms.alg_flood_exposure import FloodExposureAlgorithm
 from .algorithms.alg_trip_generation import TripGenerationAlgorithm
 from .algorithms.alg_gravity_model import GravityModelAlgorithm
 from .algorithms.alg_mode_split import ModeSplitAlgorithm
+from .algorithms.alg_parking_demand import ParkingDemandAlgorithm
 from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
 from .algorithms.alg_scenario_pipeline import ScenarioPipelineAlgorithm
 from .algorithms.alg_seismic_debris import SeismicDebrisAlgorithm
@@ -182,5 +183,6 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(TripGenerationAlgorithm())
         self.addAlgorithm(GravityModelAlgorithm())
         self.addAlgorithm(ModeSplitAlgorithm())
+        self.addAlgorithm(ParkingDemandAlgorithm())
         # 19 | Seismic Risk
         self.addAlgorithm(SeismicDebrisAlgorithm())
