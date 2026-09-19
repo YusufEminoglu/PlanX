@@ -399,6 +399,24 @@ LAYER_OVERRIDES = {
     ("planx:parkingsupplybalance", "SUPPLY"): "facilities",
 }
 
+# Enum parameters whose declared default is not the option this bundle can
+# actually exercise. Keyed (algorithm id, parameter name) -> option index. The
+# declared default is still the right default for a user; it is only wrong for
+# a fixture set that lacks what that option demands.
+ENUM_OVERRIDES = {
+    # seismicdebris defaults to network source A (street / open-space
+    # polygons), and the demo city emits its streets as centre lines, so the
+    # polygon layer source A wants does not exist in this bundle. Handing A the
+    # line fixture anyway - which is what this case used to do - makes every
+    # areal output (blockage, corridors, the navigable core) come out with zero
+    # area while the case still reads green. Source D cannot stand in either:
+    # its ROI would be the land-use layer's own extent, which those polygons
+    # tile completely, so ROI minus blocks is empty. That leaves the two
+    # centreline sources, which is what B and C below are for. Source A's
+    # zero-area case is a hard error now rather than an empty answer.
+    ("planx:seismicdebris", "NETWORK_MODE"): 1,
+}
+
 # A `MultipleLayers` parameter takes a list, not a single role.
 MULTI_OVERRIDES = {
     "AMENITIES": ["pois", "facilities", "green"],
@@ -498,6 +516,7 @@ SKIP_OPTIONAL = {
     "OBSERVED_SHARES",
     "EXTENT",          # raster tools default to the input raster extent
     "WATER",           # no water body in the demo city
+    "PGA_FIELD",       # seismicdebris: no shaking raster to sample into a column
 }
 
 # Outputs an algorithm may legitimately decline to write even when asked, and
@@ -556,6 +575,14 @@ EXTRA_RUNS = {
     "planx:scenariosnapshot": (
         ("scene_b", "OUTPUT_JSON", {"NAME": "Scenario B",
                                     "ACCESS": "art:extra/access_b"}),
+    ),
+    # The centerline source the primary case does not use (C sizes every road
+    # from its width column; B sizes them from the OSM class table, which the
+    # fixture's width column then overrides), and the multi-seed mode, which
+    # the default of 0 leaves entirely unexecuted.
+    "planx:seismicdebris": (
+        ("network_c", "OUT_NAVIGABLE", {"NETWORK_MODE": 2}),
+        ("simulated", "OUT_BUILDINGS", {"SIMULATIONS": 8}),
     ),
 }
 
@@ -1121,6 +1148,11 @@ def build_inputs(algorithm, bundle, tables, rasters, artifacts, out_dir, result)
             continue
 
         if isinstance(definition, QgsProcessingParameterEnum):
+            chosen = ENUM_OVERRIDES.get((algorithm_id, name))
+            if chosen is not None:
+                values[name] = int(chosen)
+                result.choices[name] = f"enum:{values[name]}"
+                continue
             default = definition.defaultValue()
             values[name] = int(default if default is not None else 0)
             result.choices[name] = f"default:{values[name]}"
@@ -1224,12 +1256,14 @@ def _verify_file(path):
     return True, f"{target.stat().st_size} byte(s)"
 
 
-def verify_outputs(algorithm, produced, result):
+def verify_outputs(algorithm, produced, result, only=None):
     ok = True
     for definition in algorithm.parameterDefinitions():
         if not definition.isDestination():
             continue
         name = definition.name()
+        if only is not None and name not in only:
+            continue
         if not isinstance(definition, QgsProcessingParameterFileDestination) \
                 and name not in produced:
             result.outputs[name] = "not returned by processing.run"
@@ -1382,7 +1416,22 @@ def run_matrix(only=None, verbose=False):
                         feedback=extra_feedback)
                     artifacts[f"extra/{artifact_name}"] = \
                         extra_produced[output_name]
-                    result.extra_info[artifact_name] = extra_feedback.info[:20]
+                    # Verified like the primary run. An extra run that writes
+                    # an empty output tested nothing, and counting it as
+                    # coverage because the primary case passed is exactly how a
+                    # whole network source goes untested while looking green.
+                    extra_result = CaseResult(algorithm_id,
+                                              algorithm.displayName())
+                    if not verify_outputs(algorithm, extra_produced,
+                                          extra_result, only={output_name}):
+                        result.ok = False
+                        result.error = (
+                            f"extra run '{artifact_name}' failed verification: "
+                            f"{extra_result.outputs.get(output_name, '')}")
+                    result.extra_info[artifact_name] = [
+                        f"{output_name}: "
+                        f"{extra_result.outputs.get(output_name, 'no output')}"
+                    ] + extra_feedback.info[:20]
             except Exception as exc:  # noqa: BLE001 - the verdict is the report
                 result.ok = False
                 result.error = f"{type(exc).__name__}: {exc}"

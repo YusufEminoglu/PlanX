@@ -1,5 +1,34 @@
 # Changelog
 
+## [4.13.0] - 2026-09-19
+
+Seismic Collapse and Debris Spread (`planx:seismicdebris`) rebuilt on the Hazus fragility curves. One algorithm changed; none added, none removed. All five previous outputs keep their meaning, three new parameters are additive and the defaults reproduce the old single-realisation workflow.
+
+### Fixed
+- **The collapse probability saturated.** The model scaled a construction-year baseline by `exp(0.8 (Mw - 7.0))` and clipped at 1.0, so the pre-1985 stock hit certainty at roughly Mw 7.2 and the 1986-2000 stock at Mw 7.8 - the band a Marmara scenario occupies. The tool reported `collapse_prob = 1.0` for the entire oldest tier and carried no information about it. Probabilities now rise smoothly and separately with magnitude, from a lognormal fragility rather than an exponential clip.
+- **Debris came only from total collapse.** A building left standing while losing its facade, infill walls and parapets put nothing in the street, which under-counted the most common form of post-earthquake obstruction. Debris is now generated from the sampled damage state through a released-material fraction (0 for none and slight, 0.10 moderate, 0.35 extensive, 1.00 complete), so partial damage contributes to blockage.
+- **Source A accepted a non-polygonal layer and returned a zero-area network.** Everything downstream - blockage, corridors, navigable core - is areal, so the run looked successful and meant nothing. It now raises with the message naming sources B and C.
+
+### Added
+- **`PGA_FIELD`** (optional, recommended) - a peak-ground-acceleration column in g on the buildings layer. Supplying it drives fragility from real site shaking and bypasses the magnitude path entirely, which is the only route with distance and site effects; buildings with a null or non-positive value fall back to the nominal intensity and the log counts them.
+- **`BUILDING_TYPE`** - 13 Hazus structural types (C1, C2, S1, S2, S3, S4, W1, W2, RM1, RM2, PC1, PC2, MH). The height class is appended from the floor-count field, so C1 with five storeys reads the `C1M` row. Three Hazus types are deliberately absent: C3, S5 and URM have no Moderate- or High-Code curve in the manual, and a row invented to fill the gap would be worse than the absence. The help text says what that costs.
+- **`REFERENCE_PGA`** - the nominal site PGA at Mw 7.0 (default 0.35 g) used only when no PGA field is given. Exposed rather than buried, because it is a user assumption, not a physical constant.
+- **`VOID_RATIO`** (default 0.35) and **`DEBRIS_DENSITY`** (default 1.8 t/m3) - the pile's air fraction and the material density. `debris_vol_m3` keeps its meaning as solid material volume; the two new columns are `debris_pile_m3` (bulked, what competes with the street for space) and `debris_mass_t` (tonnage to haul).
+- **`MIN_CLEAR_WIDTH`** (default 3.5 m) and the **`OUT_NAVIGABLE`** output - the corridor network morphologically opened at the clear width, so a sliver of pavement beside a debris pile stops counting as an evacuation route. Unblocked is not the same as passable, and the corridors layer alone over-stated the evacuation map invisibly. The log reports the street area lost to pinching.
+- **`SIMULATIONS`** (default 0) - reruns the scenario under N seeds and writes an empirical `collapse_freq` per building plus mean, standard deviation and 5th/50th/95th percentiles of blocked street area. This replaces the manual's advice to repeat the tool by hand with one parameter. `collapse_freq` is NULL when the parameter is left at 0.
+
+### Changed
+- Damage state and `collapse_prob` now come from the Hazus equivalent-PGA structural fragilities (Technical Manual 6.1, Tables 5-37 to 5-40: High-, Moderate-, Low- and Pre-Code), with the manual's uniform dispersion of 0.64 - the root-sum-of-squares of its capacity (0.4) and demand (0.5) dispersions. The medians were transcribed from the published manual, not recalled, and the embedded table was verified row for row against a parse of the source PDF.
+- The four construction-year tiers keep their breakpoints but are now *Hazus design levels* rather than probabilities: 1985 and earlier Pre-Code, 1986-2000 Low-Code, 2001-2018 Moderate-Code, newer High-Code. This is an analogy to Turkish regulation years, not a calibration, and the engine, the manual and the reference list all say so.
+- `collapse_prob` is still the last preferred-token numeric field, so the default graduated renderer still colours the map by it. `tests/smoke_plugin.py` now asserts that against the algorithm's own field list rather than a copied one, because adding `debris_pile_m3`, `debris_mass_t`, `collapse_freq` and `damage_state` moved that choice and nothing else in the suite would have noticed.
+- Manual card rewritten to the new chain: 12 display equations, the design-level and released-material tables, the navigable-core definition, and a validation table of the C1M damage distribution by design level. Manual counts are now 305 numbered display equations, 386 reference entries, 298 with DOIs; the README, the version literal and the changelog are current.
+- The runtime matrix now covers the seismic tool through the centerline network sources it can actually express. It previously bound the demo city's line layer to source A, a polygon input, so blockage, corridors and the navigable core all had zero area while the case read green.
+
+### Notes
+- The engine suite stands at 596 checks. `tests/qgis_runtime_algorithm_matrix.py` gained extra-run verification: an extra run whose output is empty now fails the case instead of counting as coverage.
+- The Hazus curves are American: a western-United States reference spectrum (Mw 7.0, Site Class D, distance at least 15 km) and design levels tied to United States code eras. Turkish building stock, and especially its unreinforced masonry and infilled frames, is not represented by the available type list. Treat the output as comparative screening and do not quote it as a Turkish loss estimate. Calibrating these curves to Turkish damage observations is a separate piece of work and is not done here.
+- The same constants still live in `planx_urban_resilience`'s `processing/seismic/monte_carlo_debris.py`. The two plugins are separate repositories, so the engine change cannot be shared; that copy will drift from this one unless it is ported in its own release.
+
 ## [4.12.0] - 2026-09-19
 
 Parking demand and supply balance. Two new algorithms, both in the Travel Demand group. Purely additive: no existing algorithm's parameters, ids or default behaviour changed.

@@ -8,6 +8,45 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from qgis.core import QgsApplication
 
+def _assert_seismic_renderer_field(algorithms):
+    """The seismic tool's map colouring must stay on collapse_prob.
+
+    ``_apply_default_renderer`` colours a result layer by the last numeric
+    field whose name matches one of its preference tokens. Adding
+    debris_pile_m3, debris_mass_t, collapse_freq and damage_state to this
+    algorithm's schema moved that choice, and nothing else in the suite would
+    have noticed: every output still verifies, only the map changes colour.
+    The field list is read back from the algorithm instead of being copied
+    here, so the two cannot drift apart.
+    """
+    from qgis.core import QgsFeature, QgsGeometry, QgsPointXY, QgsVectorLayer
+
+    algorithm = next(item for item in algorithms if item.name() == "seismicdebris")
+    base = QgsVectorLayer(
+        "Polygon?crs=EPSG:32635&field=area_m2:double&field=floors:integer",
+        "buildings", "memory")
+    fields = algorithm.output_fields(base.fields())
+    layer = QgsVectorLayer("Point?crs=EPSG:32635", "seismic", "memory")
+    layer.dataProvider().addAttributes(list(fields))
+    layer.updateFields()
+    widths = [0.05, 0.95]
+    for index, value in enumerate(widths):
+        feature = QgsFeature(layer.fields())
+        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(index, 0)))
+        attributes = [None] * fields.count()
+        attributes[fields.lookupField("collapse_prob")] = value
+        # A later field carrying a preference token would win instead, which is
+        # the drift this asserts against.
+        attributes[fields.lookupField("debris_mass_t")] = 1.0 + index
+        feature.setAttributes(attributes)
+        layer.dataProvider().addFeature(feature)
+    algorithm._decorate_layer(layer)
+    chosen = layer.renderer().classAttribute()
+    if chosen != "collapse_prob":
+        raise AssertionError(
+            f"Seismic results are now coloured by '{chosen}', not collapse_prob")
+
+
 def main():
     with tempfile.TemporaryDirectory(prefix="planx-smoke-") as profile:
         print("PlanX smoke: initializing QGIS", flush=True)
@@ -61,6 +100,7 @@ def main():
                 raise AssertionError("Output provenance decoration failed")
             if result_layer.renderer().classAttribute() != "access_score":
                 raise AssertionError("Default analytical renderer failed")
+            _assert_seismic_renderer_field(algorithms)
             print(f"PASS PlanX provider: {len(algorithms)} unique algorithms initialized")
         finally:
             provider.unload()

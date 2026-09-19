@@ -1728,43 +1728,151 @@ check("population: allocate_growth uniform fallback for zero weights",
 # --------------------------------------------------------------------------- #
 # Seismic collapse and debris spread (Monte Carlo)
 # --------------------------------------------------------------------------- #
+def _seismic_raises(exc_type, func, *args):
+    try:
+        func(*args)
+    except exc_type:
+        return True
+    except Exception:
+        return False
+    return False
+
+
 years = np.array([1980.0, 1990.0, 2010.0, 2020.0])
-base_p = seismic.base_probability(years)
-check("seismic: base probability tiers by construction year",
-      base_p.tolist() == [0.85, 0.60, 0.25, 0.05])
+levels = seismic.design_level(years)
+check("seismic: construction year maps to a Hazus design level",
+      levels.tolist() == ["pre", "low", "moderate", "high"])
 
 check("seismic: magnitude factor is 1.0 at the Mw=7.0 reference point",
       close(seismic.magnitude_factor(7.0), 1.0))
 check("seismic: magnitude factor matches the exponential formula off-reference",
       close(seismic.magnitude_factor(7.8), math.exp(0.8 * 0.8)))
+check("seismic: nominal PGA is the reference PGA at Mw 7.0",
+      close(seismic.effective_pga(7.0, 0.4), 0.4)
+      and close(seismic.effective_pga(7.8, 0.4), 0.4 * math.exp(0.64)))
 
-p_clamped = seismic.collapse_probability(np.array([1980.0]), 9.0)
-check("seismic: collapse probability is clamped to 1.0 for extreme magnitude",
-      close(float(p_clamped[0]), 1.0))
-p_low = seismic.collapse_probability(np.array([2020.0]), 4.0)
-check("seismic: collapse probability stays within [0, 1] for a mild low scenario",
-      0.0 <= float(p_low[0]) <= 1.0)
+# The fragility table is transcribed from the manual; lock its shape so a
+# partial re-transcription cannot pass silently.
+table_levels = set(seismic.HAZUS_EQUIVALENT_PGA_FRAGILITY)
+check("seismic: fragility table covers all four Hazus design levels",
+      table_levels == {"pre", "low", "moderate", "high"})
+check("seismic: every design level tabulates the same 36 building types",
+      {len(seismic.HAZUS_EQUIVALENT_PGA_FRAGILITY[lv]) for lv in table_levels} == {36})
+check("seismic: the tabulated dispersion is the 0.64 Hazus value",
+      close(seismic.HAZUS_PGA_BETA, 0.64))
+check("seismic: C1M medians match the manual row (high and pre code)",
+      seismic.HAZUS_EQUIVALENT_PGA_FRAGILITY["high"]["C1M"] == (0.15, 0.27, 0.73, 1.61)
+      and seismic.HAZUS_EQUIVALENT_PGA_FRAGILITY["pre"]["C1M"] == (0.09, 0.13, 0.26, 0.43))
+check("seismic: a type the manual does not tabulate there is rejected",
+      _seismic_raises(ValueError, seismic.damage_medians,
+                      np.array(["high"]), np.array(["C3L"])))
+
+# normal_cdf must agree whichever branch runs: SciPy when installed, math.erf
+# otherwise. Testing only the installed branch would leave the fallback free
+# to drift (it would catch a missing 1/sqrt(2) factor).
+_z = np.array([-3.0, -0.5, 0.0, 1.25, 4.0, 0.0])
+_reference = np.array([0.0013498980316300946, 0.3085375387259869, 0.5,
+                       0.8943502263331446, 0.9999683287581669, 0.5])
+check("seismic: normal_cdf matches the standard normal table",
+      np.allclose(seismic.normal_cdf(_z), _reference, atol=1e-9))
+_saved_ndtr = seismic._ndtr
+seismic._ndtr = None
+_fallback = seismic.normal_cdf(_z)
+seismic._ndtr = _saved_ndtr
+check("seismic: normal_cdf erf fallback agrees with the SciPy path",
+      np.allclose(_fallback, seismic.normal_cdf(_z), atol=1e-12))
+
+# Damage states form a simplex and rise monotonically with ground motion.
+_im = np.array([0.02, 0.1, 0.3, 0.6, 1.2])
+_probs = seismic.damage_probabilities(_im, np.array(["pre"] * 5), np.array(["C1M"] * 5))
+check("seismic: damage-state probabilities sum to 1 at every intensity",
+      np.allclose(sum(_probs[state] for state in seismic.DAMAGE_STATES), 1.0))
+check("seismic: every damage-state probability stays within [0, 1]",
+      all(np.all((_probs[state] >= 0.0) & (_probs[state] <= 1.0))
+          for state in seismic.DAMAGE_STATES))
+check("seismic: P(complete) increases with ground motion",
+      bool(np.all(np.diff(_probs["complete"]) > 0.0)))
+check("seismic: newer design levels are safer at the same shaking",
+      float(seismic.damage_probabilities(0.5, "pre", "C1M")["complete"].ravel()[0])
+      > float(seismic.damage_probabilities(0.5, "low", "C1M")["complete"].ravel()[0])
+      > float(seismic.damage_probabilities(0.5, "moderate", "C1M")["complete"].ravel()[0])
+      > float(seismic.damage_probabilities(0.5, "high", "C1M")["complete"].ravel()[0]))
+check("seismic: zero and null ground motion mean no damage",
+      close(float(seismic.damage_probabilities(0.0, "pre", "C1M")["none"].ravel()[0]), 1.0)
+      and close(float(seismic.damage_probabilities(float("nan"), "pre", "C1M")["none"].ravel()[0]), 1.0))
+
+# Regression for the saturation defect this rework removed. The old model
+# multiplied a per-tier probability by exp(0.8*(Mw-7)), so every building
+# built before 1985 pinned to P(collapse) = 1.0 from about Mw 7.2 upward and
+# the scenario magnitude stopped carrying information for the most
+# vulnerable stock - exactly the band a Marmara scenario sits in.
+_sat = [float(seismic.collapse_probability(np.array([1980.0]), mw, "C1")[0])
+        for mw in (6.5, 7.0, 7.5)]
+check("seismic: P(complete) is distinct and rising across Mw 6.5 / 7.0 / 7.5",
+      _sat[0] < _sat[1] < _sat[2] and len({round(v, 9) for v in _sat}) == 3)
+check("seismic: P(complete) no longer saturates at the pre-1985 top tier by Mw 7.5",
+      _sat[2] < 0.999)
+check("seismic: P(complete) still rises with magnitude at the top tier",
+      float(seismic.collapse_probability(np.array([1980.0]), 8.5, "C1")[0]) > _sat[2])
+check("seismic: P(complete) stays within [0, 1] for a mild low scenario",
+      0.0 <= float(seismic.collapse_probability(np.array([2020.0]), 4.0, "C1")[0]) <= 1.0)
+
+_states = seismic.sample_damage_state(42, _probs)
+check("seismic: sampled damage states are valid ladder indices",
+      _states.min() >= 0 and _states.max() < len(seismic.DAMAGE_STATES))
+check("seismic: same seed reproduces the identical damage draw",
+      seismic.sample_damage_state(42, _probs).tolist() == _states.tolist())
+check("seismic: material factor is monotone up the damage ladder",
+      [seismic.material_factor(np.array([i]))[0] for i in range(5)]
+      == sorted(seismic.material_factor(np.array([i]))[0] for i in range(5)))
+check("seismic: material factor is 1.0 only for complete damage",
+      close(seismic.material_factor(np.array([4]))[0], 1.0)
+      and seismic.material_factor(np.array([0]))[0] == 0.0)
 
 edge_draw = seismic.simulate_collapse(1, np.array([0.0, 1.0]))
 check("seismic: p=0 never collapses and p=1 always collapses",
       edge_draw.tolist() == [False, True])
 
-draw_a = seismic.simulate_collapse(42, base_p)
-draw_b = seismic.simulate_collapse(42, base_p)
-draw_c = seismic.simulate_collapse(7, base_p)
+# A 200-building coin-flip vector: a five-building ladder of near-certain or
+# near-impossible probabilities can legitimately come out identical under two
+# seeds, which would make "a different seed differs" flaky rather than wrong.
+_p_series = np.full(200, 0.5)
+draw_a = seismic.simulate_collapse(42, _p_series)
+draw_b = seismic.simulate_collapse(42, _p_series)
+draw_c = seismic.simulate_collapse(7, _p_series)
 check("seismic: same seed reproduces the identical collapse draw",
       draw_a.tolist() == draw_b.tolist())
 check("seismic: a different seed can sample a different draw",
       draw_a.tolist() != draw_c.tolist())
 
-heights = np.array([10.0, 20.0])
-areas = np.array([100.0, 200.0])
-collapsed = np.array([True, False])
-radius, volume = seismic.debris_extent(heights, areas, collapsed, debris_factor=0.4, solid_volume_ratio=0.3)
-check("seismic: debris radius is height x k for collapsed buildings, 0 otherwise",
-      radius.tolist() == [4.0, 0.0])
-check("seismic: debris volume is area x height x solid ratio for collapsed buildings, 0 otherwise",
-      close(volume[0], 100.0 * 10.0 * 0.3) and volume[1] == 0.0)
+heights = np.array([10.0, 20.0, 12.0])
+areas = np.array([100.0, 200.0, 50.0])
+factors = np.array([1.0, 0.0, 0.5])
+radius, solid, pile, mass = seismic.debris_extent(
+    heights, areas, factors, debris_factor=0.4, solid_volume_ratio=0.3,
+    void_ratio=0.35, density=1.8)
+check("seismic: debris radius is height x k x released fraction, 0 when nothing is released",
+      np.allclose(radius, [4.0, 0.0, 2.4]))
+check("seismic: complete damage reproduces the original radius formula (height x k)",
+      close(float(seismic.debris_extent(np.array([10.0]), np.array([100.0]), np.array([1.0]),
+                                        debris_factor=0.4, solid_volume_ratio=0.3)[0][0]), 4.0))
+check("seismic: solid volume is area x height x solid ratio x released fraction",
+      np.allclose(solid, [300.0, 0.0, 90.0]))
+check("seismic: pile volume is the solid volume divided by the void-free fraction",
+      np.allclose(pile, solid / (1.0 - 0.35)))
+check("seismic: debris mass is the solid volume times the material density",
+      np.allclose(mass, solid * 1.8))
+
+check("seismic: height class follows the Hazus storey bands",
+      seismic.resolve_building_type("C1", np.array([2.0, 5.0, 12.0])).tolist()
+      == ["C1L", "C1M", "C1H"])
+check("seismic: a type Hazus does not split by height is left unsplit",
+      seismic.resolve_building_type("W1", np.array([5.0])).tolist() == ["W1"]
+      and seismic.resolve_building_type("S3", np.array([12.0])).tolist() == ["S3"])
+check("seismic: RM1 has no high-rise class, so tall ones stay mid-rise",
+      seismic.resolve_building_type("RM1", np.array([12.0])).tolist() == ["RM1M"])
+check("seismic: missing floor counts fall back to the mid-rise class",
+      np.atleast_1d(seismic.resolve_building_type("C1", None)).tolist() == ["C1M"])
 
 # Street-space width helpers (network sources B/C of the debris algorithm).
 check("seismic: OSM width - primary class maps to 18 m",

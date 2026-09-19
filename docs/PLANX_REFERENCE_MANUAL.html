@@ -371,7 +371,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.12.0 &middot; 71 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.13.0 &middot; 71 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -396,7 +396,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.12.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.13.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
@@ -14765,400 +14765,484 @@ network against which debris spread is measured.</p>
 &middot; <strong>Group:</strong> Seismic Risk (19)</p>
 
 <h3>1. Overview</h3>
-<p>Models the full chain from <strong>earthquake scenario magnitude</strong>
-to <strong>building collapse</strong> to <strong>debris spread</strong> to
+<p>Models the full chain from <strong>ground shaking</strong> to
+<strong>building damage</strong> to <strong>debris spread</strong> to
 <strong>road blockage</strong> to <strong>surviving evacuation corridors</strong>.
-For each building, a collapse probability is derived from the construction year
-(proxy for seismic design code vintage) scaled by the scenario's moment
-magnitude $M_w$. A single deterministic Monte Carlo draw (seeded for
-reproducibility) determines whether the building collapses. Collapsed buildings
-spread debris outward to a radius proportional to their height (Goretti &amp;
-Sarli, 2006) — the debris envelope is the union of all individual debris
-buffers, intersected with the road network to identify blocked segments, and
-subtracted from the network to reveal the open evacuation corridors.</p>
+Each building receives a complete damage distribution &mdash; none, slight,
+moderate, extensive, complete &mdash; from lognormal fragility curves, not a
+single collapse yes/no. The curves are the equivalent-PGA structural fragilities
+of the Hazus Earthquake Model Technical Manual (FEMA, 2024), which give, for each
+building type and seismic design level, the median ground acceleration at which
+each damage state is exceeded. The design level comes from the construction year
+and the height class from the floor count. A seeded draw samples one damage state
+per building; the material that state releases spreads outward to a radius
+proportional to height (Goretti &amp; Sarli, 2006); the debris envelope is
+subtracted from the street space; and what remains is opened to the minimum clear
+width, so a sliver of pavement no vehicle fits through stops counting as a route.</p>
+
+<p>Ground motion arrives one of two ways. The recommended route is a
+<strong>PGA field</strong> on the buildings &mdash; a ShakeMap, USGS or AFAD
+raster joined to the footprints &mdash; which drives the curves from real site
+shaking and carries distance and site effects for free. Without such a field, a
+scenario magnitude scales a nominal reference PGA instead. Both routes reach the
+same curves; only the first is a ground-motion estimate.</p>
 
 <p>The road network can be defined in four ways: (A) existing street/open-space
 polygons used as-is; (B) OSM highway centreline classes buffered by standard
 urban widths; (C) centreline with a per-feature width attribute; (D) the
 difference between a region-of-interest polygon and dissolved urban blocks.
-This flexibility lets the same tool work with diverse data availability: a
-detailed municipal GIS, a QuickOSM download, or cadastral parcels.</p>
+Freshly added here: a fifth output, the <strong>navigable core</strong>, which is
+the corridor network reduced to the parts wide enough for an emergency vehicle.</p>
 
 <h3>2. Theoretical Background</h3>
 
-<h4>2.1 Seismic vulnerability as a construction-year proxy</h4>
-<p>Building collapse probability under seismic loading depends on structural
-system, material, ductility detailing, soil conditions, and ground-motion
-characteristics — a multi-dimensional fragility surface. For screening at the
-city scale without a building-by-building structural survey, the single most
-informative proxy is <strong>construction year</strong> (Coburn &amp; Spence,
-2002; FEMA, 2020). The logic is:</p>
+<h4>2.1 Fragility: the Hazus equivalent-PGA curves</h4>
+<p>Hazus describes structural damage with a lognormal fragility per damage state:
+the probability that damage state $ds$ is <em>met or exceeded</em> at a given
+intensity measure is $\Phi(\ln(IM/\theta_{ds})/\beta)$, with $\theta_{ds}$ the
+median capacity of the building type at that state and $\beta$ its dispersion.
+The intensity measure used here is <strong>PGA in g</strong>, from Hazus's
+equivalent-PGA tables. PGA is chosen because it is directly observable: a
+ShakeMap raster can be joined to the building footprints and used as-is, with no
+ground-motion prediction equation and no spectral interpolation in between.</p>
+
+<p>The medians are transcribed from Hazus 6.1's equivalent-PGA structural
+fragility tables — <strong>Table 5-37</strong> (High-Code),
+<strong>Table 5-38</strong> (Moderate-Code), <strong>Table 5-39</strong>
+(Low-Code) and <strong>Table 5-40</strong> (Pre-Code) — one row per building type
+and height class, four damage states each. The dispersion is
+$\beta = 0.64$ for every type, level and state: Hazus derives it as the
+root-sum-of-squares of the capacity dispersion (0.4) and the demand dispersion
+(0.5), $\sqrt{0.4^2 + 0.5^2} = 0.64$, and does not vary it with spectrum shape,
+duration or site class. Nothing in this tool adjusts it.</p>
+
+<p>The curves are conditioned on Hazus's reference spectrum: magnitude
+$M_w = 7.0$, western United States, soil Site Class D, site-to-source distance of
+at least 15&nbsp;km. Two consequences matter in practice. First, a damage state
+probability from this tool is conditional on that spectrum, not on the spectrum
+of the user's actual scenario — the curves do not carry the regional spectral
+shape of a Turkish event. Second, the design levels are Hazus's, tied to United
+States code eras.</p>
+
+<table>
+<tr><th>Hazus design level</th><th>Construction year in this tool</th><th>Hazus's own basis</th></tr>
+<tr><td>Pre-Code</td><td>1985 and earlier</td><td>Built before any seismic code</td></tr>
+<tr><td>Low-Code</td><td>1986&ndash;2000</td><td>First-generation seismic codes</td></tr>
+<tr><td>Moderate-Code</td><td>2001&ndash;2018</td><td>Capacity-design-era codes</td></tr>
+<tr><td>High-Code</td><td>2019 and later</td><td>Performance-based design codes</td></tr>
+</table>
+
+<p>This mapping is an <strong>analogy, not a calibration</strong>. Turkish
+regulation years are 1975, 1998, 2007 and 2018; the breakpoints above are close
+enough to be useful for screening and are not close enough to be quoted as a
+Turkish loss estimate. The engine states the same caveat where the mapping is
+defined, and the run log repeats it.</p>
+
+<p><strong>Building types.</strong> Thirteen Hazus types are offered — C1, C2,
+S1, S2, S3, S4, W1, W2, RM1, RM2, PC1, PC2 and MH &mdash; each with the height
+classes Hazus tabulates. Height class is derived from the floor count when a
+floor field is given: low-rise (L) for 1&ndash;3 storeys, mid-rise (M) for
+4&ndash;7, high-rise (H) for 8 or more, with RM1 stopping at mid-rise because
+Hazus publishes no high-rise curve for it. The building type is combined with the
+height class to pick the table row, so C1 with five storeys reads the
+<code>C1M</code> row. Three Hazus types are deliberately <em>not</em> offered:
+C3, S5 and URM have no Moderate-Code or High-Code curve in the manual, and
+inventing a row to fill the gap would be worse than saying so. The cost of that
+choice is real and should be stated: unreinforced masonry and infilled concrete
+frames are common in Turkish building stock at every era, so the type list
+under-represents it. The practical workaround is to pick the closest tabulated
+type (URM stock as C1 pre-code is the conventional screening substitution) and
+treat the result as comparative rather than absolute.</p>
+
+<p><strong>What drives the two routes.</strong> With a PGA field, each building
+is evaluated at its own shaking level and no magnitude is used at all. Without
+one, a single nominal intensity is applied to the whole study area:</p>
+<p>$\text{PGA}_{\text{nominal}} = \text{PGA}_{\text{ref}} \cdot \exp(0.8\,(M_w - 7.0))$,
+with $\text{PGA}_{\text{ref}} = 0.35\,g$ at $M_w = 7.0$ by default. Both the
+reference PGA and the 0.8 slope are exposed as parameters rather than buried as
+constants, because this expression is a knob, not a ground-motion prediction: it
+has no distance, site class, fault mechanism or directivity term. It exists so
+that a municipality with no shaking raster is not left with no tool at all.</p>
+
+<h4>2.2 Damage state to debris quantity</h4>
+<p>A damaged building does not have to collapse to put material in the street.
+That was the central defect of the previous model, which produced debris only
+from a binary collapse flag and therefore under-counted the common case: a
+building left standing but stripping its facade, infill walls and parapets onto
+the pavement. Debris now follows from the sampled <em>damage state</em> through a
+released-material fraction $\phi$:</p>
+<table>
+<tr><th>Damage state</th><th>$\phi$</th><th>Why</th></tr>
+<tr><td>None</td><td>0.00</td><td>No structural or nonstructural loss</td></tr>
+<tr><td>Slight</td><td>0.00</td><td>Hairline cracking; nothing reaches the street</td></tr>
+<tr><td>Moderate</td><td>0.10</td><td>Falling cladding, some infill distress</td></tr>
+<tr><td>Extensive</td><td>0.35</td><td>Partial collapse, large facade and infill loss</td></tr>
+<tr><td>Complete</td><td>1.00</td><td>Full collapse: the whole structure is on the ground</td></tr>
+</table>
+<p>$\phi$ scales the radius, the volume and the mass together. The radius is
+scaled linearly rather than by the cube root of the released volume, which
+over-states the spread of a partially damaged building; for a screening tool
+whose output is used to declare streets impassable, over-stating a blockage is
+the safer direction to err in.</p>
+
+<p>Three quantities are reported per building, because three different
+downstream questions need them. The <strong>mass ratio</strong> $\eta$ answers
+"how much of the building was ever material", the <strong>void fraction</strong>
+$\nu$ answers "how much room does the rubble actually take up", and the
+<strong>density</strong> $\rho$ converts volume to the tonnage a clearance
+operation is sized against:</p>
 <ul>
-<li><strong>Pre-1985:</strong> Buildings constructed before modern seismic
-codes. Unreinforced masonry, non-ductile concrete frames, soft-storey
-configurations. High baseline vulnerability ($p_{\text{base}} = 0.85$ at
-$M_w = 7.0$).</li>
-<li><strong>1985–2000:</strong> First-generation seismic codes introduced in
-many countries following major earthquakes (Mexico City 1985, Loma Prieta
-1989, Northridge 1994). Moderate vulnerability ($p_{\text{base}} = 0.60$).</li>
-<li><strong>2000–2018:</strong> Modern seismic codes with capacity design
-principles. Low vulnerability ($p_{\text{base}} = 0.25$).</li>
-<li><strong>Post-2018:</strong> Current-generation codes with performance-based
-design. Very low baseline vulnerability ($p_{\text{base}} = 0.05$).</li>
+<li><strong>Solid material volume</strong> $V_{\text{solid}} = A \cdot H \cdot \eta \cdot \phi$
+— the material itself. $\eta$ follows FEMA guidance: roughly 0.10&ndash;0.20 for
+steel and glass frames, 0.25&ndash;0.35 for reinforced concrete,
+0.35&ndash;0.45 for unreinforced masonry; the default is 0.30.</li>
+<li><strong>Pile volume</strong> $V_{\text{pile}} = V_{\text{solid}}/(1-\nu)$
+— the bulk the rubble occupies once the air between fragments is counted back
+in. This is what competes with the street for space. Default $\nu = 0.35$.</li>
+<li><strong>Mass</strong> $M = \rho \cdot V_{\text{solid}}$ — the tonnage to
+haul away. Default $\rho = 1.8\,\text{t/m}^3$, a mixed construction-and-rubble
+figure.</li>
 </ul>
-<p>These tier values are screening defaults, not calibrated fragility
-parameters. They are approximately centred on $M_w = 7.0$ — the reference
-magnitude at which the baseline probabilities apply. The exponential scaling
-factor $\exp(0.8(M_w - 7.0))$ adjusts the baseline for the scenario magnitude,
-with the coefficient 0.8 calibrated so that a unit increase in $M_w$ roughly
-doubles the collapse probability at the reference construction tier — consistent
-with the empirical observation that damage scales roughly exponentially with
-magnitude within the 5.5–8.0 range (Coburn &amp; Spence, 2002).</p>
 
-<p>For operational use, the tier probabilities and breakpoints must be calibrated
-to the local building stock. The defaults are conservative — they assume no
-retrofitting and the worst structural type common in each era. A city with an
-active seismic retrofit programme should reduce the probabilities for older
-tiers. A city on soft soils should increase them.</p>
+<h4>2.3 Monte Carlo: sampling damage states</h4>
+<p>Damage states are sampled by inverse transform from the building's own
+distribution. With $u_i$ drawn from a seeded uniform generator, the sampled state
+is the first state whose cumulative probability reaches $u_i$. The split is
+exact and needs no rejection loop, and because it draws from the full
+distribution, one building can come out "extensive" in a run where its complete
+probability was only 0.1 — which is the point of sampling rather than
+thresholding. The seed is user-specified: the same seed, inputs and software
+version always produce the identical damage pattern.</p>
 
-<h4>2.2 Debris spread mechanics</h4>
-<p>When a building collapses, the debris does not occupy only the building's
-footprint — it spreads outward into the surrounding street space. Goretti &amp;
-Sarli (2006) analysed post-earthquake road blockage patterns from Italian
-earthquakes and proposed a simple geometric model: the debris spread is
-approximated as a buffer around the building footprint with radius proportional
-to the building height:</p>
-$$r_{\text{debris}} = k \cdot H$$
-
-<p>where $H$ is the building height (floor count $\times$ floor height) and $k$
-is the debris spread coefficient — the fraction of building height thrown
-horizontally. Goretti &amp; Sarli found that $k \approx 0.4$ fits observed
-blockage patterns for mid-rise unreinforced masonry buildings. Taller buildings
-with larger plan aspect ratios can produce larger $k$ (up to 0.6), while
-low-rise ductile frames produce smaller $k$ (0.2–0.3). PlanX defaults to
-$k = 0.4$ for screening.</p>
-
-<p>The debris volume (for clearance resource estimation) follows FEMA (2020)
-guidance: the gross building volume (footprint area $\times$ height) is multiplied
-by a solid volume ratio $\eta$ that accounts for void spaces within the
-collapsed debris. Typical $\eta$ values: 0.10–0.20 for steel/glass-frame
-buildings, 0.25–0.35 for reinforced concrete, 0.35–0.45 for unreinforced
-masonry. PlanX defaults to $\eta = 0.3$ (generic mid-range value).</p>
-
-<h4>2.3 Monte Carlo approach and reproducibility</h4>
-<p>The collapse decision is a single Bernoulli trial per building: draw
-$u_i \sim \text{Uniform}(0,1)$ from a seeded generator, compare to
-$p_{\text{collapse},i}$, and set $\text{collapsed}_i = 1$ if $u_i < p_i$.
-The seed is user-specified — the same seed, inputs, and software version
-always produce the identical collapse pattern. Changing the seed samples a
-different stochastic realisation of the same scenario.</p>
-
-<p>This design reflects a deliberate modelling choice: one run = one
-realisation. The <strong>probability field</strong> ($p_{\text{collapse}}$)
-is the stable, seed-independent diagnostic; the <strong>collapsed flag</strong>
-is one dice roll consistent with it. For robust statements about evacuation
-corridor reliability, run the tool with 10–20 different seeds and count in
-how many runs each corridor survives. Corridors that survive all seeds are
-the <strong>dependable evacuation skeleton</strong>; corridors that flicker
-are not to be relied upon for emergency planning.</p>
+<p>One run is one realisation, so the sample statistic is noisy by construction.
+Setting <strong>Simulation runs</strong> above zero makes the tool do the
+repeat-and-compare itself: it reruns the scenario under $N$ successive seeds,
+writes an empirical <code>collapse_freq</code> per building (the share of runs in
+which that building reached complete damage), and reports the mean, standard
+deviation and 5th/50th/95th percentiles of the blocked street area in the log.
+The seeded single realisation still supplies the geometry. This turns the
+once-manual advice to "run it twenty times and compare" into one parameter.</p>
 
 <h4>2.4 The four road network definitions</h4>
-<p>The network definition fundamentally shapes the result — a narrow street
-interpretation (centreline + small buffer) will show more blockage than a wide
-one (street-space polygons including setbacks). The four sources (A–D) let
-the practitioner match the available data:</p>
+<p>The network definition shapes the result more than any other input — a
+centreline with a small buffer blocks more readily than street-space polygons
+that include setbacks. The four sources (A&ndash;D) let the practitioner match
+the data actually on hand:</p>
 <ul>
-<li><strong>Source A (polygons as-is):</strong> The most faithful option when
-street-space polygons exist (from a zoning plan, cadastre-derived street space,
-or a previous analysis). Real widths, squares, and setbacks are preserved.
-This is the recommended source when data quality permits.</li>
-<li><strong>Source B (OSM highway classes):</strong> Road centreline downloaded
-with QuickOSM, buffered by standard urban widths for each highway class. The
-default widths (motorway/trunk 25 m, primary 18 m, secondary 14 m, tertiary
-10 m, residential 8 m, service/living_street 5 m, pedestrian/footway/cycleway
-3 m, steps 2 m) are typical full carriageway widths for European cities. This
-is the fastest path to a screening result when only OSM data is available.</li>
-<li><strong>Source C (width attribute):</strong> Any centreline network with a
-per-feature width field. Values like "6.5", "6,5", or "6.5 m" are all parsed.
-This is the option when municipal data includes measured street widths.</li>
-<li><strong>Source D (ROI minus blocks):</strong> Street space computed as the
-set difference between a region-of-interest polygon and dissolved urban blocks
-(parcels or building blocks). This is the only option that requires no street
-data at all — cadastral parcels or building-block polygons define the
-non-street space, and everything else is assumed to be street. Parcels are
-dissolved internally, so shared boundaries vanish. If no ROI is given, the
-convex hull of the blocks expanded by the fallback width is used.</li>
+<li><strong>Source A (polygons as-is):</strong> the most faithful option when
+street-space polygons exist. Real widths, squares and setbacks are preserved.
+This source requires polygonal input: everything downstream is areal, so a line
+layer bound here is refused with an explicit message rather than silently
+producing a zero-area result.</li>
+<li><strong>Source B (OSM highway classes):</strong> a QuickOSM centreline
+download buffered by standard urban widths per class (motorway/trunk 25 m,
+primary 18 m, secondary 14 m, tertiary 10 m, residential/unclassified 8 m,
+service/living_street 5 m, pedestrian/footway/cycleway/path 3 m, steps 2 m;
+<code>_link</code> ramps inherit the parent class). A valid per-feature width
+attribute overrides the class width when one is selected.</li>
+<li><strong>Source C (width attribute):</strong> any centreline with a road-width
+column in metres (full carriageway, not half). Values like <code>6.5</code>,
+<code>6,5</code> or <code>6.5 m</code> all parse; missing values fall back to the
+fallback width.</li>
+<li><strong>Source D (ROI minus blocks):</strong> street space as the difference
+between a region-of-interest polygon and dissolved urban blocks or parcels. The
+only source that needs no street data at all. Parcels are dissolved internally so
+shared boundaries vanish. With no ROI given, the convex hull of the blocks
+expanded by the fallback width is used, which only adds a hull-shaped perimeter
+ring — provide an explicit ROI for concave study areas.</li>
 </ul>
 
-<h4>2.5 Assumptions and limitations</h4>
+<h4>2.5 The navigable core: minimum clear width</h4>
+<p>"Not covered by debris" and "passable" are different statements. If a 10 m
+street has 9.5 m of rubble across it, the remaining half-metre strip is
+unblocked but is not a route. The corridor output alone therefore over-states
+the evacuation network, and it does so invisibly: the layer looks continuous
+while every route in it may be too narrow to drive.</p>
+<p>The navigable core answers the passability question directly, by morphological
+opening: erode the corridor network by half the minimum clear width, then regrow
+it by the same amount. Any part of the network narrower than the clear width
+cannot survive the erosion and drops out; anything at least that wide comes back
+unchanged. The default is 3.5 m, of the order of an emergency vehicle through a
+partially obstructed street, but it is a parameter precisely because the right
+value depends on the fire appliance and the local fleet. The run log reports the
+area of the corridors and the area of the navigable core, and their difference:
+that gap is the street space lost to pinching, and it is often large.</p>
+
+<h4>2.6 Assumptions and limitations</h4>
 <ul>
-<li><strong>Collapse is independent across buildings.</strong> The Monte Carlo
-draw treats each building's collapse as an independent Bernoulli trial.
-In reality, adjacent buildings of similar construction share vulnerability
-factors (ground motion, soil conditions, construction quality) that induce
-correlation. PlanX does not model this spatial correlation — the collapse
-pattern is less clustered than reality, which is conservative for corridor
-analysis (fragmented debris is easier to clear than large contiguous debris
-fields).</li>
-<li><strong>Debris spread is isotropic.</strong> The buffer model assumes
-debris spreads equally in all directions. In reality, the debris field has a
-preferred direction aligned with the building's structural collapse mechanism
-(pancake, overturning, etc.), which depends on the ground-motion direction
-and the building's orientation and structural system. Schweier &amp; Markus
-(2006) provide a classification of collapse types and their geometric
-footprints — PlanX's isotropic buffer is a simplification for screening.</li>
-<li><strong>No secondary hazards.</strong> Fires following earthquakes, soil
-liquefaction, and landslides are not modelled. The debris field represents
-direct structural collapse only.</li>
-<li><strong>Construction year is the only vulnerability predictor.</strong>
-Building height, structural system, plan irregularity, soft-storey presence,
-and soil class are not used. A pre-1985 steel moment frame and a pre-1985
-unreinforced masonry building get the same baseline probability. For
-building-specific vulnerability, supply a pre-computed collapse probability
-field (e.g., from HAZUS or a detailed structural survey) and bypass the
-construction-year tier lookup.</li>
+<li><strong>The curves are American and uncalibrated to Turkish stock.</strong>
+The medians are Hazus's, conditioned on a western-United States reference
+spectrum, and the design levels are Hazus's, tied to United States code eras.
+Mapping Turkish regulation years onto them is an analogy. The numbers are
+comparative screening values, not Turkish loss estimates, and nothing in the
+model is fitted to observed Turkish earthquake damage.</li>
+<li><strong>Damage is independent across buildings.</strong> Each building's
+state is drawn independently. Neighbours share ground motion, soil and
+construction quality, which induces correlation the model does not carry, so the
+damage pattern is less clustered than reality would be.</li>
+<li><strong>Hazus's own erratum.</strong> Hazus 6.1 publishes no equivalent-PGA
+structural fragility for the Severe-Code and Very-High-Code design levels, so
+this tool's four levels cannot reach those rows at all; later Hazus releases
+revised several fragility parameter sets, which is why the version these numbers
+came from is stated in the engine, in the manual and in the reference list.
+Quote the provenance with the number.</li>
+<li><strong>Debris spread is isotropic, and only structural.</strong> Debris is
+buffered equally in every direction, whereas real collapse has a preferred
+direction set by mechanism and building orientation (Schweier &amp; Markus, 2006).
+Post-earthquake fire, liquefaction and landslide debris are not modelled.</li>
+<li><strong>The model has no time dimension.</strong> All buildings are damaged
+simultaneously; there is no aftershock sequence, no progressive collapse and no
+building-to-building impact. The envelope is a static snapshot of the immediate
+post-event condition, not an evolving debris field.</li>
+<li><strong>No ground-motion model.</strong> The magnitude route scales a nominal
+PGA with no distance, site or fault term. Two study areas at different distances
+from the same rupture get the same shaking unless a PGA field is supplied. This
+is the single largest simplification in the tool, and it is why the PGA field is
+the recommended input.</li>
 </ul>
 
 <h3>3. Mathematical Formulation</h3>
 
-<p><strong>Collapse probability.</strong> Given construction year $y_i$ and
-scenario moment magnitude $M_w$:</p>
-$$p_{\text{base}}(y_i) = \begin{cases}
-0.85 & y_i \leq 1985 \\
-0.60 & 1985 < y_i \leq 2000 \\
-0.25 & 2000 < y_i \leq 2018 \\
-0.05 & y_i > 2018
-\end{cases} \tag{7}$$
+<p><strong>Design level.</strong> From construction year $y_i$:</p>
+$$d_i = \begin{cases}
+\text{pre} & y_i \leq 1985 \\
+\text{low} & 1985 < y_i \leq 2000 \\
+\text{moderate} & 2000 < y_i \leq 2018 \\
+\text{high} & y_i > 2018
+\end{cases} \tag{12}$$
 
-$$p_i = \min\left(1.0,\; \max\left(0.0,\; p_{\text{base}}(y_i) \cdot
-\exp(0.8 (M_w - 7.0))\right)\right) \tag{6}$$
+<p><strong>Height class and type row.</strong> From floor count $n_i$, with
+$c \in \{L, M, H\}$ and $L$ for $n \leq 3$, $M$ for $n \leq 7$, $H$ above that
+(RM1 has no $H$ row):</p>
+$$t_i = \text{type} \oplus c_i \quad\text{e.g.}\quad \text{C1} \oplus M = \text{C1M} \tag{11}$$
 
-<p><strong>Collapse realisation.</strong> Given seed $s$, draw
-$u_i \sim \text{Uniform}(0,1)$ from the generator seeded with $s$:</p>
-$$\text{collapsed}_i = \mathbf{1}[u_i < p_i] \tag{5}$$
+<p><strong>Damage-state exceedance.</strong> Lognormal fragility at intensity
+$IM_i$ (PGA in g), with $\beta = 0.64$ throughout:</p>
+$$P(\text{DS} \geq ds \mid IM_i) = \Phi\!\left(\frac{\ln(IM_i / \theta_{ds,\,t_i})}{\beta}\right)
+\qquad ds \in \{\text{slight, moderate, extensive, complete}\} \tag{10}$$
 
-<p><strong>Building height.</strong> From floor count $n_i$ and floor height
-$h_{\text{floor}}$:</p>
-$$H_i = n_i \cdot h_{\text{floor}} \tag{4}$$
+<p><strong>State probabilities.</strong> Differencing the four exceedance curves
+gives a distribution that sums to exactly one:</p>
+$$\begin{aligned}
+p(\text{none}) &= 1 - P(\geq \text{slight}) \\
+p(\text{slight}) &= P(\geq \text{slight}) - P(\geq \text{moderate}) \\
+p(\text{moderate}) &= P(\geq \text{moderate}) - P(\geq \text{extensive}) \\
+p(\text{extensive}) &= P(\geq \text{extensive}) - P(\geq \text{complete}) \\
+p(\text{complete}) &= P(\geq \text{complete})
+\end{aligned} \tag{9}$$
 
-<p><strong>Debris spread radius.</strong> For collapsed buildings only:</p>
-$$r_i = \begin{cases}
-k \cdot H_i & \text{if collapsed}_i = 1 \\
-0 & \text{otherwise}
-\end{cases} \tag{3}$$
+<p><strong>Intensity.</strong> Per building from a joined PGA field, or one
+nominal value for the whole area from the scenario magnitude:</p>
+$$IM_i = \begin{cases}
+\text{PGA}_i & \text{if a PGA field is given and the value is usable} \\
+\text{PGA}_{\text{ref}} \cdot \exp\!\big(0.8\,(M_w - 7.0)\big) & \text{otherwise}
+\end{cases} \tag{8}$$
 
-<p>where $k$ is the debris spread coefficient (fraction of height, default 0.4).</p>
+<p><strong>State realisation.</strong> With $u_i \sim \text{Uniform}(0,1)$ from
+the generator seeded with $s$:</p>
+$$\text{DS}_i = \min\left\{ ds \;:\; u_i \leq \sum_{k \leq ds} p_k \right\} \tag{7}$$
 
-<p><strong>Debris volume.</strong> From footprint area $A_i$:</p>
-$$V_i = \begin{cases}
-A_i \cdot H_i \cdot \eta & \text{if collapsed}_i = 1 \\
-0 & \text{otherwise}
-\end{cases} \tag{2}$$
+<p><strong>Building height.</strong> From floor count and floor height:</p>
+$$H_i = n_i \cdot h_{\text{floor}} \tag{6}$$
 
-<p>where $\eta$ is the solid volume ratio (default 0.3).</p>
+<p><strong>Debris spread radius.</strong> From $H_i$ and the released-material
+fraction $\phi(\text{DS}_i)$:</p>
+$$r_i = k \cdot H_i \cdot \phi(\text{DS}_i) \tag{5}$$
 
-<p><strong>Evacuation corridors.</strong> The debris envelope $D$ is the
-union of all individual debris buffers (building footprint buffered by $r_i$,
-square end-cap, mitre join). The blocked network is the intersection of the
-road/open-space network $N$ with the debris envelope:</p>
-$$B = N \cap D \qquad C = N \setminus B \tag{1}$$
+<p>where $k$ is the debris spread coefficient (default 0.4, the fraction of
+height thrown horizontally; Goretti &amp; Sarli report ~0.4 for mid-rise
+unreinforced masonry, up to 0.6 for tall buildings with large plan aspect ratio,
+0.2&ndash;0.3 for low-rise ductile frames).</p>
 
-<p>The open corridors $C$ are the planning product — the streets that remain
-passable after debris falls. Only corridors with non-zero area survive; narrow
-streets where the debris buffer spans the full width vanish entirely.</p>
+<p><strong>Solid material volume.</strong> From footprint area $A_i$ and the
+solid volume ratio $\eta$:</p>
+$$V_{\text{solid},i} = A_i \cdot H_i \cdot \eta \cdot \phi(\text{DS}_i) \tag{4}$$
+
+<p><strong>Pile volume and mass.</strong> Void fraction $\nu$ and material
+density $\rho$:</p>
+$$V_{\text{pile},i} = \frac{V_{\text{solid},i}}{1 - \nu} \qquad
+M_i = \rho \cdot V_{\text{solid},i} \tag{3}$$
+
+<p><strong>Blockage and open corridors.</strong> The debris envelope $D$ is the
+union of the per-building footprints buffered by $r_i$ (square end-cap, mitre
+join, mitre limit 2). The street/open-space network is $N$:</p>
+$$B = N \cap D \qquad C = N \setminus B \tag{2}$$
+
+<p><strong>Navigable core.</strong> Morphological opening of $C$ at the minimum
+clear width $w$ — erosion by $w/2$ followed by dilation by the same amount —
+which removes every part of the network too narrow to hold a $w$-wide gap:</p>
+$$G = \big(C \ominus \tfrac{w}{2}\big) \oplus \tfrac{w}{2}, \qquad w = 3.5\ \text{m by default} \tag{1}$$
 
 <h3>4. Input Data Requirements</h3>
 <table>
 <tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
-<tr><td>Buildings</td><td>Vector polygons</td><td>Yes</td><td>Building footprints in a projected CRS (metres). Must have floor count and/or construction year fields; defaults are used when fields are missing.</td></tr>
-<tr><td>Floor count field</td><td>Numeric</td><td>No</td><td>If omitted, defaults to 1 floor for all buildings. NULL values also default to 1.</td></tr>
-<tr><td>Construction year field</td><td>Numeric</td><td>No</td><td>If omitted, defaults to 2000 for all buildings (the most populous tier). NULL values default to 2000.</td></tr>
-<tr><td>Network inputs</td><td>Varies by source</td><td>Yes</td><td>One of: street/open-space polygons (A), road centreline (B/C), or blocks/parcels + ROI (D). See the Network Source parameter for details.</td></tr>
+<tr><td>Buildings</td><td>Vector polygons</td><td>Yes</td><td>Building footprints in a projected CRS (metres). Floor count and construction year are optional; without them every building is one storey tall and dated 2000.</td></tr>
+<tr><td>Peak ground acceleration field</td><td>Numeric field, in g</td><td>No &mdash; recommended</td><td>A ShakeMap, USGS or AFAD raster sampled onto the footprints. Supplying it removes the need for a magnitude entirely and is the only route with distance and site effects.</td></tr>
+<tr><td>Floor count field</td><td>Numeric</td><td>No</td><td>Storeys per building; NULL defaults to 1. Sets height and the Hazus height class.</td></tr>
+<tr><td>Construction year field</td><td>Numeric</td><td>No</td><td>NULL defaults to 2000. Selects the Hazus design level. Anything before 1986 reads Pre-Code.</td></tr>
+<tr><td>Building type</td><td>Enum</td><td>No</td><td>One Hazus type for the whole run (default C1). The height class is appended automatically.</td></tr>
+<tr><td>Network inputs</td><td>Varies by source</td><td>Yes</td><td>One of: street/open-space polygons (A), road centreline (B/C), or blocks/parcels + ROI (D).</td></tr>
 </table>
 
 <h3>5. Parameters</h3>
 <table class="param-table">
 <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
-<tr><td><code>BUILDINGS</code></td><td>Vector layer (Polygon)</td><td>—</td><td>Building footprints. Projected CRS required. Missing floor count = 1; missing construction year = 2000.</td></tr>
-<tr><td><code>FLOOR_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Number of storeys per building. NULL => 1. Used to compute height (= floors × floor_height) and debris parameters.</td></tr>
-<tr><td><code>YEAR_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Construction year. NULL => 2000. Determines the vulnerability tier. Years before 1900 are capped to the oldest tier (0.85).</td></tr>
-<tr><td><code>NETWORK_MODE</code></td><td>Enum</td><td>A (0)</td><td>Network source: A = street/open-space polygons used as-is; B = OSM highway centreline buffered by class widths; C = centreline with width attribute; D = ROI minus dissolved blocks/parcels.</td></tr>
-<tr><td><code>NETWORK</code></td><td>Vector layer (Polygon)</td><td>(A only)</td><td>Street/open-space polygons. Used directly as the road network geometry.</td></tr>
-<tr><td><code>NETWORK_LINES</code></td><td>Vector layer (Line)</td><td>(B, C)</td><td>Road centreline. For source B, attributes are used for highway class lookup and/or width override. For source C, must have a width field (metres).</td></tr>
-<tr><td><code>HIGHWAY_FIELD</code></td><td>Field</td><td>(B)</td><td>Highway class field on centreline (e.g., "highway" from OSM). If blank, auto-detects a field named "highway".</td></tr>
-<tr><td><code>WIDTH_FIELD</code></td><td>Field (Numeric)</td><td>(B, C)</td><td>Road width in metres (full carriageway, not half). In source B, overrides the class-based width when present and valid.</td></tr>
-<tr><td><code>DEFAULT_WIDTH</code></td><td>Double</td><td>8.0</td><td>Fallback width (m) for B/C when no class/width is available; also the expansion distance for the auto-generated ROI hull in source D.</td></tr>
-<tr><td><code>ROI</code></td><td>Vector layer (Polygon)</td><td>(D only)</td><td>Region of interest polygon. If omitted, the convex hull of the blocks expanded by DEFAULT_WIDTH is used — provide an explicit ROI for concave study areas.</td></tr>
-<tr><td><code>BLOCKS</code></td><td>Vector layer (Polygon)</td><td>(D only)</td><td>Urban blocks or cadastral parcels. Dissolved internally — shared boundaries vanish. Street space = ROI minus dissolved blocks.</td></tr>
-<tr><td><code>MAGNITUDE</code></td><td>Double</td><td>7.0</td><td>Scenario moment magnitude ($M_w$). Range 4.0–9.0. The exponential scaling factor is $\exp(0.8(M_w - 7.0))$. Sweep 6.5 → 7.5 in 0.5 increments to find the resilience cliff.</td></tr>
-<tr><td><code>FLOOR_HEIGHT</code></td><td>Double</td><td>3.0</td><td>Average inter-storey height in metres. Total building height = floors × floor_height. Affects debris radius and volume.</td></tr>
-<tr><td><code>DEBRIS_FACTOR</code></td><td>Double</td><td>0.4</td><td>Debris spread coefficient $k$: fraction of building height thrown horizontally (Goretti &amp; Sarli, 2006). Lower (0.2) for ductile frames; higher (0.6) for unreinforced masonry.</td></tr>
-<tr><td><code>SOLID_VOLUME_RATIO</code></td><td>Double</td><td>0.3</td><td>Solid volume ratio $\eta$: fraction of gross building volume that becomes solid debris. 0.10–0.20 steel/glass; 0.25–0.35 RC; 0.35–0.45 URM (FEMA, 2020).</td></tr>
-<tr><td><code>SEED</code></td><td>Integer</td><td>42</td><td>Random seed for the Monte Carlo draw. Same seed + same inputs = identical collapse pattern. Change to sample another realisation. Run 10–20 seeds for robust corridor reliability analysis.</td></tr>
-<tr><td><code>OUT_BUILDINGS</code></td><td>Vector layer (Point)</td><td>—</td><td>Annotated building centroids with collapse probability, collapsed flag, debris radius, and debris volume.</td></tr>
-<tr><td><code>OUT_ENVELOPE</code></td><td>Vector layer (MultiPolygon)</td><td>—</td><td>Dissolved debris spread envelope — the union of all individual collapsed-building buffers.</td></tr>
-<tr><td><code>OUT_BLOCKED</code></td><td>Vector layer (MultiPolygon)</td><td>—</td><td>Blocked portion of the road/open-space network (network ∩ debris envelope). Identifies which street sections are impassable.</td></tr>
-<tr><td><code>OUT_CORRIDORS</code></td><td>Vector layer (MultiPolygon)</td><td>—</td><td>Open evacuation corridors (network minus blocked). The planning product — streets that remain passable after debris falls.</td></tr>
+<tr><td><code>BUILDINGS</code></td><td>Vector layer (Polygon)</td><td>&mdash;</td><td>Building footprints. Projected CRS required. Missing floor count = 1 storey; missing year = 2000.</td></tr>
+<tr><td><code>FLOOR_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Storeys per building; NULL =&gt; 1. Sets height (floors x floor height) and the Hazus height class (L 1-3, M 4-7, H 8+).</td></tr>
+<tr><td><code>YEAR_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Construction year; NULL =&gt; 2000. Selects the Hazus design level: 1985 and earlier Pre-Code, 1986-2000 Low-Code, 2001-2018 Moderate-Code, newer High-Code.</td></tr>
+<tr><td><code>PGA_FIELD</code></td><td>Field (Numeric, g)</td><td>(optional, recommended)</td><td>Peak ground acceleration in g. When given, fragility is driven by real site shaking and the magnitude and reference PGA parameters are ignored. Buildings with a null or non-positive value fall back to the nominal intensity, and the run log counts them.</td></tr>
+<tr><td><code>BUILDING_TYPE</code></td><td>Enum</td><td>C1</td><td>Hazus structural type (C1, C2, S1, S2, S3, S4, W1, W2, RM1, RM2, PC1, PC2, MH). C3, S5 and URM are not offered: Hazus publishes no Moderate- or High-Code curve for them.</td></tr>
+<tr><td><code>NETWORK_MODE</code></td><td>Enum</td><td>A (0)</td><td>Network source: A = street/open-space polygons used as-is; B = OSM highway centreline buffered by class widths; C = centreline with a width attribute; D = ROI minus dissolved blocks/parcels.</td></tr>
+<tr><td><code>NETWORK</code></td><td>Vector layer (Polygon)</td><td>(A only)</td><td>Street/open-space polygons, used directly. Must be polygonal: a line layer here is rejected rather than producing a zero-area network.</td></tr>
+<tr><td><code>NETWORK_LINES</code></td><td>Vector layer (Line)</td><td>(B, C)</td><td>Road centreline. In B the highway class sets the width unless a per-feature width attribute is supplied; in C the width attribute is the only source.</td></tr>
+<tr><td><code>HIGHWAY_FIELD</code></td><td>Field</td><td>(B)</td><td>Highway class field on the centreline; blank auto-detects a field named <code>highway</code>.</td></tr>
+<tr><td><code>WIDTH_FIELD</code></td><td>Field (Numeric)</td><td>(B, C)</td><td>Road width in metres, full carriageway. In B it overrides the class width when present and valid; unparseable values fall back to the class width.</td></tr>
+<tr><td><code>DEFAULT_WIDTH</code></td><td>Double</td><td>8.0</td><td>Fallback width (m) for B/C when neither class nor width resolves; also the expansion distance for the auto-generated ROI hull in source D.</td></tr>
+<tr><td><code>ROI</code></td><td>Vector layer (Polygon)</td><td>(D only)</td><td>Region of interest. If omitted, the convex hull of the blocks expanded by DEFAULT_WIDTH is used &mdash; supply an explicit ROI for concave study areas.</td></tr>
+<tr><td><code>BLOCKS</code></td><td>Vector layer (Polygon)</td><td>(D only)</td><td>Urban blocks or cadastral parcels, dissolved internally. Street space = ROI minus dissolved blocks. The ROI must extend beyond the blocks or the result is empty.</td></tr>
+<tr><td><code>MAGNITUDE</code></td><td>Double</td><td>7.0</td><td>Scenario moment magnitude. Range 4.0-9.0. Used only when no PGA field is given, and only through the nominal scaling exp(0.8(Mw - 7.0)) &mdash; no distance or site term. Sweep 6.5 to 7.5 to locate the network's resilience cliff.</td></tr>
+<tr><td><code>REFERENCE_PGA</code></td><td>Double</td><td>0.35</td><td>Nominal site PGA at Mw 7.0, in g. Ignored when a PGA field is given. Exposed rather than hidden because it is a user assumption, not a physical constant.</td></tr>
+<tr><td><code>FLOOR_HEIGHT</code></td><td>Double</td><td>3.0</td><td>Average inter-storey height (m). Building height = floors x floor height, which drives debris radius and volume.</td></tr>
+<tr><td><code>DEBRIS_FACTOR</code></td><td>Double</td><td>0.4</td><td>Debris spread coefficient k: fraction of building height thrown horizontally (Goretti &amp; Sarli, 2006). Lower (0.2-0.3) for ductile low-rise frames, higher (0.6) for tall buildings with large plan aspect ratio.</td></tr>
+<tr><td><code>SOLID_VOLUME_RATIO</code></td><td>Double</td><td>0.3</td><td>Material share of the gross building volume (eta): 0.10-0.20 steel/glass, 0.25-0.35 reinforced concrete, 0.35-0.45 unreinforced masonry (FEMA, 2024).</td></tr>
+<tr><td><code>VOID_RATIO</code></td><td>Double</td><td>0.35</td><td>Air fraction of the rubble pile (nu). Converts solid material volume to the bulked volume that occupies street space: V_pile = V_solid / (1 - nu).</td></tr>
+<tr><td><code>DEBRIS_DENSITY</code></td><td>Double</td><td>1.8</td><td>Debris material density in t/m3, applied to the solid volume for the tonnage to haul away.</td></tr>
+<tr><td><code>MIN_CLEAR_WIDTH</code></td><td>Double</td><td>3.5</td><td>Minimum clear width (m) for a route to count as usable. Corridors are opened at this width to give the navigable core; anything narrower is dropped. Set it to the width of the vehicle that has to get through.</td></tr>
+<tr><td><code>SIMULATIONS</code></td><td>Integer</td><td>0</td><td>Reruns above zero add an empirical <code>collapse_freq</code> per building and mean/sd/p05/p50/p95 statistics for blocked street area in the log. 0 keeps the single fast realisation.</td></tr>
+<tr><td><code>SEED</code></td><td>Integer</td><td>42</td><td>Random seed. Same seed and inputs give the identical damage pattern; change it to sample another realisation.</td></tr>
+<tr><td><code>OUT_BUILDINGS</code></td><td>Vector layer (Point)</td><td>&mdash;</td><td>Annotated building centroids: collapse probability, sampled state, debris radius and the three debris quantities.</td></tr>
+<tr><td><code>OUT_ENVELOPE</code></td><td>Vector layer (MultiPolygon)</td><td>&mdash;</td><td>Dissolved debris spread envelope: the union of the individual building debris buffers.</td></tr>
+<tr><td><code>OUT_BLOCKED</code></td><td>Vector layer (MultiPolygon)</td><td>&mdash;</td><td>Blocked part of the street space (network &#8745; envelope) &mdash; the sections that are impassable.</td></tr>
+<tr><td><code>OUT_CORRIDORS</code></td><td>Vector layer (MultiPolygon)</td><td>&mdash;</td><td>Street space minus blockage. Unblocked, but not necessarily wide enough to drive.</td></tr>
+<tr><td><code>OUT_NAVIGABLE</code></td><td>Vector layer (MultiPolygon)</td><td>&mdash;</td><td>Corridors opened at the minimum clear width: the part of the street network a vehicle can actually use. The area difference against OUT_CORRIDORS is reported with the run.</td></tr>
 </table>
 
 <h3>6. Output Description</h3>
 <table class="field-table">
 <tr><th>Output</th><th>Fields</th><th>Description</th></tr>
-<tr><td><strong>Annotated Buildings</strong></td><td><code>height_m</code>, <code>collapse_prob</code>, <code>collapsed</code>, <code>debris_radius_m</code>, <code>debris_vol_m3</code></td><td>Building centroid points with all intermediate and final risk metrics. <code>collapse_prob</code> is the seed-independent diagnostic (0–1); <code>collapsed</code> is the binary realisation (0/1) for this seed; <code>debris_radius_m</code> and <code>debris_vol_m3</code> are 0 for non-collapsed buildings.</td></tr>
-<tr><td><strong>Debris Envelope</strong></td><td>(none — geometry only)</td><td>Single MultiPolygon geometry: the union of all individual building debris buffers. The extent of debris on the ground. Visualised as a semi-transparent red overlay.</td></tr>
-<tr><td><strong>Network Blockage</strong></td><td>(none — geometry only)</td><td>Single MultiPolygon geometry: the intersection of the road network with the debris envelope. These are the street sections that are impassable. Visualised as solid red.</td></tr>
-<tr><td><strong>Open Corridors</strong></td><td>(none — geometry only)</td><td>Single MultiPolygon geometry: the road network minus the blocked sections. Streets that remain passable. Visualised as solid green. This is the evacuation and emergency-access map.</td></tr>
+<tr><td><strong>Annotated Buildings</strong></td><td><code>height_m</code>, <code>collapse_prob</code>, <code>collapsed</code>, <code>damage_state</code>, <code>debris_radius_m</code>, <code>debris_vol_m3</code>, <code>debris_pile_m3</code>, <code>debris_mass_t</code>, <code>collapse_freq</code></td><td>Building centroid points. <code>collapse_prob</code> is P(complete) from the fragility curves &mdash; the stable, seed-independent diagnostic, and the field the default renderer colours by. <code>collapsed</code> and <code>damage_state</code> are this seed's realisation. <code>debris_radius_m</code>, <code>debris_vol_m3</code> (solid material), <code>debris_pile_m3</code> (bulked) and <code>debris_mass_t</code> are zero for states that release nothing. <code>collapse_freq</code> is filled only when Simulation runs is above zero, and is NULL otherwise.</td></tr>
+<tr><td><strong>Debris Envelope</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: the union of the individual debris buffers. The extent of rubble on the ground.</td></tr>
+<tr><td><strong>Network Blockage</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: street space covered by debris. The impassable sections.</td></tr>
+<tr><td><strong>Open Corridors</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: street space minus blockage. Continuous-looking, but includes strips too narrow to drive.</td></tr>
+<tr><td><strong>Navigable Core</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: the corridors that are at least the minimum clear width across. This is the evacuation and emergency-access map; the corridors output is only its upper bound.</td></tr>
 </table>
 
 <h3>7. Symbolic Representation</h3>
-<p>Style the four outputs as a three-layer map:</p>
+<p>Style the outputs as a layered map:</p>
 <ul>
 <li><strong>Base layer:</strong> annotated buildings as graduated point symbols
-(size 1.5–4.0 mm) styled by <code>collapse_prob</code> with a sequential ramp
-(YlOrRd): yellow (low prob) to dark red (high prob). Buildings with
-<code>collapsed = 1</code> in this seed can be shown with a thick black
-outline or a star symbol.</li>
-<li><strong>Middle layer:</strong> debris envelope at 30% opacity in red
-— the physical extent of rubble.</li>
-<li><strong>Top layer:</strong> open evacuation corridors in semi-transparent
-green (30–40% opacity) — the planning product. The blocked streets are the
-gaps in the green network.</li>
+styled by <code>collapse_prob</code> on a sequential ramp (yellow low to dark red
+high). Buildings with <code>collapsed = 1</code> in this seed can carry a thick
+black outline; <code>damage_state</code> is a five-class categorised style if the
+damage distribution matters more than the probability.</li>
+<li><strong>Middle layer:</strong> debris envelope at ~30&#37; opacity in red
+&mdash; the physical extent of rubble.</li>
+<li><strong>Top layer:</strong> the navigable core in semi-transparent green.
+Style <code>OUT_CORRIDORS</code> in a lighter tint underneath it if the
+difference between unblocked and passable is the message: the corridors that
+are not in the core are the pinched ones.</li>
 </ul>
-<p>For multi-seed analysis, create a composite corridor-reliability map:
-run 20 seeds, rasterise each seed's corridor output (1 = open, 0 = blocked),
-sum the rasters, and style with a sequential green ramp (1–20). Cells with
-value 20 survived all seeds — the dependable skeleton. Cells with value 2–5
-flicker — not reliable for evacuation planning.</p>
+<p>For multi-seed work, either raise Simulation runs and map
+<code>collapse_freq</code> directly, or rasterise each seed's navigable core
+(1 = open, 0 = not) and sum: cells reaching the full count survived every seed
+and are the dependable skeleton, cells in the low single digits flicker and
+should not be planned around.</p>
 
 <h3>8. Interpretation Guide</h3>
 
-<h4>8.1 One run vs. many runs</h4>
-<p>A single run (one seed) produces one realisation of the earthquake
-scenario. This is useful for:</p>
-<ul>
-<li><strong>Visualising a plausible worst case:</strong> show decision-makers
-what one earthquake could look like. The collapsed buildings are specific,
-named structures — this is more compelling than a probability map.</li>
-<li><strong>Testing network preparation:</strong> does the network definition
-(mode A/B/C/D) produce a plausible street-space geometry? Check before
-committing to a multi-seed run.</li>
-<li><strong>Identifying the seed-sensitivity of specific corridors:</strong>
-run twice with different seeds. If a critical corridor (hospital access) is
-open in one seed and blocked in another, it is not reliable.</li>
-</ul>
-<p>For robust planning statements, run 10–20 seeds and analyse the
-<strong>distribution</strong> of outcomes. The key metrics across seeds:</p>
-<ul>
-<li><strong>Corridor survival probability:</strong> for each corridor segment,
-the fraction of seeds in which it remained open. Segments with survival > 0.9
-are the dependable skeleton.</li>
-<li><strong>Mean and range of collapsed building count:</strong> the expected
-damage and its seed-to-seed variability. A narrow range (e.g., 340–360
-collapsed buildings across 20 seeds at Mw 7.0) means the scenario is
-well-constrained; a wide range (200–500) means the city has many buildings
-with intermediate collapse probabilities (~0.5), and the outcome is genuinely
-uncertain.</li>
-<li><strong>Mean and range of debris volume:</strong> sizes the clearance
-problem. Multiply by clearance cost per cubic metre (local rates) for a
-first-order resource estimate.</li>
-</ul>
+<h4>8.1 Reading the damage distribution</h4>
+<p>The five damage states are not a severity label on one number; they are a
+distribution, and the shape of that distribution is the finding. Mid-rise
+concrete frame (C1M) at the default nominal 0.35&nbsp;g, by design level:</p>
+<table>
+<tr><th>Design level</th><th>None</th><th>Slight</th><th>Moderate</th><th>Extensive</th><th>Complete</th></tr>
+<tr><td>Pre-Code (&#8804;1985)</td><td>0.02</td><td>0.04</td><td>0.26</td><td>0.31</td><td>0.37</td></tr>
+<tr><td>Low-Code (1986&ndash;2000)</td><td>0.05</td><td>0.08</td><td>0.32</td><td>0.31</td><td>0.25</td></tr>
+<tr><td>Moderate-Code (2001&ndash;2018)</td><td>0.06</td><td>0.15</td><td>0.49</td><td>0.23</td><td>0.07</td></tr>
+<tr><td>High-Code (2019+)</td><td>0.09</td><td>0.25</td><td>0.53</td><td>0.12</td><td>0.01</td></tr>
+</table>
+<p>Two things to take from it. Complete damage separates the design levels by a
+factor of forty (0.37 against 0.01) while moderate damage barely separates them
+(0.26 against 0.53) &mdash; the codes buy collapse resistance, not freedom from
+repair. And the mass of the distribution sits in moderate and extensive even for
+high-code buildings, which is why debris is generated from the whole
+distribution rather than from collapse alone: at this intensity a high-code
+building is nine times more likely to shed its facade (extensive) than to come
+down.</p>
 
-<h4>8.2 Reading the collapse probability field</h4>
-<p>The <code>collapse_prob</code> field is the stable, seed-independent
-diagnostic. It tells you:</p>
-<ul>
-<li><strong>Where the risk is concentrated:</strong> sort buildings by
-descending <code>collapse_prob</code>. The top 5% of buildings (by this
-probability) are the priority retrofit candidates, regardless of which
-buildings happen to collapse in any single seed.</li>
-<li><strong>How magnitude changes the picture:</strong> run at Mw 6.5, 7.0, 7.5.
-At 6.5, only the oldest tier (pre-1985) has elevated probability (0.85 ×
-exp(−0.4) ≈ 0.57). At 7.5, even the newest tier has non-negligible
-probability (0.05 × exp(0.4) ≈ 0.07). The magnitude at which a significant
-number of post-2000 buildings exceed 0.3 probability is the "resilience
-cliff" — the seismic design level beyond which the building stock ceases to
-provide reliable protection.</li>
-<li><strong>Interaction with urban form:</strong> tall pre-1985 buildings on
-narrow streets are the highest-risk category — high collapse probability,
-large debris radius, small street width to absorb it. Rank buildings by
-<code>collapse_prob × height_m</code> and overlay on street width — the
-intersection identifies the worst-case structures.</li>
-</ul>
+<h4>8.2 One run vs. many runs</h4>
+<p>A single run is one realisation, useful for visualising a plausible case,
+for checking that the network definition produces sane street space before
+committing to a longer run, and for the specific question "how sensitive is this
+corridor to the seed?". It is not an answer to "how bad will it be". For that,
+raise Simulation runs: the tool reports the mean and spread of blocked street
+area across seeds, and <code>collapse_freq</code> per building is an empirical
+probability that does not depend on the seed chosen for the geometry.</p>
 
 <h4>8.3 Evacuation corridor analysis</h4>
-<p>The open corridors output is the primary planning product. The analysis
-sequence:</p>
 <ol>
-<li><strong>Identify critical facilities:</strong> hospitals, fire stations,
-assembly areas, evacuation centres. Buffer each by a 50 m access zone.</li>
-<li><strong>Check corridor connectivity:</strong> is each critical facility
-connected to the surviving corridor network in this seed? A facility whose
-access zone has zero intersection with the open corridors is isolated.</li>
+<li><strong>Identify critical facilities</strong> &mdash; hospitals, fire
+stations, assembly areas &mdash; and buffer each by a 50 m access zone.</li>
+<li><strong>Check access against the navigable core, not the corridors.</strong>
+A facility whose access zone touches only <code>OUT_CORRIDORS</code> and not
+<code>OUT_NAVIGABLE</code> is reachable on foot and not by vehicle.</li>
 <li><strong>Multi-seed reliability:</strong> count in how many seeds each
-facility retains corridor access. A hospital that is cut off in 15 out of
-20 seeds is not operationally accessible after the modelled earthquake —
-it needs a second access route, a widened approach street, or pre-positioned
-supplies.</li>
-<li><strong>Neighbourhood isolation:</strong> identify residential blocks that
-are entirely surrounded by blocked streets (zero corridor access). These are
-the neighbourhoods that would need helicopter or foot access — a different
-order of emergency-response challenge.</li>
+facility retains navigable access. A hospital cut off in 15 of 20 seeds needs a
+second access route, a widened approach street, or pre-positioned supplies.</li>
+<li><strong>Neighbourhood isolation:</strong> residential blocks with no
+navigable access at all would need foot or helicopter access &mdash; a different
+order of emergency-response problem.</li>
 </ol>
 
 <h4>8.4 Cross-references to other PlanX tools</h4>
 <ul>
-<li><strong>Link Criticality:</strong> run <strong>Link Criticality</strong>
-on the same street network and compare the critical links to the corridors
-that survive the seismic debris model. A link that is both critical (high
-NRI) <em>and</em> likely to be blocked (low survival probability across seeds)
-is a dual vulnerability — it is structurally important <em>and</em>
-seismically fragile. These are the highest-priority resilience investments.</li>
-<li><strong>Nearest Facility:</strong> run <strong>Nearest Facility</strong>
-with demand = population points and facilities = hospitals, using the
-<strong>open corridors</strong> as the network. Compare the allocation to
-the baseline (intact network). The population whose nearest hospital distance
-increases by more than 50% is the population that loses effective emergency
-access in this scenario.</li>
-<li><strong>Scenario Compare:</strong> a seismic scenario is a specific type
-of "planning scenario." Feed the corridor survival summary (count of open
-corridors, number of isolated facilities) into <strong>Scenario Compare</strong>
-alongside growth and infrastructure scenarios to evaluate seismic resilience
-alongside other planning priorities.</li>
+<li><strong>Link Criticality:</strong> compare critical links against the links
+that survive as navigable core across seeds. A link that is both structurally
+critical and seismically fragile is the highest-priority resilience investment.</li>
+<li><strong>Nearest Facility:</strong> rerun with the navigable core as the
+network and compare allocations against the intact-network baseline. Population
+whose nearest-hospital distance rises sharply is the population that loses
+effective emergency access.</li>
+<li><strong>Scenario Compare:</strong> feed the corridor-survival summary into
+Scenario Compare alongside growth and infrastructure scenarios.</li>
 </ul>
 
 <h4>8.5 Pitfalls</h4>
 <ul>
-<li><strong>Year tiers are global defaults, not local calibrations.</strong>
-The three tier breakpoints (1985, 2000, 2018) reflect the approximate
-trajectory of seismic code development internationally, but individual
-countries introduced codes at different times (Turkey: 1975, 1998, 2007,
-2018; Japan: 1924, 1950, 1981, 2000; Chile: 1972, 1996, 2010). Replace the
-tier breakpoints and probabilities with locally appropriate values before
-using the tool for operational risk assessment.</li>
-<li><strong>The collapse flag is one roll of the dice.</strong> Do not present
-a single seed's collapse pattern as "the" earthquake damage — it is one
-realisation from a probability distribution. The question "will this building
-collapse in a Mw 7.0 earthquake?" has a probabilistic answer (the collapse_prob
-field), not a deterministic one. The collapsed flag exists to make the debris
-spread geometrically concrete, not to certify individual building safety.</li>
-<li><strong>Street width matters critically.</strong> A 2 m difference in
-default street width can change a corridor from "survives" to "blocked."
-Source B (OSM highway classes) uses standard widths that may not match local
-conditions — a "residential" street in a historic centre may be 4 m wide
-between facades, not the assumed 8 m. Whenever possible, use Source A
-(measured street-space polygons) or Source C (measured widths) for
-consequential analysis.</li>
-<li><strong>The model has no time dimension.</strong> All buildings collapse
-simultaneously. There is no aftershock sequence, no progressive collapse,
-and no cascading failures (e.g., a collapsed building damaging a neighbouring
-one). The debris envelope is a static snapshot of the immediate post-event
-condition, not a time-evolving debris field.</li>
+<li><strong>Unblocked is not passable.</strong> Use the navigable core for any
+statement about routes. The gap between the two layers is often a few percent of
+total street area but is concentrated exactly where narrow streets meet tall old
+frontages &mdash; the places access matters most.</li>
+<li><strong>The curves are not Turkish.</strong> Hazus medians, a western-United
+States reference spectrum, and design levels mapped onto Turkish regulation years
+by analogy. Compare scenarios with each other and rank buildings; do not quote
+the absolute probability as a local loss estimate.</li>
+<li><strong>The magnitude route has no ground-motion model.</strong> Every
+building in the study area gets the same nominal shaking when no PGA field is
+supplied, regardless of distance from the rupture or soil conditions. Join a
+shaking raster before drawing any conclusion that depends on where a building is.</li>
+<li><strong>Street width drives the result.</strong> A 2 m change in assumed
+width can flip a corridor from surviving to pinched. Source B's class widths are
+European-city averages and a historic-centre "residential" street may be 4 m
+between facades. Prefer source A (measured polygons) or source C (measured
+widths) for consequential analysis.</li>
+<li><strong>Do not read the single-run debris envelope as the debris field.</strong>
+It is one draw from the damage distribution. The probability and the pile-volume
+totals are the planning numbers; the envelope is an illustration of one of them.</li>
 </ul>
 
 <h3>9. Academic References</h3>
+<p class="ref">FEMA (2024). <em>Hazus Earthquake Model Technical Manual &mdash;
+Hazus 6.1.</em> Federal Emergency Management Agency, Washington, DC. The
+equivalent-PGA structural fragility medians used by this tool are transcribed
+from Tables 5-37 to 5-40; the dispersion beta = 0.64 and the reference spectrum
+(Mw 7.0, western United States, Site Class D, distance &#8805; 15 km) are stated
+in Section 5.4.
+Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus">fema.gov/hazus</a>
+</p>
 <p class="ref">Goretti, A. &amp; Sarli, V. (2006). "Road network and damaged buildings in urban
 areas: short and long-term interaction." <em>Bulletin of Earthquake Engineering</em>,
-4(2), 159–175.
+4(2), 159&ndash;175.
 DOI: <a href="https://doi.org/10.1007/s10518-006-9004-3">10.1007/s10518-006-9004-3</a>
 </p>
 <p class="ref">Coburn, A. &amp; Spence, R. (2002). <em>Earthquake Protection.</em>
@@ -15167,35 +15251,28 @@ DOI: <a href="https://doi.org/10.1002/0470855185">10.1002/0470855185</a>
 </p>
 <p class="ref">Schweier, C. &amp; Markus, M. (2006). "Classification of Collapsed Buildings for
 Fast Damage and Loss Assessment." <em>Bulletin of Earthquake Engineering</em>,
-4(2), 177–192.
+4(2), 177&ndash;192.
 DOI: <a href="https://doi.org/10.1007/s10518-006-9005-2">10.1007/s10518-006-9005-2</a>
-</p>
-<p class="ref">FEMA (2020). <em>Hazus Earthquake Model Technical Manual — Hazus 5.1.</em>
-Federal Emergency Management Agency, Washington, DC.
-Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus">fema.gov/hazus</a>
 </p>
 <p class="ref">Ansal, A., Akinci, A., Cultrera, G., Erdik, M., Pessina, V., Tonuk, G. &amp;
 Zulfikar, C. (2011). "Loss scenarios for the city of Istanbul and its
 vulnerability to earthquakes." <em>Soil Dynamics and Earthquake Engineering</em>,
-31(3), 534–546.
+31(3), 534&ndash;546.
 DOI: <a href="https://doi.org/10.1016/j.soildyn.2010.10.008">10.1016/j.soildyn.2010.10.008</a>
 </p>
 <p class="ref">Argyroudis, S., Selva, J., Gehl, P. &amp; Pitilakis, K. (2015). "Systemic
 Seismic Risk Assessment of Road Networks Considering Interactions with the
 Built Environment." <em>Computer-Aided Civil and Infrastructure Engineering</em>,
-30(7), 524–540.
+30(7), 524&ndash;540.
 DOI: <a href="https://doi.org/10.1111/mice.12136">10.1111/mice.12136</a>
 </p>
 <p class="ref">Zanini, M.A., Faleschini, F., Zampieri, P., Pellegrino, C., Gecchele, G.,
 Gastaldi, M. &amp; Rossi, R. (2017). "Post-quake urban road network
 assessment: A combined seismic damage and traffic flow approach."
-<em>Structure and Infrastructure Engineering</em>, 13(3), 355–368.
+<em>Structure and Infrastructure Engineering</em>, 13(3), 355&ndash;368.
 DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.2016.1170780</a>
 </p>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!-- APPENDICES                                                          -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
 <div class="page-break"></div>
 <h2 id="appendix-a">Appendix A: Data Sources Directory</h2>
 <table>
@@ -15289,7 +15366,7 @@ DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.20
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.12.0 &middot; 71 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.13.0 &middot; 71 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 
