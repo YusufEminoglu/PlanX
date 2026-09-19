@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, morphology,
+    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, liquefaction as liq, morphology,
     optimize, parking, paths, provenance, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
@@ -3029,6 +3029,301 @@ _pk_surplus = dict(parking.balance_summary(
 check("parking: a surplus is reported as a positive balance and no deficit",
       close(_pk_surplus["surplus (+) or deficit (-), surveyed zones, spaces"],
             15.0) and close(_pk_surplus["surveyed zones in deficit"], 0.0))
+
+# --------------------------------------------------------------------------- #
+# Liquefaction screening - Zhu et al. (2015) and Hazus 6.1 Section 4.2.2.1
+# --------------------------------------------------------------------------- #
+# The reference point every sensitivity below is taken at. Nothing special
+# about it except that it sits well inside every clip, so a derivative taken
+# here is the model's own and not a clip's own.
+_ZHU_REF = {"pga_g": 0.3, "magnitude": 7.0, "cti": 5.0, "vs30": 250.0}
+_ZHU_STEP = 1e-7
+
+
+def _zhu_at(**over):
+    args = dict(_ZHU_REF)
+    args.update(over)
+    return liq.zhu_logit(**args)
+
+
+def _elasticity(parameter):
+    """d(logit) / d(ln x) about the reference point, by a right difference.
+
+    PGA, Mw and Vs30 all enter the model *inside* a logarithm, so this
+    difference returns their published coefficient directly rather than a
+    number that depends on the units the reference point happens to be in.
+    """
+    moved = _zhu_at(**{parameter: _ZHU_REF[parameter] * math.exp(_ZHU_STEP)})
+    return (moved - _zhu_at()) / _ZHU_STEP
+
+
+def _slope(parameter):
+    """d(logit) / d(x) about the reference point - for the linear terms.
+
+    CTI enters the model as itself, not as a logarithm, so its coefficient is
+    a slope and the log-space difference above would return ``CTI * c2``.
+    """
+    moved = _zhu_at(**{parameter: _ZHU_REF[parameter] + _ZHU_STEP})
+    return (moved - _zhu_at()) / _ZHU_STEP
+
+
+def _liq_raises(function, *args):
+    try:
+        function(*args)
+    except (ValueError, ZeroDivisionError, OverflowError):
+        return True
+    return False
+
+
+# ---- The exponent trap ---------------------------------------------------- #
+# Zhu et al.'s seismic term is c1*ln(PGA * Mw^2.56 / 10^2.24) - the magnitude
+# scaling is folded *inside* the logarithm. The obvious reading of the
+# published form, c1*ln(PGA) + 2.56*ln(Mw) + ..., is monotone in every input,
+# bounded in (0, 1) after the logistic, and wrong: it scales magnitude by 1
+# where the model scales it by c1 = 2.067. The two forms agree exactly at
+# Mw 7 and are the same shape everywhere, so "higher Mw gives a higher
+# probability" passes on both. Only a derivative separates them, which is why
+# this check is a derivative.
+check("Zhu: magnitude sensitivity is c1 times the exponent, not the exponent alone",
+      close(_elasticity("magnitude"), 5.29152, 1e-5)
+      and not close(_elasticity("magnitude"), liq.ZHU["magnitude_exponent"], 1e-3))
+check("Zhu: the PGA, CTI and Vs30 sensitivities are their own published coefficients",
+      close(_elasticity("pga_g"), liq.ZHU["ln_pga_magnitude"], 1e-5)
+      and close(_slope("cti"), liq.ZHU["cti"], 1e-6)
+      and close(_elasticity("vs30"), liq.ZHU["ln_vs30"], 1e-5))
+
+_zhu_pga_sweep = [_zhu_at(pga_g=p) for p in (0.05, 0.1, 0.2, 0.4, 0.8)]
+_zhu_cti_sweep = [_zhu_at(cti=c) for c in (0.0, 3.0, 6.0, 9.0, 12.0)]
+_zhu_vs30_sweep = [_zhu_at(vs30=v) for v in (120.0, 180.0, 260.0, 400.0, 760.0)]
+check("Zhu: X rises with PGA and with CTI, and falls with Vs30",
+      all(a < b for a, b in zip(_zhu_pga_sweep, _zhu_pga_sweep[1:]))
+      and all(a < b for a, b in zip(_zhu_cti_sweep, _zhu_cti_sweep[1:]))
+      and all(a > b for a, b in zip(_zhu_vs30_sweep, _zhu_vs30_sweep[1:])))
+
+# The published logistic is written against a ShakeMap %g layer, so the USGS
+# implementation divides by 100 before taking the logarithm. Our field is in g.
+# Applying that division here would be a unit error of a fixed size, and a
+# fixed size is exactly what a reader cannot see: every probability moves the
+# same direction, every ranking survives, and the tool reports 0.9999 where
+# the answer is 0.03.
+_zhu_g = _zhu_at()
+_zhu_pctg = _zhu_at(pga_g=_ZHU_REF["pga_g"] / 100.0)
+check("Zhu: reading a g-valued PGA as %g would move the logit by c1*ln(100)",
+      close(_zhu_g - _zhu_pctg, liq.ZHU["ln_pga_magnitude"] * math.log(100.0), 1e-9)
+      and close(_zhu_g - _zhu_pctg, 9.5189, 1e-4))
+check("Zhu: the PGA clip is the source's %g ceiling restated in g, not 270",
+      close(liq.ZHU_PGA_CLIP_G[1], 270.0 / 100.0, 1e-12)
+      and close(liq.ZHU_CTI_CLIP[1], 15.0, 1e-12))
+
+# The reference logit written out longhand. The ZHU dict cannot vouch for
+# itself: if a coefficient is edited in the engine and in no test, every
+# probability in the tool moves and nothing fails.
+_zhu_mid = liq.zhu_probability(_ZHU_REF["pga_g"], _ZHU_REF["magnitude"],
+                               _ZHU_REF["cti"], _ZHU_REF["vs30"])
+_zhu_hand = (24.10
+             + 2.067 * math.log(0.3 * 7.0 ** 2.56 / 10.0 ** 2.24)
+             + 0.355 * 5.0
+             - 4.784 * math.log(250.0))
+check("Zhu: the reference logit is the published terms written out longhand",
+      close(_zhu_mid["logit"], _zhu_hand, 1e-12)
+      and close(_zhu_mid["probability"], liq.logistic(_zhu_hand), 1e-15))
+
+# The 0.81 in Zhu et al. (2017) is a proportion-of-*area* correction, and it is
+# reported beside the point probability rather than multiplied into it. Folded
+# in, it would be a 19 % error on the headline number that no user could detect
+# - both columns would still be "a probability".
+check("Zhu: the 0.81 coverage factor is its own column, not applied to the probability",
+      close(_zhu_mid["coverage"], _zhu_mid["probability"] * 0.81, 1e-15)
+      and _zhu_mid["coverage"] < _zhu_mid["probability"]
+      and close(_zhu_mid["coverage"] / _zhu_mid["probability"],
+                liq.ZHU_COVERAGE_FACTOR, 1e-15))
+
+# Clipping happens *upstream* of the logit: an out-of-range row must give the
+# same answer as the row clipped by hand, or the model was evaluated outside
+# its calibration range and the clip is decoration.
+_zhu_extreme = liq.zhu_probability(5.0, 9.5, 99.0, 120.0)
+check("Zhu: an out-of-range input is clipped before the logit, and says so per row",
+      _zhu_extreme["pga_g"] == liq.ZHU_PGA_CLIP_G[1]
+      and _zhu_extreme["cti"] == liq.ZHU_CTI_CLIP[1]
+      and _zhu_extreme["pga_clipped"] and _zhu_extreme["cti_clipped"]
+      and len(_zhu_extreme["notes"]) == 2
+      and close(_zhu_extreme["probability"],
+                liq.zhu_probability(2.7, 9.5, 15.0, 120.0)["probability"], 1e-15))
+check("Zhu: an unclipped row reports no note, so an empty report means something",
+      _zhu_mid["notes"] == [] and not _zhu_mid["pga_clipped"]
+      and not _zhu_mid["cti_clipped"])
+check("Zhu: the probability stays strictly inside (0, 1) even at absurd inputs",
+      0.0 < _zhu_extreme["probability"] < 1.0
+      and 0.0 < liq.zhu_probability(0.001, 5.0, 0.0, 2000.0)["probability"] < 1.0
+      and liq.logistic(1e9) == 1.0 and liq.logistic(-1e9) == 0.0)
+
+# Rule R7 at the engine level. There is no reference shaking level the way
+# there is a reference velocity: PGA enters the model as ln(PGA), and zero
+# would come back as a clean "no liquefaction here" - the one answer this tool
+# must not invent.
+check("Zhu: a zero or negative PGA is refused, not read as no shaking",
+      _liq_raises(liq.zhu_logit, 0.0, 7.0, 5.0, 250.0)
+      and _liq_raises(liq.zhu_logit, -0.2, 7.0, 5.0, 250.0)
+      and _liq_raises(liq.zhu_logit, 0.3, 7.0, 5.0, 0.0)
+      and _liq_raises(liq.zhu_logit, 0.3, 0.0, 5.0, 250.0)
+      and not _liq_raises(liq.zhu_logit, 0.3, 7.0, 5.0, 250.0))
+
+# ---- CTI, and the unit it is measured in ---------------------------------- #
+_cti_flat, _grad_flat = hydro.cti(np.full((3, 3), 50.0), 10.0)
+check("CTI: a flat plane has no downslope neighbour, so it is +inf rather than an invented floor",
+      bool(np.all(np.isinf(_cti_flat))) and bool(np.all(_grad_flat == 0.0)))
+check("CTI: the model's own ceiling is what clips an undrained cell, not the caller",
+      liq.clip_cti(float("inf")) == (liq.ZHU_CTI_CLIP[1], True)
+      and close(liq.zhu_probability(0.3, 7.0, float("inf"), 250.0)["probability"],
+                liq.zhu_probability(0.3, 7.0, liq.ZHU_CTI_CLIP[1], 250.0)["probability"],
+                1e-15)
+      and liq.zhu_probability(0.3, 7.0, float("inf"), 250.0)["cti_clipped"])
+
+# A plane dropping 1 m per 10 m cell, eastward. Every cell but the last column
+# drains east, so flow accumulation at column c is c+1 cells, the specific
+# catchment area is (c+1)*pixel and the gradient is 1/pixel. CTI is therefore
+# ln((c+1) * pixel^2 / 1) exactly - read off the definition, not off the code.
+_PIXEL = 10.0
+_plane = np.array([[float(-c) for c in range(5)] for _ in range(4)])
+_cti_plane, _grad_plane = hydro.cti(_plane, _PIXEL)
+check("CTI: a uniform plane reproduces the analytic wetness index on every draining cell",
+      all(close(float(_cti_plane[r, c]),
+                math.log((c + 1) * _PIXEL * _PIXEL), 1e-9)
+          for r in range(4) for c in range(4))
+      and bool(np.all(np.isinf(_cti_plane[:, 4])))
+      and close(float(_grad_plane[0, 0]), 1.0 / _PIXEL, 1e-12))
+# The same plane described along the other axis. Without it a row/column
+# transposition inside the accumulation pass would leave the plane test green:
+# the analytic value is symmetric, so only the axis it appears on is not.
+_cti_ns, _ = hydro.cti(_plane.T, _PIXEL)
+check("CTI: the same plane tilted north-south reproduces the index along rows",
+      all(close(float(_cti_ns[r, c]),
+                math.log((r + 1) * _PIXEL * _PIXEL), 1e-9)
+          for r in range(4) for c in range(4))
+      and bool(np.all(np.isinf(_cti_ns[4, :]))))
+
+# The unit trap this phase adds to docs/TRAPS.md, and the reason the QGIS
+# surface converts the pixel size to metres before cti() ever sees it. CTI is
+# the log of a specific catchment area, so the *same terrain* described in feet
+# raises the index by ln(3.28084) everywhere - which the CTI coefficient turns
+# into 0.42 logit units of pure unit error. Nothing else in the run notices:
+# the slopes agree, the flow directions agree, and the map looks identical.
+_cti_metres, _ = hydro.cti(np.array([[-0.3048 * c for c in range(5)]
+                                     for _ in range(4)]), 10.0)
+_cti_feet, _ = hydro.cti(_plane, 10.0 * 3.28084)
+_unit_shift = float(_cti_feet[0, 0] - _cti_metres[0, 0])
+check("CTI: a DEM in feet raises the index by ln(3.28084) - the metric-area unit trap",
+      close(_unit_shift, math.log(3.28084), 1e-6)
+      and close(0.355 * _unit_shift, 0.4218, 1e-3))
+
+# ---- Vs30 from slope - Allen & Wald (2007), Table 2 ----------------------- #
+check("Vs30: the table's own nodes come back exactly and are not flagged as clamped",
+      all(close(liq.vs30_from_slope(x, setting)[0], y, 1e-12)
+          and liq.vs30_from_slope(x, setting)[1] is False
+          for setting in liq.TECTONIC_SETTINGS
+          for x, y in liq.SLOPE_VS30_NODES[setting]))
+check("Vs30: between two nodes the value interpolates linearly between them",
+      close(liq.vs30_from_slope(0.034, "active")[0],
+            360.0 + (0.034 - 0.018) / (0.050 - 0.018) * (490.0 - 360.0), 1e-12)
+      and liq.vs30_from_slope(0.034, "active")[1] is False)
+check("Vs30: outside the published nodes the value is held at the endpoint and says so",
+      liq.vs30_from_slope(1e-9, "active") == (180.0, True)
+      and liq.vs30_from_slope(10.0, "active") == (760.0, True)
+      and liq.vs30_from_slope(float("nan"), "active")[1] is True)
+check("Vs30: an unknown tectonic setting is refused, not defaulted",
+      _liq_raises(liq.vs30_from_slope, 0.01, "somewhere"))
+
+# Why the tectonic setting is an explicit choice with no default (rule R3).
+# At the slope where the two columns of the source table diverge hardest they
+# differ by a factor of 1.96 in velocity, which the Vs30 coefficient turns into
+# 3.2 logit units - the difference between a screening estimate and a different
+# answer. Picking one silently would have been picking the answer.
+_widest = max(liq.vs30_from_slope(s, "stable")[0]
+              / liq.vs30_from_slope(s, "active")[0]
+              for s in [i * 1e-5 for i in range(1, 3000)])
+check("Vs30: the active and stable columns differ by more than 3 logit units at their widest",
+      _widest > 1.9 and 4.784 * math.log(_widest) > 3.0)
+
+# ---- Hazus 6.1 Section 4.2.2.1 -------------------------------------------- #
+# Every category must have an entry in every one of the four tables. A partial
+# re-transcription is the one failure that produces plausible numbers for some
+# units and a crash or a silent zero for others - and if it landed in
+# HAZUS_PROPORTION alone, the missing category would read as "no hazard".
+check("Hazus: the four category tables describe exactly the same six categories",
+      set(liq.HAZUS_PROPORTION) == set(liq.HAZUS_CATEGORIES)
+      and set(liq.HAZUS_CONDITIONAL) == set(liq.HAZUS_CATEGORIES)
+      and set(liq.HAZUS_SETTLEMENT_IN) == set(liq.HAZUS_CATEGORIES)
+      and set(liq.HAZUS_PGA_THRESHOLD) == set(liq.HAZUS_CATEGORIES) - {"None"})
+
+# Table 4-11's zero crossings are Table 4-12's thresholds. The two tables were
+# read independently, and they agree to within the manual's own rounding. This
+# is the check that catches a mistyped slope or intercept: a line shifted by
+# 0.01 in intercept moves its crossing by 0.001-0.002 g.
+check("Hazus: Table 4-11's zero crossings reproduce Table 4-12's thresholds",
+      max(abs(-liq.HAZUS_CONDITIONAL[c][1] / liq.HAZUS_CONDITIONAL[c][0]
+              - liq.HAZUS_PGA_THRESHOLD[c])
+          for c in liq.HAZUS_PGA_THRESHOLD) < 0.002)
+
+# The published polynomials do not pass exactly through unity at the conditions
+# they are referenced to. Applying them as printed is a deliberate choice, so
+# the residual is asserted rather than tolerated: a later "fix" that quietly
+# renormalised them would move every number in the tool and fail here.
+check("Hazus: Equations 4-10 and 4-11 are applied as printed, reference residual and all",
+      close(liq.hazus_magnitude_factor(7.5), 1.0147375, 1e-12)
+      and close(liq.hazus_groundwater_factor(1.524), 1.04, 1e-12)
+      and not close(liq.hazus_magnitude_factor(7.5), 1.0, 1e-3)
+      and not close(liq.hazus_groundwater_factor(1.524), 1.0, 1e-3))
+check("Hazus: the water-table depth is converted from metres to feet inside Equation 4-11",
+      close(liq.hazus_groundwater_factor(1.524),
+            liq.hazus_groundwater_factor(5.0 * 0.3048), 1e-15)
+      and close(liq.hazus_groundwater_factor(3.048), 0.022 * 10.0 + 0.93, 1e-12))
+
+# One unit by hand, from the manual: Very High, PGA 0.3 g, Mw 7.5, and the
+# manual's own 5 ft reference water table.
+#   P[Liquefaction | PGA = 0.3] = 9.09*0.3 - 0.82 = 1.907, clipped to 1.0
+#   P = P[Liquefaction | PGA = a] / (K_M * K_W) * P_ml = 1.0 / (1.0147375 * 1.04) * 0.25
+_hazus = liq.hazus_probability("Very High", 0.3, 7.5, 1.524)
+check("Hazus: Equation 4-9 reproduces the hand-computed unit probability",
+      _hazus["conditional"] == 1.0
+      and close(_hazus["proportion"], 0.25, 1e-12)
+      and close(_hazus["probability"], 0.25 / (1.0147375 * 1.04), 1e-12)
+      and close(_hazus["probability"], 0.23689339891806044, 1e-12))
+check("Hazus: the expected settlement is the probability times the Table 4-13 amplitude",
+      close(_hazus["settlement_in"], _hazus["probability"] * 12.0, 1e-12)
+      and close(_hazus["pga_threshold"], 0.09, 1e-12))
+check("Hazus: the Table 4-11 conditional probability is clipped at both ends",
+      liq.hazus_conditional("Very High", 0.05) == 0.0
+      and liq.hazus_conditional("Very High", 0.5) == 1.0
+      and close(liq.hazus_conditional("Low", 0.30), 5.57 * 0.30 - 1.18, 1e-12))
+# The sixth row of Table 4-11 is a constant, not a line. Left out of the table
+# it would be a KeyError on a category the user did supply - a crash instead of
+# the zero the manual defines.
+check("Hazus: the 'None' category is a constant zero, not a missing line",
+      liq.hazus_conditional("None", 0.9) == 0.0
+      and liq.hazus_probability("None", 0.9, 7.5, 1.524)["probability"] == 0.0
+      and liq.hazus_probability("None", 0.9, 7.5, 1.524)["settlement_in"] == 0.0
+      and liq.hazus_probability("None", 0.9, 7.5, 1.524)["pga_threshold"] is None)
+
+# The category ordering is the one thing a reader is entitled to assume, and
+# nothing else in the model enforces it: two transposed proportions would give
+# a plausible map with the colours in the wrong order.
+_hazus_order = [liq.hazus_probability(c, 0.5, 7.5, 1.524)["probability"]
+                for c in liq.HAZUS_CATEGORIES]
+check("Hazus: at one shaking level the categories rank from Very High down to None",
+      all(a > b for a, b in zip(_hazus_order, _hazus_order[1:]))
+      and _hazus_order[-1] == 0.0)
+
+check("Hazus: a category is matched on its name alone - case and separators, nothing else",
+      liq.normalise_category(" very  high ") == "Very High"
+      and liq.normalise_category("VERY-HIGH") == "Very High"
+      and liq.normalise_category("very_low") == "Very Low"
+      and liq.normalise_category("None") == "None")
+check("Hazus: an unrecognised category returns None rather than a guess",
+      liq.normalise_category("VH") is None
+      and liq.normalise_category("1") is None
+      and liq.normalise_category("medium") is None
+      and liq.normalise_category(None) is None
+      and liq.normalise_category("") is None)
 
 # --------------------------------------------------------------------------- #
 def _failures():

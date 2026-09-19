@@ -112,7 +112,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 73
+MIN_EXPECTED_CASE_COUNT = 74
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -295,6 +295,25 @@ def _occupancy_attrs(index, _feature, values):
     ]
 
 
+#: The six categories the liquefaction model's tables are written for, cycled
+#: so one run touches all six branches. Spelled exactly as the model accepts
+#: them, which is the point of the fixture: the land-use words an ordinary
+#: city layer carries are *not* these, and the tool refuses them on purpose.
+_LIQ_CATEGORY_CYCLE = ("Very High", "High", "Moderate", "Low", "Very Low",
+                       "None")
+
+
+def _liq_category_attrs(index, _feature, _values):
+    return [_LIQ_CATEGORY_CYCLE[index % len(_LIQ_CATEGORY_CYCLE)]]
+
+
+#: Water-table depth the susceptibility extra run is pinned to, in metres.
+#: Spelled once: the extra run sets the parameter from it and the value check
+#: re-derives K_W from it, and a constant written down twice is a check that
+#: can drift away from the thing it is checking.
+_LIQ_GROUNDWATER_M = 1.524
+
+
 def _landuse_attrs(index, feature, values):
     use = str(values.get("use") or "other").lower()
     suit = {
@@ -417,6 +436,15 @@ LAYER_OVERRIDES = {
     ("planx:seismicdebris", "NETWORK_LINES"): "network",
     ("planx:seismicdebris", "BLOCKS"): "parcels",
     ("planx:seismicdebris", "ROI"): "study_area",
+    # liquefaction's TARGET is "any geometry, one sample per feature", which no
+    # role in ROLE_BY_PARAM claims. The parcels layer is the honest fit: it
+    # tiles the city, so every point on its surface lands inside the DEM, and
+    # it carries a real `category` column, which the same run's CATEGORY_FIELD
+    # parameter then binds. That binding is not incidental - it exercises the
+    # report line telling a regression-mode user that a category column is a
+    # susceptibility-mode input and is being ignored, which is the only place
+    # that message is produced.
+    ("planx:liquefaction", "TARGET"): "parcels",
     # parkingdemand reads a land-use category and a size in the rate table's
     # own terms. The `demand` layer that ZONES would otherwise match carries a
     # constant category ("all"), which no rate row can match: every zone would
@@ -453,6 +481,23 @@ ENUM_OVERRIDES = {
     # centreline sources, which is what B and C below are for. Source A's
     # zero-area case is a hard error now rather than an empty answer.
     ("planx:seismicdebris", "NETWORK_MODE"): 1,
+    # liquefaction's TECTONIC has no default on purpose: index 0 is a sentinel
+    # the tool refuses, because the active and stable-continent columns of
+    # Allen & Wald Table 2 differ by over 3 logit units at the same slope and
+    # choosing one silently would be choosing the answer (rule R3). The choice
+    # still has to be made here, or the case exercises nothing but the refusal
+    # - which is held separately in REFUSALS.
+    ("planx:liquefaction", "TECTONIC"): 1,
+}
+
+# Number parameters whose declared default is not a value this bundle can run
+# on. Keyed (algorithm id, parameter name) -> value. The declared default is
+# still the right default for a user; it is a *sentinel* here, which is a
+# different thing from a default: liquefaction's PGA_G is 0.0 meaning "not
+# given", and the tool refuses a run with no shaking level rather than reading
+# it as no hazard.
+NUMBER_OVERRIDES = {
+    ("planx:liquefaction", "PGA_G"): 0.35,
 }
 
 # A `MultipleLayers` parameter takes a list, not a single role.
@@ -554,8 +599,20 @@ SKIP_OPTIONAL = {
     "OBSERVED_SHARES",
     "EXTENT",          # raster tools default to the input raster extent
     "WATER",           # no water body in the demo city
-    "PGA_FIELD",       # seismicdebris: no shaking raster to sample into a column
-    "VS30_FIELD",      # groundmotion: the demo city has no measured site velocity
+    # seismicdebris and liquefaction: no shaking raster in this bundle to
+    # sample into a column. liquefaction's own PGA_FIELD is the "use a real
+    # ShakeMap field" path; the constant path it falls back to is covered by
+    # NUMBER_OVERRIDES, and the field path's refusals by REFUSALS.
+    "PGA_FIELD",
+    # groundmotion and liquefaction: the demo city has no measured site
+    # velocity. liquefaction's slope-derived path is the primary run; a
+    # *supplied* velocity is covered by its extra run.
+    "VS30_FIELD",
+    # liquefaction: _pick_raster would fall through to the DEM for this one -
+    # "VS30_RASTER" matches no token in RASTER_BY_PARAM - and a terrain DSM
+    # read as shear-wave velocity is a plausible-looking wrong answer rather
+    # than a missing one, which is the worst kind to leave in a green sweep.
+    "VS30_RASTER",
     # seismicimpact: the fixture buildings carry neither an occupancy class, a
     # population, a dwelling-unit count nor a damage-state column, and the
     # primary run reads the debris tool's own output anyway. This tool's other
@@ -637,6 +694,20 @@ EXTRA_RUNS = {
     "planx:seismicdebris": (
         ("network_c", "OUT_NAVIGABLE", {"NETWORK_MODE": 2}),
         ("simulated", "OUT_BUILDINGS", {"SIMULATIONS": 8}),
+    ),
+    # liquefaction's other two halves. The primary run is the regression model
+    # on its slope-derived velocity; these are the susceptibility model - the
+    # same six categories, the same four tables, reached through a completely
+    # different engine path and output schema - and the regression model driven
+    # by a velocity the user supplied rather than one inferred from terrain.
+    "planx:liquefaction": (
+        ("susceptibility", "OUTPUT", {
+            "MODE": 1,
+            "TARGET": "fixture:hazus_units",
+            "CATEGORY_FIELD": "liq_category",
+            "GROUNDWATER_M": _LIQ_GROUNDWATER_M,
+        }),
+        ("constant_vs30", "OUTPUT", {"VS30_MS": 320.0, "TECTONIC": 2}),
     ),
     # The casualty model's two other input paths. The primary run reads the
     # debris tool's four probability columns; these read a real occupancy
@@ -952,6 +1023,17 @@ def build_fixtures(processing, work_dir, transform_context):
         + _occupancy_attrs(index, feature, values),
         fix_dir, transform_context)
 
+    # The land-use polygons again, carrying a liquefaction category column
+    # instead of a land-use one. The susceptibility half of planx:liquefaction
+    # is driven entirely by these six names, and it refuses a column of
+    # anything else - an unclassified unit read as zero would report "no
+    # liquefaction hazard" for a unit nobody classified. The city's own
+    # `category` column holds land-use words, so covering that half of the
+    # tool needs a layer that speaks the model's vocabulary.
+    layers["hazus_units"] = _augment(
+        load("OUTPUT_LANDUSE"), "hazus_units", (("liq_category", STRING),),
+        _liq_category_attrs, fix_dir, transform_context)
+
     parcels = QgsVectorLayer(str(layers["landuse"]), "landuse", "ogr")
     study_area = _bounding_layer("study_area", parcels.extent(), parcels.crs(),
                                  fix_dir, transform_context)
@@ -1243,6 +1325,11 @@ def build_inputs(algorithm, bundle, tables, rasters, artifacts, out_dir, result)
             continue
 
         if isinstance(definition, QgsProcessingParameterNumber):
+            declared = NUMBER_OVERRIDES.get((algorithm_id, name))
+            if declared is not None:
+                values[name] = float(declared)
+                result.choices[name] = f"override:{values[name]:g}"
+                continue
             default = definition.defaultValue()
             values[name] = float(default if default is not None else 0.0)
             result.choices[name] = f"default:{values[name]:g}"
@@ -1621,6 +1708,157 @@ def _expect_debris_volume_uses_the_reported_footprint(path):
     return None
 
 
+def _expect_liquefaction_matches_its_own_terms(path):
+    """The reported probability must equal the model evaluated on the row's own inputs.
+
+    The output layer carries every term the model used - PGA, Mw, CTI, Vs30 -
+    so the probability is reconstructible from the same file a reader gets.
+    That is the check the output counts cannot make. A column wired to the
+    wrong quantity, the two models' probabilities crossed, a probability
+    carried through a clip the reported inputs never went through: each of
+    those produces a plausible, monotone, fully populated layer, and each of
+    them fails here.
+
+    It also holds the *order* of the clip honest. The stored CTI is the raw
+    grid value, so a row whose index was clipped to the model's ceiling
+    reconstructs only if the tool clipped it in the same place this does -
+    before the logarithm, not after.
+    """
+    from planx.engine import liquefaction
+
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    required = {"liq_prob", "liq_area_frac", "pga_g", "mw", "cti", "vs30_ms"}
+    missing = required - set(names)
+    if missing:
+        return f"missing liquefaction column(s): {', '.join(sorted(missing))}"
+    checked = 0
+    for index, row in enumerate(rows, start=1):
+        if row["liq_prob"] in (None, ""):
+            continue
+        expected = liquefaction.zhu_probability(
+            float(row["pga_g"]), float(row["mw"]),
+            float(row["cti"]), float(row["vs30_ms"]))
+        if abs(float(row["liq_prob"]) - expected["probability"]) > 1e-9:
+            return (f"row {index}: liq_prob is {float(row['liq_prob']):.12f} where "
+                    f"the row's own PGA/Mw/CTI/Vs30 give "
+                    f"{expected['probability']:.12f}")
+        if abs(float(row["liq_area_frac"]) - expected["coverage"]) > 1e-9:
+            return (f"row {index}: liq_area_frac is not the 0.81 coverage reading "
+                    "of liq_prob")
+        checked += 1
+    if not checked:
+        return f"no row of {path} carried a probability, so nothing was checked"
+    return None
+
+
+def _expect_liquefaction_matches_its_hazus_terms(path):
+    """Equation 4-9, re-derived from each susceptibility row's own terms.
+
+    The other half of the same tool, and a completely different engine path:
+    no DEM, no wetness index, no Vs30. The row carries the category it was
+    read as, the conditional probability of Table 4-11, both correction
+    factors and the settlement, so Equation 4-9 is checkable from the file
+    itself: if the identity does not close, the run applied a factor the
+    columns do not show, or looked the proportion up under the wrong category.
+
+    Equation 4-11's feet conversion is checked too, against the depth the
+    extra run was pinned to. That conversion is worth a real assertion at this
+    level: passing metres where the published polynomial wants feet is a
+    ~7 % error that every count and every schema check passes, and it is
+    exactly the class of unit defect that has shipped here before.
+    """
+    from planx.engine import liquefaction
+
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    required = {"liq_prob", "liq_cond_prob", "liq_cat", "k_m", "k_w",
+                "liq_pga_t", "liq_settle_in", "pga_g", "mw", "liq_area_frac"}
+    missing = required - set(names)
+    if missing:
+        return f"missing liquefaction column(s): {', '.join(sorted(missing))}"
+    expected_k_w = liquefaction.hazus_groundwater_factor(_LIQ_GROUNDWATER_M)
+    seen = set()
+    for index, row in enumerate(rows, start=1):
+        category = row["liq_cat"]
+        if category is None:
+            return f"row {index}: no category, so the row is not a Hazus result"
+        seen.add(category)
+        pga = float(row["pga_g"])
+        conditional = float(row["liq_cond_prob"])
+        k_m = float(row["k_m"])
+        k_w = float(row["k_w"])
+        if abs(conditional - liquefaction.hazus_conditional(category, pga)) > 1e-9:
+            return (f"row {index}: the conditional probability is not Table 4-11 "
+                    f"evaluated at {pga:g} g for '{category}'")
+        if abs(k_w - expected_k_w) > 1e-9:
+            return (f"row {index}: K_W is {k_w:.6f} where {_LIQ_GROUNDWATER_M:g} m "
+                    f"gives {expected_k_w:.6f} - Equation 4-11 takes feet")
+        if abs(k_m - liquefaction.hazus_magnitude_factor(float(row["mw"]))) > 1e-9:
+            return (f"row {index}: K_M is not Equation 4-10 at Mw {row['mw']}")
+        proportion = liquefaction.HAZUS_PROPORTION[category]
+        identity = conditional / (k_m * k_w) * proportion
+        if abs(float(row["liq_prob"]) - min(max(identity, 0.0), 1.0)) > 1e-9:
+            return (f"row {index}: liq_prob {float(row['liq_prob']):.12f} does not "
+                    f"close Equation 4-9 on the row's own conditional, K_M, K_W "
+                    f"and the Table 4-10 proportion for '{category}' "
+                    f"({identity:.12f})")
+        threshold = liquefaction.HAZUS_PGA_THRESHOLD.get(category)
+        stored = row["liq_pga_t"]
+        if (stored is None) != (threshold is None):
+            return (f"row {index}: '{category}' has threshold {threshold!r} but "
+                    f"the row stores {stored!r}")
+        if threshold is not None and abs(float(stored) - threshold) > 1e-9:
+            return (f"row {index}: threshold {stored} is not Table 4-12's "
+                    f"{threshold} for '{category}'")
+        if abs(float(row["liq_settle_in"])
+               - float(row["liq_prob"]) * liquefaction.HAZUS_SETTLEMENT_IN[category]) > 1e-9:
+            return (f"row {index}: settlement is not the probability times the "
+                    f"Table 4-13 amplitude for '{category}'")
+        if row["liq_area_frac"] is not None:
+            return (f"row {index}: liq_area_frac is filled in susceptibility mode, "
+                    "where nothing computes a coverage reading")
+    if len(seen) < len(liquefaction.HAZUS_CATEGORIES):
+        return (f"the run only reached {len(seen)} of the six categories "
+                f"({', '.join(sorted(seen))}), so the fixture is not exercising "
+                "the table it was built for")
+    if not rows:
+        return f"{path} holds no row, so nothing was checked"
+    return None
+
+
+#: Value expectations for an extra run, keyed (algorithm id, extra label).
+#: An extra run exists because it takes a branch the primary case never
+#: reaches, and a branch that writes the right number of rows with the wrong
+#: numbers passes every count-based check there is - including the primary
+#: case's own value check, which says nothing about it.
+EXTRA_VALUE_EXPECTATIONS = {
+    ("planx:liquefaction", "susceptibility"): {
+        "OUTPUT": _expect_liquefaction_matches_its_hazus_terms,
+    },
+}
+
+
+#: Refusals that have to be made to happen, in real QGIS, on real layers.
+#: (algorithm id, overrides applied on top of that tool's resolved inputs, a
+#: substring the refusal must contain). Run after the sweep so the overrides
+#: only have to name what changes; everything else is the same wiring a
+#: passing case used, which is what stops a refusal passing for the wrong
+#: reason - a parameter that was unusable anyway would refuse too.
+REFUSALS = (
+    # Rule R7. Hazus assumes no ground failure when it has no input; a tool
+    # that assumed the same would answer "nothing liquefies here" for a map
+    # unit nobody ever classified, which is the most dangerous answer this
+    # family can give. The category column is cleared rather than absent so the
+    # run reaches the refusal with an otherwise valid layer.
+    ("planx:liquefaction",
+     {"MODE": 1, "CATEGORY_FIELD": ""},
+     "Susceptibility mode needs a map-unit layer"),
+)
+
+
 #: algorithm id -> callable(output path) -> complaint or None. Run only when
 #: the ordinary output verification passed, so a complainer here is always
 #: describing a wrong value rather than a missing output.
@@ -1638,12 +1876,28 @@ VALUE_EXPECTATIONS = {
     "planx:seismicimpact": {
         "OUT": _expect_impact_casualties_conserve_occupants,
     },
+    "planx:liquefaction": {
+        "OUTPUT": _expect_liquefaction_matches_its_own_terms,
+    },
 }
 
 
 def check_values(algorithm_id, produced):
     """Apply this tool's value expectations. Returns a complaint, or None."""
     for output_name, expectation in VALUE_EXPECTATIONS.get(algorithm_id, {}).items():
+        path = produced.get(output_name)
+        if path is None:
+            continue
+        complaint = expectation(path)
+        if complaint:
+            return f"{output_name}: {complaint}"
+    return None
+
+
+def check_extra_values(algorithm_id, label, produced):
+    """The same, for one extra run's output. Returns a complaint, or None."""
+    for output_name, expectation in \
+            EXTRA_VALUE_EXPECTATIONS.get((algorithm_id, label), {}).items():
         path = produced.get(output_name)
         if path is None:
             continue
@@ -1764,6 +2018,7 @@ def run_matrix(only=None, verbose=False):
                 f"registered algorithms")
 
         artifacts = {}
+        inputs_by_id = {}
         for algorithm_id in order:
             algorithm = algorithms[algorithm_id]
             result = CaseResult(algorithm_id, algorithm.displayName())
@@ -1782,6 +2037,7 @@ def run_matrix(only=None, verbose=False):
                 else:
                     values = build_inputs(algorithm, bundle, tables, rasters,
                                           artifacts, out_dir, result)
+                    inputs_by_id[algorithm_id] = dict(values)
                     produced = processing.run(algorithm_id, values,
                                               context=context,
                                               feedback=feedback)
@@ -1830,6 +2086,14 @@ def run_matrix(only=None, verbose=False):
                         result.error = (
                             f"extra run '{artifact_name}' failed verification: "
                             f"{extra_result.outputs.get(output_name, '')}")
+                    else:
+                        complaint = check_extra_values(
+                            algorithm_id, artifact_name, extra_produced)
+                        if complaint:
+                            result.ok = False
+                            result.error = (
+                                f"extra run '{artifact_name}' wrong value: "
+                                f"{complaint}")
                     result.extra_info[artifact_name] = [
                         f"{output_name}: "
                         f"{extra_result.outputs.get(output_name, 'no output')}"
@@ -1851,6 +2115,47 @@ def run_matrix(only=None, verbose=False):
                 mark = "ok  " if result.ok else "FAIL"
                 print(f"  {mark} {algorithm_id:34s} {result.seconds:7.2f}s "
                       f"{result.error}", flush=True)
+
+        # The refusals, after the sweep so they can re-use resolved inputs.
+        for algorithm_id, overrides, expected in REFUSALS:
+            if only and algorithm_id not in only:
+                continue
+            algorithm = algorithms.get(algorithm_id)
+            base = inputs_by_id.get(algorithm_id)
+            result = CaseResult(algorithm_id, f"{expected} (refusal)")
+            result.choices = {f"refusal:{key}": str(value)
+                              for key, value in overrides.items()}
+            if algorithm is None or base is None:
+                result.error = ("the algorithm did not run in the sweep, so its "
+                                "refusal has no inputs to stand on")
+                results.append(result)
+                continue
+            values = dict(base)
+            for key, value in overrides.items():
+                values[key] = value
+            begin = time.time()
+            try:
+                processing.run(algorithm_id, values,
+                               context=_new_context(transform_context,
+                                                    MatrixFeedback()),
+                               feedback=MatrixFeedback())
+            except Exception as exc:  # noqa: BLE001 - the verdict is the report
+                result.seconds = time.time() - begin
+                if expected in str(exc):
+                    result.ok = True
+                else:
+                    result.error = (f"refused, but not for the stated reason: "
+                                    f"{type(exc).__name__}: {exc}")
+            else:
+                result.seconds = time.time() - begin
+                result.error = ("the run completed where it was supposed to "
+                                f"stop, so {algorithm_id} answered a question "
+                                "it has no input for")
+            results.append(result)
+            if verbose:
+                mark = "ok  " if result.ok else "FAIL"
+                print(f"  {mark} {algorithm_id} refusal "
+                      f"{result.seconds:7.2f}s {result.error}", flush=True)
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
         _teardown(application)

@@ -302,8 +302,55 @@ The tool's modifiers are neutral, so α = 1.0 exactly and public shelter is an u
 bound rather than a forecast; Hazus's own Table 13-3 factors run from 0.13
 to 0.62 and are quoted in the engine next to the neutral default.
 
-Both Hazus halves are transcribed from a United States federal publication
-and are applied here uncalibrated to Turkish stock; the ground-motion model
-carries no basin and no directivity term. Every one of those limits is
-stated in the tool's own help text and in the manual, beside the numbers it
-qualifies.
+Liquefaction: two models again, because the question is answered from two
+different sets of inputs. The regression model is Zhu, Daley, Baise, Thompson,
+Wald & Knudsen (2015), *Earthquake Spectra* 31(3), 1813-1837, Table 3 —
+`X = 24.10 + 2.067·ln(PGA·Mw^2.56/10^2.24) + 0.355·CTI − 4.784·ln(Vs30)`,
+`P = 1/(1 + e^−X)` — with PGA in `g` and Vs30 in m/s. **Magnitude enters
+inside the logarithm**, raised to 2.56 and weighted by 2.067; the form that
+writes `2.56·ln Mw` as a separate additive term scales magnitude by 1 instead
+of 2.067, and looks entirely plausible in a result table. The published
+expression divides by 100 because ShakeMap accelerations are in percent g,
+and this tool's field is already in `g`, so it does not — which is also why
+the clip ceiling is reported as 2.7 g rather than as the 270 the paper prints.
+CTI is `ln(a/tanβ)` with `a` the D8 flow accumulation times the pixel size
+**in metres**: the index is the log of a metric area, so a DEM in feet
+inflates it by `ln(3.281)` = 1.19, which the CTI coefficient turns into 0.42
+logit units of unit error. A cell with no downslope neighbour has `tanβ = 0`
+and an index of `+inf` — not a missing value, which is what the index says
+about flat or ponded ground — so the model's own ceiling of 15 is what
+evaluates it, and the run reports those rows separately from cells that are
+off the grid or on nodata, which stop the run. PGA and CTI are both clipped to
+the ranges the coefficients were fitted on, and every row where a clip bit
+says so in its own notes column. Vs30 comes from a field, a raster, a constant
+or the topographic slope, in that order, and each row records which of the
+four it took. The slope relation is the piecewise-linear table of Allen & Wald
+(2007), USGS OFR 2007-1357 Table 2, interpolated along the subdivided NEHRP
+boundaries and held flat outside the published nodes; its active-margin and
+stable-continent columns diverge by up to 1.96 in velocity at one slope, which
+the velocity coefficient turns into 3.2 logit units — which is why the
+tectonic setting is an explicit choice with no default. The proportion of
+*area* affected is published separately and is reported as its own column at
+0.81 times the point probability, rather than folded into it.
+
+The susceptibility model is the Hazus 6.1 Section 4.2.2.1 chain:
+`P = P[LSC|PGA=a]/(K_M·K_W)·P_ml`, with `P[LSC|PGA=a]` the Table 4-11 line for
+the unit's category clipped to [0, 1], `K_M = 0.0027·M³ − 0.0267·M² − 0.2055·M + 2.9188`
+(Equation 4-10), `K_W = 0.022·d_w + 0.93` with `d_w` in **feet** (Equation
+4-11) and `P_ml` the Table 4-10 proportion. Both correction polynomials are
+applied exactly as printed, reference-value residual and all: neither passes
+through unity at the conditions it was fitted to (`K_M(7.5) = 1.0147`,
+`K_W(5 ft) = 1.04`), and renormalising would move every number about
+5 percent away from the published method to fix a cosmetic inconsistency in
+the source. Expected settlement is the probability times the Table 4-13
+amplitude — the manual's own definition — and the amplitude's stated
+one-half-to-two-times uncertainty is not propagated, so the column is a
+midpoint with a range rather than a prediction.
+
+Every Hazus part is transcribed from a United States federal publication and
+is applied here uncalibrated to Turkish stock; the ground-motion model carries
+no basin and no directivity term, and the liquefaction regression is a United
+States calibration with no Turkish liquefaction inventory behind it — the
+Hazus category of a Turkish map unit is whoever classified it. Every one of
+those limits is stated in the tool's own help text and in the manual, beside
+the numbers it qualifies.

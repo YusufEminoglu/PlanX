@@ -40,26 +40,46 @@ def fill_depressions(dem: np.ndarray) -> np.ndarray:
     return filled
 
 
-def d8_flow(dem: np.ndarray) -> np.ndarray:
-    """Compute D8 steepest-descent flow direction grid.
+#: The eight D8 neighbours: (row offset, column offset, cell distance, code),
+#: in the fixed order the tie-break depends on.
+D8_NEIGHBORS = (
+    (0, 1, 1.0, 1),                    # East
+    (1, 1, 1.4142135623730951, 2),     # Southeast
+    (1, 0, 1.0, 4),                    # South
+    (1, -1, 1.4142135623730951, 8),    # Southwest
+    (0, -1, 1.0, 16),                  # West
+    (-1, -1, 1.4142135623730951, 32),  # Northwest
+    (-1, 0, 1.0, 64),                  # North
+    (-1, 1, 1.4142135623730951, 128)   # Northeast
+)
+
+
+def d8_steepest(dem: np.ndarray, pixel: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
+    """One pass, two answers: the D8 direction and the gradient behind it.
 
     Ties are broken in the fixed neighbor order:
     East (1), Southeast (2), South (4), Southwest (8),
     West (16), Northwest (32), North (64), Northeast (128).
+    A cell with no strictly lower neighbour gets code 0 and gradient 0.0 -
+    a pit, a flat, or a nodata edge.
+
+    ``pixel`` is the cell width in the DEM's own horizontal units. It scales
+    the returned gradient and *only* the gradient: which neighbour is
+    steepest is decided on cell distances, so the direction grid is identical
+    for every ``pixel``. That is what lets :func:`d8_flow` keep its contract
+    by passing 1.0, and what lets :func:`slope_radians` and :func:`cti` be
+    derived from the same pass instead of re-deriving "slope" their own way -
+    two implementations of one quantity drift, and a slope that is 2 % off is
+    invisible in every downstream number.
+
+    Returns ``(dirs, gradient)``: ``dirs`` is uint8 codes, ``gradient`` is the
+    least-squares-free steepest descent as rise over run (m/m), dimensionless
+    because both the drop and ``pixel`` are in the DEM's vertical and
+    horizontal units respectively.
     """
     rows, cols = dem.shape
     dirs = np.zeros_like(dem, dtype=np.uint8)
-
-    neighbors = [
-        (0, 1, 1.0, 1),                    # East
-        (1, 1, 1.4142135623730951, 2),     # Southeast
-        (1, 0, 1.0, 4),                    # South
-        (1, -1, 1.4142135623730951, 8),    # Southwest
-        (0, -1, 1.0, 16),                  # West
-        (-1, -1, 1.4142135623730951, 32),  # Northwest
-        (-1, 0, 1.0, 64),                  # North
-        (-1, 1, 1.4142135623730951, 128)   # Northeast
-    ]
+    gradient = np.zeros(dem.shape, dtype=float)
 
     for r in range(rows):
         for c in range(cols):
@@ -67,7 +87,7 @@ def d8_flow(dem: np.ndarray) -> np.ndarray:
                 continue
             max_slope = 0.0
             flow_dir = 0
-            for dr, dc, dist, code in neighbors:
+            for dr, dc, dist, code in D8_NEIGHBORS:
                 nr, nc = r + dr, c + dc
                 if 0 <= nr < rows and 0 <= nc < cols:
                     if not np.isfinite(dem[nr, nc]):
@@ -78,8 +98,68 @@ def d8_flow(dem: np.ndarray) -> np.ndarray:
                         max_slope = slope
                         flow_dir = code
             dirs[r, c] = flow_dir
+            gradient[r, c] = max_slope / pixel
 
+    return dirs, gradient
+
+
+def d8_flow(dem: np.ndarray) -> np.ndarray:
+    """Compute D8 steepest-descent flow direction grid.
+
+    The direction half of :func:`d8_steepest`; kept as its own name because
+    every caller that only routes water wants exactly this and nothing else.
+    """
+    dirs, _ = d8_steepest(dem)
     return dirs
+
+
+def slope_radians(dem: np.ndarray, pixel: float) -> np.ndarray:
+    """Topographic slope in radians, from the same pass that routes the water.
+
+    This is the D8 steepest-descent gradient, not a 3x3 Horn fit: the two
+    differ (Horn averages four planes, D8 takes the steepest of eight) and
+    reporting one while routing on the other would make the slope in a
+    wetness index disagree with the flow that produced the index. Use
+    ``pixel`` in **metres**; a DEM in feet returns a gradient that is still
+    dimensionless but a wetness index that is not (see :func:`cti`).
+    """
+    _, gradient = d8_steepest(dem, pixel)
+    return np.arctan(gradient)
+
+
+def cti(dem: np.ndarray, pixel: float) -> tuple[np.ndarray, np.ndarray]:
+    """Compound Topographic Index (Beven & Kirkby wetness index).
+
+    ``CTI = ln(a / tan b)`` with ``a`` the *specific catchment area* - the
+    upstream area draining through a cell, per unit contour width. Flow
+    accumulation counts cells, so ``a = accumulation * pixel``: the count
+    times the cell area, divided by a contour width of one cell.
+
+    ``pixel`` must be in **metres**. ``a`` carries a length, so a DEM in feet
+    raises CTI by ``ln(3.2808) = 1.19`` everywhere - and because the Zhu
+    coefficient on CTI is 0.355, that is ~0.42 logit units of pure unit
+    error, the same class of defect as reading ``geometry().area()`` as
+    square metres. The gradient is unit-free; only ``a`` is not.
+
+    Cells with no downslope neighbour have ``tan b = 0`` and return ``+inf``.
+    That is the honest answer - the index is unbounded there - and the caller
+    clips it to whatever the model it feeds was calibrated on, because the
+    alternative is inventing a slope floor no source publishes. ``+inf``
+    times a coefficient is still ``+inf``, so an unclipped flat cell silently
+    drives any logistic head to certainty.
+
+    Returns ``(cti, gradient)`` with the same gradient :func:`d8_steepest`
+    produced, so ``tan(arctan(g))`` is never round-tripped.
+    """
+    dirs, gradient = d8_steepest(dem, pixel)
+    accumulation = flow_accumulation(dirs).astype(float)
+    specific = accumulation * pixel
+
+    index = np.full(dem.shape, np.inf, dtype=float)
+    draining = gradient > 0.0
+    index[draining] = np.log(specific[draining] / gradient[draining])
+    index[~np.isfinite(dem)] = np.nan
+    return index, gradient
 
 
 def flow_accumulation(dirs: np.ndarray) -> np.ndarray:

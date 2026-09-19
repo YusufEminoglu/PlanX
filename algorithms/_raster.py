@@ -19,8 +19,9 @@ def read_dsm(layer):
         raise QgsProcessingException("No DSM layer.")
     if layer.crs().isValid() and layer.crs().isGeographic():
         raise QgsProcessingException(
-            "The DSM uses a geographic CRS. Reproject it to a projected CRS "
-            "(metric pixels) first - shadow/SVF math needs metres.")
+            f"'{layer.name()}' uses a geographic CRS ({layer.crs().authid()}). "
+            "Reproject it to a projected CRS (metric pixels) first - this tool "
+            "reads its pixel size as a length.")
     ds = gdal.Open(layer.source(), gdal.GA_ReadOnly)
     if ds is None:
         raise QgsProcessingException(f"GDAL could not open '{layer.source()}'.")

@@ -355,6 +355,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <li><a href="#groundmotion" data-name="groundmotion" data-display="ground motion scenario"><img src="icons/tool_groundmotion.png" alt="" class="alg-icon">Ground Motion Scenario</a></li>
 <li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)"><img src="icons/tool_seismicdebris.png" alt="" class="alg-icon">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
 <li><a href="#seismicimpact" data-name="seismicimpact" data-display="seismic human impact (casualties and shelter)"><img src="icons/tool_seismicimpact.png" alt="" class="alg-icon">Seismic Human Impact (Casualties and Shelter)</a></li>
+<li><a href="#liquefaction" data-name="liquefaction" data-display="liquefaction screening (regression and susceptibility)"><img src="icons/tool_liquefaction.png" alt="" class="alg-icon">Liquefaction Screening</a></li>
 </ul></li>
 </ul>
 <div id="sidebar-footer">
@@ -373,7 +374,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.15.1 &middot; 73 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.16.0 &middot; 74 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -398,14 +399,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.15.1). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.16.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 73 algorithms is documented to an identical eight-section
+<p>Every one of the 74 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -448,7 +449,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 73 algorithms span the
+platform delivered as a QGIS Processing provider. Its 74 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -14745,7 +14746,7 @@ DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(
 <div class="page-break"></div>
 <h2 id="group19" class="group-header">19. Seismic Risk</h2>
 
-<p>The Seismic Risk group contains three tools that form one chain. <strong>Ground
+<p>The Seismic Risk group contains four tools that form one chain. <strong>Ground
 Motion Scenario</strong> turns an earthquake scenario — magnitude, distance,
 faulting style and site stiffness — into shaking at every receiver, on the model
 that Turkey's 2018 national seismic hazard map puts in its own logic tree. <strong>Seismic
@@ -14763,6 +14764,15 @@ Impact</strong> closes the chain: it reads the damage distribution the debris
 tool writes and carries it into the two Hazus models that end in people —
 casualties by severity, and the households that lose their home and the people
 who will seek public shelter.</p>
+
+<p><strong>Liquefaction Screening</strong> sits beside that chain rather than inside
+it. The three tools above all assume the ground stays where it is; this one asks
+whether it does. Saturated sand loses its strength under cyclic shaking and the
+soil behaves as a liquid &mdash; a different hazard from shaking, on a different
+scale, and not correlated with building age the way collapse is. It carries two
+published models behind one interface: a global regression that runs from a DEM
+and a shaking level, and the Hazus susceptibility tables for map units somebody
+has already classified. It refuses to run the second without that map.</p>
 
 <div class="page-break"></div>
 
@@ -16109,6 +16119,506 @@ DOI: <a href="https://doi.org/10.1016/j.soildyn.2010.10.008">10.1016/j.soildyn.2
 </p>
 
 <div class="page-break"></div>
+<!-- LIQUEFACTION                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="liquefaction">Liquefaction Screening</h2>
+<p><strong>Processing ID:</strong> <code>planx:liquefaction</code>
+&middot; <strong>Engine:</strong> <code>engine/liquefaction.py</code>
+&middot; <strong>Group:</strong> Seismic Risk (19)</p>
+
+<h3>1. Overview</h3>
+<p>The other three tools in this group assume the ground stays where it is. This
+one asks whether it does. Saturated sand loses its strength under cyclic shaking
+and the soil behaves as a liquid: it can no longer carry the building on it, it
+settles differentially, and lateral spreading pulls apart the pipelines, roads
+and foundations that cross it. That is a different hazard from shaking, on a
+different scale, and &mdash; unlike collapse &mdash; not correlated with
+building age. A new building on a liquefiable site can be damaged while an old
+one on rock is not, which is why the construction-year tiers the rest of the
+seismic chain is built on do not answer this question.</p>
+
+<p>Two published models stand behind one interface, chosen by a combo box,
+because the question is answered from two different sets of inputs.</p>
+<ul>
+<li><strong>Regression</strong> &mdash; Zhu et al. (2015). Needs a DEM and a
+shaking level and nothing else: slope and a wetness index come out of one D8
+pass on the DEM, and site velocity comes from the slope through a published
+table &mdash; or from your own Vs30 field or raster, which is better if you have
+one. This is the mode that runs from the layers a city already holds.</li>
+<li><strong>Susceptibility</strong> &mdash; Hazus 6.1 Section 4.2.2.1. Needs a
+polygon layer of map units somebody has already classified, and refuses to run
+without one.</li>
+</ul>
+
+<p>Output is one row per input feature, with the input's own columns preserved
+and a fixed schema of computed columns that both modes share &mdash; so a saved
+Processing model that reads <code>liq_prob</code> keeps working when the mode
+changes, and a model that reads a column which is empty for this mode can see
+that it is empty, which a missing column could never tell it.</p>
+
+<p>What this is not: it is not a geotechnical investigation and it is not a code
+check. It is <strong>UNCALIBRATED for T&#252;rkiye</strong> &mdash; both models
+are United States calibrations, and no Turkish liquefaction inventory was used
+to fit them or to check them. They rank places against each other; they do not
+predict what will happen at a given address.</p>
+
+<h3>2. Theoretical Background</h3>
+
+<h4>2.1 Why ground failure is its own question</h4>
+<p>Ground motion says how hard the ground shakes. Debris and casualties say what
+that does to buildings. Both are silent on the possibility that the ground
+itself stops behaving like a solid &mdash; which is how a city can have a
+moderate shaking scenario and still lose a district. Liquefaction is controlled
+by the soil's gradation and saturation and by the depth of the water table: none
+of those are properties of the buildings, and none of them follow the
+construction-year pattern that collapse does.</p>
+
+<p>The research note behind this tool is a negative result worth stating.
+<strong>Almost no ground-failure method works from shaking alone.</strong> The
+published liquefaction models generally ask for a modelled water-table depth, a
+rainfall climatology, or a susceptibility surface. Zhu et al. (2015) is the
+exception, and the extra inputs it does need &mdash; a wetness index and a site
+velocity &mdash; are both derivable from a DEM this tool can already read.</p>
+
+<h4>2.2 The regression model</h4>
+<p>Zhu, Daley, Baise, Thompson, Wald &amp; Knudsen (2015) fitted a logistic
+regression on mapped liquefaction surface effects from earthquakes worldwide,
+with three explanatory variables: a magnitude-weighted shaking level, a
+topographic wetness index, and slope-derived shear-wave velocity. It is the
+model both USGS and the research community now call <strong>GGM1</strong> &mdash;
+the global geospatial model, as distinct from the three Christchurch regional
+models published in the same table.</p>
+
+<p><strong>The magnitude term sits inside the logarithm.</strong> The published
+expression is not a plain logarithmic term in PGA with magnitude multiplied in
+beside it; it is the logarithm of <em>PGA times a power of magnitude</em>. The
+two forms look nearly identical in a result table and are not the same model:
+the correct one scales magnitude by 2.067 &#215; 2.56 = 5.29, and the wrong one
+scales it by 2.56. A smooth, monotone, entirely plausible surface comes out
+either way, which is why the identity is asserted in the test suite rather than
+trusted.</p>
+
+<p>That power of magnitude is not a fitted constant with no name.
+<code>Mw^2.56 / 10^2.24</code> is the reciprocal of the magnitude scaling factor
+published by Youd et al. (2001) in the NCEER/NSF workshop summary &mdash; their
+Equation 24, <code>MSF = 10^2.24 / Mw^2.56</code> &mdash; so the quantity the
+model takes the logarithm of is the <em>magnitude-weighted</em> PGA: the shaking
+divided by the factor that scales shaking to the reference magnitude of 7.5. At
+Mw 7.5 that factor is exactly 1.0, which is why the model reads as plain
+"PGA" in the middle of its own range and as something else entirely at Mw 9.</p>
+
+<p><strong>The percent-g division.</strong> The published term carries a division
+by 100, because the ShakeMap acceleration grid it was fitted on is in percent g.
+A field already in g must not be divided again: applying it would move the logit
+by 2.067 &#215; ln(100) = 9.52, which turns a 2 percent probability into 0.9999.
+The clip ceiling is reported the same way &mdash; the source clips the percent-g
+grid at 270, and the tool reports and applies 2.7&nbsp;g.</p>
+
+<h4>2.3 A literature coefficient that is wrong by a factor of ten</h4>
+<p>Independent reproductions of GGM1 print the site-velocity coefficient as
+<strong>0.4784</strong>; the USGS implementation carries <strong>4.784</strong>.
+This tool uses 4.784, and the reason is arithmetic rather than authority.
+ln(Vs30) runs from about 5.2 to 6.6 over real sites, so the smaller coefficient
+subtracts at most 0.7 logit units where the larger subtracts up to 6.7. With
+0.4784 the intercept of 24.10 dominates every other term and the logistic returns
+a probability of essentially 1 at every site &mdash; a model that cannot rank
+anything. With 4.784 the same site values produce a logit in the range that
+intercept implies.</p>
+
+<p>Nothing in the tool depends on the reader accepting that argument. The
+coefficient is a single named constant in the engine, the sensitivity it implies
+is pinned by a test, and the number is visible to anyone who looks.</p>
+
+<h4>2.4 The wetness index, and a unit error a logarithm hides</h4>
+<p>The compound topographic index is the log of the ratio of the area draining
+through a cell to the local slope. It is the model's proxy for how wet and how
+flat a place is &mdash; the two things that make saturation possible. The tool
+computes it from the DEM in one pass: D8 flow accumulation gives the upstream
+cell count, which becomes a specific catchment area once it is multiplied by the
+pixel size.</p>
+
+<p>The pixel size must be in metres, and this is the part that fails silently.
+The index is the logarithm of an <em>area</em>, so a DEM whose coordinate system
+is in feet inflates every cell's index by ln(3.2808) = 1.188 everywhere &mdash; a
+constant offset, which the index's own coefficient turns into 0.42 logit units of
+pure unit error. No range check can catch it, because 1.19 is a perfectly
+ordinary index value; no map looks wrong, because the offset is uniform. The tool
+therefore reads the DEM's own linear unit and converts explicitly, and refuses a
+DEM whose CRS declares no linear unit at all.</p>
+
+<p>The slope argument of the same model is safe by contrast, because a gradient
+is a ratio of two lengths in one unit. That asymmetry &mdash; one quantity
+survives a change of unit and the other takes its logarithm &mdash; is the trap,
+and it is the same class of defect as a raw area read in layer units.</p>
+
+<p>A flat or ponded cell has no downslope neighbour, so its index is genuinely
+infinite. That is not a missing value: it is the wettest possible answer, and the
+model's own ceiling of 15 is what evaluates it. The tool counts and reports those
+cells separately from a cell that is off the grid or on nodata &mdash; which stops
+the run, because a missing terrain input is not a missing hazard.</p>
+
+<h4>2.5 Site velocity from slope: a table, not a regression</h4>
+<p>Shear-wave velocity in the top 30&nbsp;m is the standard measure of how soft a
+site is, and measuring it properly needs a geophysical survey. The USGS
+Open-File Report 2007-1357 publishes a way to estimate it from topographic slope,
+and a common misconception about that report is worth correcting because it
+changes the implementation: <strong>there is no two-branch regression
+<code>log(Vs30) = a + b&#183;log(slope)</code> in it.</strong> What is published
+is a table &mdash; slope ranges mapped to NEHRP site classes &mdash; together with
+the method statement that a slope falling inside a window is assigned a velocity
+by interpolating between the subdivided class boundaries. The tool therefore
+transcribes the bin edges as the nodes of a piecewise-linear map and interpolates
+between them.</p>
+
+<p>The table has two columns for two tectonic settings, and they are not close. At
+one slope the active-margin and stable-continent columns differ by up to a factor
+of 1.96 in velocity, which the site coefficient turns into about 3.2 logit units
+&mdash; the difference between one answer and another, not a rounding question.
+The setting is therefore an explicit choice with <strong>no default</strong>, and
+the run log states which column was used and whether it changed any row.</p>
+
+<p>Outside the published nodes the velocity is held flat at the table's own
+endpoint, and the run reports how many rows that affected. Extrapolating a
+piecewise-linear fit past its last node is an invention, not an interpolation.</p>
+
+<h4>2.6 The susceptibility model</h4>
+<p>Hazus approaches the same question from the other end. Its Section 4.2.2.1 does
+not predict liquefaction from terrain; it takes a map unit that has
+<em>already</em> been classified as Very High, High, Moderate, Low, Very Low or
+None susceptible and converts that classification into a probability and an
+expected settlement at a given shaking level and magnitude:</p>
+<ul>
+<li>a conditional probability of liquefaction given peak acceleration, from
+Table 4-11, which is one line per category clipped to the unit interval;</li>
+<li>multiplied by the proportion of the map unit susceptible to liquefaction,
+Table 4-10 &mdash; a judgment from regional studies, not a fitted curve, and the
+manual says so itself;</li>
+<li>divided by two correction factors: K_M for magnitude, Equation 4-10, and K_W
+for groundwater depth, Equation 4-11;</li>
+<li>and multiplied by a settlement amplitude from Table 4-13, in inches.</li>
+</ul>
+
+<p>Both correction polynomials are applied exactly as printed, reference-value
+residual and all: K_M at its reference magnitude of 7.5 comes out 1.0147 rather
+than 1.0, and K_W at its reference depth of 5&nbsp;ft comes out 1.04. Renormalising
+them would move every number in the tool about 5 percent away from the published
+method in order to fix a cosmetic inconsistency in the source. Hazus's own figure
+plots a marker at Mw 7.5 that reads 1.01, so the manual is internally consistent
+about it.</p>
+
+<p>The sixth row of Table 4-11 is not a line at all &mdash; the "None" category
+is a constant zero. The engine keeps it in the same table as a degenerate line so
+that every category reaches the same code path and a category the user did supply
+cannot fall through into a crash.</p>
+
+<p><strong>This mode refuses to run without a classified layer, and refuses a
+category it does not recognise</strong>, listing the values it found instead. The
+refusal is the point. Hazus itself assumes no ground failure when it has no
+input, and an empty map of nowhere-liquefies is the most dangerous answer this
+family of tools can give: an unrecognised category read as zero would report "no
+liquefaction hazard" for a unit nobody ever classified. Case and separators are
+ignored, so "very high" and "Very-High" are accepted; "VH" and "1" are not.</p>
+
+<h4>2.7 Assumptions and limitations</h4>
+<ul>
+<li><strong>Uncalibrated for T&#252;rkiye.</strong> Both models are United States
+calibrations. No Turkish liquefaction inventory was used to fit them or to check
+them, and the Hazus susceptibility classes are not TBDY-2018 classes; mapping one
+onto the other is a separate piece of work and is not pretended here.</li>
+<li><strong>The regression is a ranking tool at global scale.</strong> An
+independent assessment of 23 liquefaction models against 15,223 case histories
+from 24 earthquakes reported a global median area-under-curve of 0.54, with a 95
+percent confidence interval of 0.47 to 0.61, for the model this tool implements
+&mdash; barely better than random guessing when applied across the climatic and
+geological diversity of the whole world. The same assessment found the geospatial
+models performing considerably better on regional datasets. Read the output as a
+ranking within one city, not as a calibrated probability. That assessment prints
+the 0.4784 coefficient of section 2.3, so its performance figure may describe a
+saturated version of the model rather than the one implemented here; the caution
+holds either way.</li>
+<li><strong>One sample per feature.</strong> The regression is evaluated at the
+feature's point on its surface. On a large map unit that is a point sample of a
+large unit; subdivide it if the terrain inside it varies.</li>
+<li><strong>Settlement amplitudes carry a stated uncertainty</strong> of one-half
+to two times their value, which this tool does not propagate. Read the settlement
+column as a midpoint with a range.</li>
+<li><strong>No lateral spreading.</strong> Hazus Equation 4-12 models it from the
+Table 4-12 thresholds. This tool reports those thresholds as what they
+numerically are &mdash; the acceleration at which the conditional probability
+reaches zero &mdash; and does not implement the displacement curve.</li>
+<li><strong>A probability of zero is never evidence that a place cannot
+liquefy.</strong> It can mean the shaking is below the category's threshold, or
+the water table is deep, or the map unit was never classified, and the run log
+separates those three.</li>
+</ul>
+
+<h3>3. Mathematical Formulation</h3>
+
+<p><strong>Magnitude weighting.</strong> The magnitude scaling factor of Youd et
+al. (2001), with respect to the reference magnitude of 7.5:</p>
+$$MSF(M_w) = \frac{10^{2.24}}{M_w^{2.56}} \tag{1}$$
+
+<p><strong>The regression logit.</strong> With $c_0 = 24.10$, $c_1 = 2.067$,
+$c_2 = 0.355$ and $c_3 = 4.784$, and with $\mathrm{PGA}$ in g:</p>
+$$X = c_0 + c_1 \ln\!\left(\frac{\mathrm{PGA}}{MSF(M_w)}\right) + c_2 \cdot
+\mathrm{CTI} - c_3 \ln(V_{S30}) \tag{2}$$
+
+<p><strong>The probability.</strong></p>
+$$P = \frac{1}{1 + e^{-X}} \tag{3}$$
+
+<p><strong>Calibration clips.</strong> Applied before the logit, and reported per
+row when they bite:</p>
+$$\mathrm{CTI}^{*} = \min(\max(\mathrm{CTI}, 0), 15), \qquad
+\mathrm{PGA}^{*} = \min(\max(\mathrm{PGA}, 0), 2.7) \tag{4}$$
+
+<p><strong>The wetness index.</strong> With $A$ the D8 upstream cell count, $w$
+the pixel size in metres and $\beta$ the local slope in radians:</p>
+$$\mathrm{CTI} = \ln\!\left(\frac{a}{\tan\beta}\right), \qquad a = A \cdot w
+\tag{5}$$
+
+<p><strong>The unit correction</strong> applied to that pixel size, read from the
+DEM's own linear unit:</p>
+$$w = p \cdot f, \qquad f = \mathrm{fromUnitToUnitFactor}(\mathrm{crs.mapUnits()},
+\ \mathrm{metres}) \tag{6}$$
+
+<p><strong>Site velocity</strong> by piecewise-linear interpolation over the
+published nodes $(\sigma_k, v_k)$, held flat outside the first and last:</p>
+$$V_{S30}(\sigma) = v_k + \frac{v_{k+1} - v_k}{\sigma_{k+1} - \sigma_k}\,
+(\sigma - \sigma_k) \tag{7}$$
+
+<p><strong>The area reading.</strong> The 2017 paper's coverage correction,
+reported as its own column rather than folded into the probability:</p>
+$$P_{\text{area}} = 0.81 \, P \tag{8}$$
+
+<p><strong>The susceptibility conditional.</strong> Table 4-11 as a clipped line
+per category $c$:</p>
+$$P[L \mid a]_c = \min(\max(m_c \, a + b_c, 0), 1) \tag{9}$$
+
+<p><strong>The two correction factors.</strong> Equation 4-10, and Equation 4-11
+with $d_w$ in feet:</p>
+$$K_M(M_w) = 0.0027\,M_w^3 - 0.0267\,M_w^2 - 0.2055\,M_w + 2.9188 \tag{10}$$
+$$K_W(d_w) = 0.022\,d_w + 0.93 \tag{11}$$
+
+<p><strong>The susceptibility probability and settlement.</strong> Equation 4-9,
+with $P_{ml,c}$ the Table 4-10 proportion and $S_c$ the Table 4-13 amplitude in
+inches:</p>
+$$P_c = \frac{P[L \mid a]_c}{K_M \, K_W} \cdot P_{ml,c} \tag{12}$$
+$$s_c = P_c \cdot S_c \tag{13}$$
+
+<p>Equations 2 and 3 are the regression mode's entire result. Equations 9 to 13
+are the susceptibility mode's. Equations 4 to 7 are machinery both use or neither
+does, and Equation 1 is the identity that keeps the two forms of the magnitude
+term from drifting apart.</p>
+
+<h3>4. Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Layer to evaluate</td><td>Vector, any geometry</td><td>Yes</td><td>Both modes. One output row per feature, sampled at the feature's point on its surface. In regression mode this is any layer that carries or can be given a shaking level; in susceptibility mode it must supply the category field.</td></tr>
+<tr><td>DEM</td><td>Raster</td><td>Yes in regression mode</td><td>Supplies the slope, the wetness index and the slope-derived Vs30. Its CRS must declare a linear unit, and the pixel size is converted to metres whatever that unit is. A DEM in a geographic CRS measures its pixels in degrees and is refused.</td></tr>
+<tr><td>Susceptibility category field</td><td>Text field</td><td>Yes in susceptibility mode</td><td>Values must be Very High, High, Moderate, Low, Very Low or None, ignoring case and the separators comma, underscore and hyphen. Any other value stops the run, with the list of values found in the message.</td></tr>
+<tr><td>PGA field</td><td>Numeric field</td><td>No</td><td>Peak ground acceleration in g. Wins over the constant. A blank or zero row stops the run rather than falling back to a reference value.</td></tr>
+<tr><td>Vs30 field</td><td>Numeric field</td><td>No</td><td>Shear-wave velocity in m/s. Wins over the raster, which wins over the constant, which wins over the slope estimate.</td></tr>
+<tr><td>Vs30 raster</td><td>Raster</td><td>No</td><td>Velocity in m/s, sampled per feature where the field is empty.</td></tr>
+</table>
+
+<p>In regression mode the shaking level is what makes this model runnable, and it
+is the one input a city rarely has as a map. <strong>Ground Motion Scenario</strong>
+produces it: point that tool at any layer, take the <code>pga_g</code> column it
+writes, and name it here as the PGA field.</p>
+
+<h3>5. Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>MODE</code></td><td>Enum</td><td>Regression (0)</td><td>Which model runs. The regression needs a DEM and a shaking level; the susceptibility mode needs a classified map-unit layer instead, and ignores the DEM.</td></tr>
+<tr><td><code>DEM</code></td><td>Raster</td><td>(optional)</td><td>Digital elevation model. Required in regression mode. A projected CRS with a declared linear unit is required, because the wetness index is the log of a metric area.</td></tr>
+<tr><td><code>TARGET</code></td><td>Vector layer (any geometry)</td><td>&mdash;</td><td>The layer to evaluate, one sample per feature.</td></tr>
+<tr><td><code>CATEGORY_FIELD</code></td><td>Field (Text)</td><td>(optional)</td><td>Susceptibility category per feature. Required in susceptibility mode; ignored in regression mode, and the log says so.</td></tr>
+<tr><td><code>PGA_G</code></td><td>Double</td><td>0.0</td><td>Constant peak ground acceleration in g for every feature, used when no PGA field is named. Range 0 to 5. One shaking level for a whole city is a scenario assumption, and the log says so.</td></tr>
+<tr><td><code>PGA_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Per-feature acceleration in g; wins over the constant. Ground Motion Scenario writes this column. A blank or zero value stops the run.</td></tr>
+<tr><td><code>MAGNITUDE</code></td><td>Double</td><td>7.5</td><td>Moment magnitude of the scenario. Sets the magnitude weighting in regression mode and K_M in susceptibility mode. Range 3 to 9.5.</td></tr>
+<tr><td><code>TECTONIC</code></td><td>Enum</td><td>no default</td><td>Which column of the slope-to-Vs30 table is used: active margin, or stable continent. The two differ by up to a factor of 1.96 in velocity at one slope, so there is no default and the regression mode refuses to run until it is set.</td></tr>
+<tr><td><code>VS30_MS</code></td><td>Double</td><td>0.0</td><td>Constant shear-wave velocity in m/s, used when neither a field nor a raster supplies one, and preferred to the slope estimate. 0 means not supplied. Range 0 to 2000.</td></tr>
+<tr><td><code>VS30_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Per-feature velocity in m/s. The most direct input available, and it wins over everything else.</td></tr>
+<tr><td><code>VS30_RASTER</code></td><td>Raster</td><td>(optional)</td><td>Velocity in m/s, sampled per feature where the field is empty.</td></tr>
+<tr><td><code>GROUNDWATER_M</code></td><td>Double</td><td>1.524</td><td>Depth to the water table in metres, susceptibility mode only. Feeds K_W, whose published variable is in feet, so the conversion is applied inside the engine. Hazus's own reference depth is 1.524&nbsp;m, which is 5&nbsp;ft and gives K_W = 1.04. Range 0 to 100.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector layer</td><td>&mdash;</td><td>The screening result: the input attributes plus the fifteen computed columns below.</td></tr>
+</table>
+
+<h3>6. Output Description</h3>
+<table class="field-table">
+<tr><th>Output</th><th>Fields</th><th>Description</th></tr>
+<tr><td><strong>Liquefaction screening</strong></td><td><code>liq_prob</code>, <code>liq_area_frac</code>, <code>liq_cond_prob</code>, <code>liq_cat</code>, <code>k_m</code>, <code>k_w</code>, <code>liq_pga_t</code>, <code>liq_settle_in</code>, <code>pga_g</code>, <code>mw</code>, <code>cti</code>, <code>slope_deg</code>, <code>vs30_ms</code>, <code>vs30_src</code>, <code>liq_notes</code> &mdash; plus every field of the input layer</td><td>One feature per input feature, geometry unchanged. <code>liq_prob</code> is the probability the mode computed and the field the default renderer colours by. <code>liq_area_frac</code> is the 0.81 area reading of section 2.2, reported separately so neither column can be mistaken for the other. In regression mode <code>pga_g</code>, <code>mw</code>, <code>cti</code>, <code>slope_deg</code>, <code>vs30_ms</code> and <code>vs30_src</code> carry the inputs the logit actually used, so the run is auditable from the layer alone. In susceptibility mode <code>liq_cat</code>, <code>k_m</code>, <code>k_w</code>, <code>liq_cond_prob</code>, <code>liq_pga_t</code> and <code>liq_settle_in</code> carry the Hazus terms. Columns a mode does not compute stay empty rather than disappearing.</td></tr>
+</table>
+
+<p><code>vs30_src</code> names which of the four velocity routes produced the
+value &mdash; the field, the raster, the constant, or the slope table &mdash; and
+carries the tectonic setting when it was the table, so a Vs30 that came from the
+wrong setting is visible on the layer rather than only in the log.
+<code>liq_notes</code> collects the per-row remarks: a clipped CTI, a clipped
+PGA, a velocity held at a table endpoint, a footing on the wettest possible cell.
+A blank note means the row was evaluated with the model as published.</p>
+
+<h3>7. Symbolic Representation</h3>
+<ul>
+<li><strong>Base layer:</strong> the result classified by <code>liq_prob</code> on
+a sequential ramp (pale to saturated), which is the field the default renderer
+chooses. It is named explicitly in the algorithm rather than left to the
+renderer's preference list, because the next column added to this table is one
+rename away from silently taking the colour scale off the probability.</li>
+<li><strong>The area column is a different map.</strong> <code>liq_area_frac</code>
+is 0.81 times <code>liq_prob</code>, so it produces the same pattern at a
+different level; styling both and comparing them tells you nothing. Use it when
+the question is what share of a map unit is affected, and <code>liq_prob</code>
+when the question is how likely this place is.</li>
+<li><strong>Settlement is where the note earns its place.</strong> Style
+<code>liq_settle_in</code> to find the units that will crack the pipes and roads
+across them even where nothing collapses, and check <code>liq_notes</code> before
+reading a low value as a safe one.</li>
+<li><strong>Two runs are more informative than one map.</strong> Run the same
+layer at two or three shaking levels and difference <code>liq_prob</code>: a unit
+that is already high at 0.1&nbsp;g is a different kind of problem from one that
+only matters at 0.4&nbsp;g.</li>
+</ul>
+
+<h3>8. Interpretation Guide</h3>
+
+<h4>8.1 Reading a probability</h4>
+<p><code>liq_prob</code> is a probability at the sampled point. It is not a loss,
+not a damage ratio and not a design level, and it does not carry the uncertainty
+of the regression that produced it. Its legitimate uses are ranking, comparison
+between scenarios, and deciding where a geotechnical campaign is worth paying
+for. A district at 0.3 is not "thirty percent damaged"; it is a place where the
+model, on the evidence it was given, is more likely than not to be worth
+investigating.</p>
+
+<h4>8.2 The two modes are not comparable</h4>
+<p>The regression answers "given this terrain and this shaking, is this place
+liquefaction-prone?" The susceptibility mode answers "given that somebody has
+classified this map unit as Highly susceptible, what is the chance it lapses at
+this shaking level?" They use different evidence and produce numbers on different
+footings. Putting a regression run and a susceptibility run on one map and
+comparing the values ranks the two datasets, not the two places &mdash; the
+susceptibility run is only ever as good as the classification it was handed.
+Choose one and stay inside it for a given decision.</p>
+
+<h4>8.3 Cross-references to other PlanX tools</h4>
+<ul>
+<li><strong>Ground Motion Scenario:</strong> supplies the PGA field the
+regression mode runs on. A screening run driven by a typed constant and one
+driven by a modelled field are different statements, and the run log says which
+you made.</li>
+<li><strong>Seismic Collapse and Debris Spread</strong> and <strong>Seismic Human
+Impact:</strong> the other half of the hazard. Overlay the three results: a
+district high on ground failure, high on debris and high on casualties is where
+the hazards compound, and the response network those tools plan is laid on ground
+that may not be there.</li>
+<li><strong>Flow Accumulation</strong> and <strong>Slope</strong> in the Terrain
+group, if you want to see the wetness index and the gradient on their own rather
+than as inputs to a probability. The DEM handling here matches theirs: one D8
+pass, the same pixel-size discipline.</li>
+<li><strong>Service Areas</strong> and <strong>Nearest Facility:</strong>
+liquefaction changes which roads exist. Re-running access with the affected
+links removed is the planning use of this layer, not the probability map
+itself.</li>
+</ul>
+
+<h4>8.4 Pitfalls</h4>
+<ul>
+<li><strong>Do not read a zero as safety.</strong> The three ways a row can come
+out at zero are different findings, and the log separates them. A unit nobody
+classified is a gap in the input, not a stable site.</li>
+<li><strong>Do not feed a DEM in feet.</strong> It will not fail; it will be
+wrong by 0.42 logit units everywhere, uniformly. The tool converts, but a DEM
+whose CRS lies about its unit cannot be rescued.</li>
+<li><strong>Do not reuse the tectonic setting from a neighbouring project without
+checking it.</strong> Active and stable-continent differ by up to 3.2 logit units
+at one slope, which is enough to reorder a district ranking on its own.</li>
+<li><strong>Do not name a category field the model does not speak.</strong> A
+land-use column with values like "residential" and "green" is refused, with the
+list of values it found. That refusal is the tool protecting you from a map of
+nowhere-liquefies.</li>
+<li><strong>Do not use a constant Vs30 because it is convenient.</strong> A
+constant velocity flattens the site term across a whole city, and the site term
+is what separates a river terrace from a hillside. If you have no Vs30, let the
+slope table estimate it &mdash; that is what it is for.</li>
+<li><strong>This is not a substitute for a geotechnical investigation, and it is
+not a code check.</strong> It is a screening tool for planning: use it to rank and
+to prioritise, not to certify.</li>
+</ul>
+
+<h3>9. Academic References</h3>
+<p class="ref">Zhu, J., Daley, D., Baise, L. G., Thompson, E. M., Wald, D. J.
+&amp; Knudsen, K. L. (2015). "A Geospatial Liquefaction Model for Rapid Response
+and Loss Estimation." <em>Earthquake Spectra</em>, 31(3), 1813&ndash;1837. The
+regression this tool implements, listed in the paper's Table 3 as the global
+geospatial model GGM1 alongside three Christchurch regional models. The paper is
+paywalled and the coefficients were not read off it: they were read from the USGS
+<code>gfail</code> implementation of the same model (CC0, published by the same
+institution that wrote the model) and checked against the independent
+reproduction in Geyin, Baird &amp; Maurer (2020), below.
+DOI: <a href="https://doi.org/10.1193/121912EQS353M">10.1193/121912EQS353M</a>
+</p>
+<p class="ref">Zhu, J., Baise, L. G. &amp; Thompson, E. M. (2017). "An Updated
+Geospatial Liquefaction Model for Global Application." <em>Bulletin of the
+Seismological Society of America</em>, 107(3), 1365&ndash;1385. Reports that the
+2015 model over-predicts the <em>area</em> affected by roughly 19 percent, and
+publishes the 0.81 coverage correction this tool reports as
+<code>liq_area_frac</code>. It is a correction to the area reading, not to the
+point probability, which is why the two are separate columns.
+DOI: <a href="https://doi.org/10.1785/0120160198">10.1785/0120160198</a>
+</p>
+<p class="ref">Youd, T. L., Idriss, I. M., Andrus, R. D., Arango, I., Castro,
+G., Christian, J. T., Dobry, R., Finn, W. D. L., Harder, L. F., Hynes, M. E.,
+Ishihara, K., Koester, J. P., Liao, S. S. C., Marcuson, W. F., Martin, G. R.,
+Mitchell, J. K., Moriwaki, Y., Power, M. S., Robertson, P. K., Seed, R. B. &amp;
+Stokoe, K. H. (2001). "Liquefaction Resistance of Soils: Summary Report from the
+1996 NCEER and 1998 NCEER/NSF Workshops on Evaluation of Liquefaction Resistance
+of Soils." <em>Journal of Geotechnical and Geoenvironmental Engineering</em>,
+127(10), 817&ndash;833. Source of the magnitude scaling factor whose reciprocal
+appears inside the regression's logarithm &mdash; Equation 24 of this report,
+<code>MSF = 10^2.24 / Mw^2.56</code>. Identifying that term with this paper is
+what turns the model's exponent from a bare constant into a named quantity.
+DOI: <a href="https://doi.org/10.1061/(ASCE)1090-0241(2001)127:10(817)">10.1061/(ASCE)1090-0241(2001)127:10(817)</a>
+</p>
+<p class="ref">Allen, T. I. &amp; Wald, D. J. (2007). <em>Topographic Slope as a
+Proxy for Seismic Site Conditions (V<sub>S</sub>30) and Amplification around the
+Globe.</em> U.S. Geological Survey Open-File Report 2007-1357. The slope-to-Vs30
+table this tool interpolates over, and the source of the rule that a slope inside
+a published window takes a velocity interpolated between the subdivided NEHRP
+class boundaries. Public domain as a work of the United States federal government.
+Available at: <a href="https://pubs.usgs.gov/of/2007/1357/">pubs.usgs.gov/of/2007/1357</a>
+</p>
+<p class="ref">Wald, D. J. &amp; Allen, T. I. (2007). "Topographic Slope as a
+Proxy for Seismic Site Conditions and Amplification." <em>Bulletin of the
+Seismological Society of America</em>, 97(5), 1379&ndash;1395. The journal paper
+behind the report above, and the discussion from which the two-branch
+<code>log(Vs30) = a + b&#183;log(slope)</code> regression that the Open-File
+Report does <em>not</em> contain is often misremembered.
+DOI: <a href="https://doi.org/10.1785/0120060267">10.1785/0120060267</a>
+</p>
+<p class="ref">Geyin, M., Baird, A. J. &amp; Maurer, B. W. (2020). "Field
+assessment of liquefaction prediction models based on geotechnical versus
+geospatial data, with lessons for each." <em>Earthquake Spectra</em>, 36(3),
+1386&ndash;1411. An independent assessment of 23 liquefaction models against
+15,223 case histories from 24 earthquakes, in which GGM1's global median AUC of
+0.54 (95 percent confidence interval 0.47 to 0.61) is reported &mdash; the honest
+performance figure for a model of this kind at global scale. Its Table 3 also
+reproduces the model equation and prints the site-velocity coefficient as 0.4784,
+which is the coefficient discussed in section 2.3.
+DOI: <a href="https://doi.org/10.1177/8755293019899951">10.1177/8755293019899951</a>
+</p>
+<p class="ref">FEMA (2024). <em>Hazus Earthquake Model Technical Manual &mdash;
+Hazus 6.1.</em> Federal Emergency Management Agency, Washington, DC. The
+susceptibility model of this tool is Section 4.2.2.1: Equations 4-9 to 4-11 with
+Tables 4-10 to 4-13, transcribed from the manual. The proportions of Table 4-10
+are professional judgments from regional studies rather than a fitted curve, and
+the settlement amplitudes of Table 4-13 carry the stated uncertainty of one-half
+to two times their value that section 2.7 repeats. Public domain as a work of the
+United States federal government.
+Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus">fema.gov/hazus</a>
+</p>
+
+<div class="page-break"></div>
 <h2 id="appendix-a">Appendix A: Data Sources Directory</h2>
 <table>
 <tr><th>Data Type</th><th>Global Source</th><th>Resolution</th><th>Notes</th></tr>
@@ -16201,7 +16711,7 @@ DOI: <a href="https://doi.org/10.1016/j.soildyn.2010.10.008">10.1016/j.soildyn.2
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.15.1 &middot; 73 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.16.0 &middot; 74 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 

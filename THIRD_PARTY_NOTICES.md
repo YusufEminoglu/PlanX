@@ -88,6 +88,81 @@ Shelter* — transcribed value for value:
   defaults, which are neutral and therefore produce an upper bound on
   public-shelter demand rather than a forecast of it.
 
+## Hazus liquefaction tables
+
+`engine/liquefaction.py` embeds the tables of **Section 4.2.2.1** of the same
+manual — *Liquefaction* — transcribed value for value:
+
+- Table 4-10 (the proportion of a map unit susceptible to liquefaction, per
+  susceptibility category), Table 4-11 (the conditional probability of
+  liquefaction given peak acceleration, as one line per category), Table 4-12
+  (the threshold acceleration at zero probability, per category) and Table
+  4-13 (the ground-settlement amplitude, in inches, per category).
+- Equations 4-9, 4-10 and 4-11 as implemented arithmetic — the probability,
+  and the magnitude and groundwater correction factors. Both correction
+  polynomials are applied as printed including their reference-value
+  residuals (K_M at Mw 7.5 is 1.0147 and K_W at 5 ft is 1.04, not 1.0), and
+  the engine says why.
+- Public domain as a work of the United States federal government, and
+  transcribed rather than adapted. Copyright in the methodology remains with
+  FEMA.
+- Two limits stated wherever these numbers are reported and not part of any
+  FEMA publication: the categories are United States susceptibility classes
+  applied to Turkish map units without calibration, and the settlement
+  amplitudes carry the manual's own stated uncertainty of one-half to two
+  times their value, which this tool does not propagate.
+
+## Zhu et al. (2015) geospatial liquefaction coefficients
+
+`engine/liquefaction.py` carries the coefficients of the global geospatial
+liquefaction model of **Zhu, Daley, Baise, Thompson, Wald & Knudsen (2015)**,
+*A Geospatial Liquefaction Model for Rapid Response and Loss Estimation*,
+Earthquake Spectra 31(3), 1813–1837, DOI
+[10.1193/121912EQS353M](https://doi.org/10.1193/121912EQS353M) — the model its
+own literature calls GGM1.
+
+- The paper is paywalled and its coefficients are **not reproduced here from
+  it**. They were read from the USGS **`gfail`** implementation,
+  `gfail/models/zhu_2015.py`, published by the same agency that wrote the
+  model: <https://github.com/usgs/groundfailure>. gfail is in the public
+  domain as a work of the United States federal government and is
+  additionally released under the CC0 1.0 public domain dedication.
+- That file is also the source of the two constants this module transcribes
+  with it: the percent-g division in the seismic term and the calibration
+  clipping ranges. Both are restated here for a PGA field in g rather than in
+  percent g, and the engine says why.
+- The coefficients were then checked against an independent published
+  reproduction of the same equation, **Geyin, Baird & Maurer (2020)**,
+  *Field assessment of liquefaction prediction models based on geotechnical
+  versus geospatial data, with lessons for each*, Earthquake Spectra 36(3),
+  1386–1411. That reproduction prints the site-velocity coefficient as
+  0.4784 where gfail carries 4.784; this module uses gfail's value and the
+  engine gives the arithmetic reason.
+- No gfail code is included and gfail is not a dependency of PlanX.
+- Copyright in the model and its coefficients remains with the authors.
+  PlanX applies the model; it does not claim it.
+
+## USGS slope-to-Vs30 table (Allen & Wald, 2007)
+
+`engine/liquefaction.py` carries the slope-to-shear-wave-velocity nodes of
+**Allen & Wald (2007)**, *Topographic Slope as a Proxy for Seismic Site
+Conditions (V<sub>S</sub>30) and Amplification around the Globe*, U.S.
+Geological Survey Open-File Report 2007-1357,
+<https://pubs.usgs.gov/of/2007/1357/>.
+
+- The report publishes slope bins mapped to NEHRP site classes; the engine
+  transcribes the bin edges as the nodes of a piecewise-linear map and
+  interpolates between them, which is the report's own stated method.
+- Transcribed rather than adapted, and held flat outside the published nodes
+  rather than extrapolated. Public domain as a work of the United States
+  federal government.
+- The magnitude weighting inside the same model's seismic term is the
+  magnitude scaling factor of **Youd et al. (2001)**, *Liquefaction
+  Resistance of Soils: Summary Report from the 1996 NCEER and 1998 NCEER/NSF
+  Workshops*, Journal of Geotechnical and Geoenvironmental Engineering
+  127(10), 817–833 — the paper's own Equation 24. The engine identifies it as
+  such; no text or table from that paper is reproduced.
+
 ## OpenStreetMap data
 
 Where a tool accepts OpenStreetMap data, that data is fetched or supplied
