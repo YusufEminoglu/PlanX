@@ -111,7 +111,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 72
+MIN_EXPECTED_CASE_COUNT = 73
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -264,6 +264,34 @@ def _network_attrs(index, _feature, values):
 def _building_attrs(index, _feature, values):
     height = _number(values, "height", 6.0)
     return [max(1, int(round(height / 3.0))), 1975 + (index * 3) % 50]
+
+
+#: The occupancy fixture: what a real city's building layer looks like when it
+#: has been prepared for a casualty run, rather than the bare geometry the demo
+#: city generates. Cycled rather than random so a run is reproducible.
+OCCUPANCY_EXTRA = (
+    ("occupancy", STRING),
+    ("population", DOUBLE),
+    ("units", DOUBLE),
+    ("damage_state", STRING),
+)
+_OCCUPANCY_CYCLE = (
+    ("Residential", 1), ("Residential", 4), ("Commercial", 0),
+    ("Primary school", 0), ("Industrial", 0), ("Hotel", 0),
+)
+
+
+def _occupancy_attrs(index, _feature, values):
+    label, units = _OCCUPANCY_CYCLE[index % len(_OCCUPANCY_CYCLE)]
+    floors = max(1, int(round(_number(values, "height", 6.0) / 3.0)))
+    return [
+        label,
+        float(floors * 12),      # population: a screening count, not a survey
+        float(units),
+        # Cycling the damage state gives the certainty branch all five states,
+        # including "none", rather than only the ones a single run would hit.
+        ("none", "slight", "moderate", "extensive", "complete")[index % 5],
+    ]
 
 
 def _landuse_attrs(index, feature, values):
@@ -527,6 +555,21 @@ SKIP_OPTIONAL = {
     "WATER",           # no water body in the demo city
     "PGA_FIELD",       # seismicdebris: no shaking raster to sample into a column
     "VS30_FIELD",      # groundmotion: the demo city has no measured site velocity
+    # seismicimpact: the fixture buildings carry neither an occupancy class, a
+    # population, a dwelling-unit count nor a damage-state column, and the
+    # primary run reads the debris tool's own output anyway. This tool's other
+    # branches have their own EXTRA_RUN entries below.
+    "OCCUPANCY_FIELD",
+    "POPULATION_FIELD",
+    "UNITS_FIELD",
+    "DAMAGE_STATE_FIELD",
+    # seismicimpact: deliberately left unset so the run exercises the
+    # auto-detection path rather than a hand-picked column. The chained case
+    # reads the debris tool's own output, which is point centroids carrying
+    # footprint_area - the field this parameter exists to find. Naming it here
+    # would test the parameter and leave the detection untested, and the
+    # detection is what the tool-to-tool chain actually depends on.
+    "AREA_FIELD",
 }
 
 # Outputs an algorithm may legitimately decline to write even when asked, and
@@ -594,6 +637,28 @@ EXTRA_RUNS = {
         ("network_c", "OUT_NAVIGABLE", {"NETWORK_MODE": 2}),
         ("simulated", "OUT_BUILDINGS", {"SIMULATIONS": 8}),
     ),
+    # The casualty model's two other input paths. The primary run reads the
+    # debris tool's four probability columns; these read a real occupancy
+    # column against a real population column, and a single damage-state column
+    # as the coarse fallback, which are the branches a user with somebody
+    # else's building layer will actually hit.
+    "planx:seismicimpact": (
+        ("pop_field", "OUT", {
+            "BUILDINGS": "fixture:buildings_occupancy",
+            "OCCUPANCY_FIELD": "occupancy",
+            "OCCUPANCY_SOURCE": 0,
+            "POPULATION_FIELD": "population",
+            "UNITS_FIELD": "units",
+            "TIME_OF_DAY": 1,
+        }),
+        ("state_field", "OUT", {
+            "BUILDINGS": "fixture:buildings_occupancy",
+            "OCCUPANCY_FIELD": "occupancy",
+            "DAMAGE_STATE_FIELD": "damage_state",
+            "OCCUPANCY_SOURCE": 0,
+            "POPULATION_FIELD": "population",
+        }),
+    ),
 }
 
 # Values that are neither a fixture layer nor a declared default: artefacts
@@ -627,6 +692,12 @@ VALUE_OVERRIDES = {
     # The balance reads the demand case's own output, so the matrix runs the
     # documented workflow end to end: area -> demand -> supply balance.
     ("planx:parkingsupplybalance", "ZONES"): "art:planx:parkingdemand/OUTPUT",
+    # The casualty model's documented workflow: the debris tool's building
+    # output is its input. Binding the demo buildings directly would leave the
+    # chain - four damage-state probability columns, read by name and at the
+    # right scale - entirely untested, and the tool would be exercised only on
+    # the certainty fallback.
+    ("planx:seismicimpact", "BUILDINGS"): "art:planx:seismicdebris/OUT_BUILDINGS",
 }
 
 # Timestamps the sun tools can actually compute a position for: a solstice noon.
@@ -868,6 +939,18 @@ def build_fixtures(processing, work_dir, transform_context):
     # an area field and per-use suitability columns, which this layer carries.
     layers["parcels"] = layers["landuse"]
 
+    # A second copy of the buildings carrying occupancy, population, dwelling
+    # units and a damage-state column. Kept separate rather than folded into
+    # BUILDINGS_EXTRA: every tool that reads the buildings fixture would then
+    # carry columns only the casualty model has a use for, and a renderer that
+    # picks its field by name scan could start colouring by one of them.
+    source = load("OUTPUT_BUILDINGS")
+    layers["buildings_occupancy"] = _augment(
+        source, "buildings_occupancy", BUILDINGS_EXTRA + OCCUPANCY_EXTRA,
+        lambda index, feature, values: _building_attrs(index, feature, values)
+        + _occupancy_attrs(index, feature, values),
+        fix_dir, transform_context)
+
     parcels = QgsVectorLayer(str(layers["landuse"]), "landuse", "ogr")
     study_area = _bounding_layer("study_area", parcels.extent(), parcels.crs(),
                                  fix_dir, transform_context)
@@ -1045,7 +1128,19 @@ def _resolve_special(token, artifacts, bundle):
             raise RuntimeError(f"artefact '{key}' has not been produced yet")
         return artifacts[key]
     if kind == "fixture":
-        return bundle["files"][key]
+        # Layers and loose files are both fixtures and they live under
+        # different keys, because the layers are read back as QgsVectorLayer
+        # objects elsewhere in this module. Look in both rather than make the
+        # token carry the difference: 'fixture:gtfs' names a zip and
+        # 'fixture:buildings_occupancy' names a layer, and a caller that
+        # spelled the layer's role should not have to know which dict it
+        # landed in. Every value kept in either is a path.
+        for source in (bundle["files"], bundle["layers"]):
+            if key in source:
+                return str(source[key])
+        raise RuntimeError(
+            f"no fixture named '{key}' (files={sorted(bundle['files'])}, "
+            f"layers={sorted(bundle['layers'])})")
     raise RuntimeError(f"unknown value token '{token}'")
 
 
@@ -1327,12 +1422,84 @@ def _expect_groundmotion_distances_are_kilometres(path):
     return None
 
 
+def _expect_impact_casualties_conserve_occupants(path):
+    """Casualties must be a share of the people the scenario puts in a building.
+
+    A casualty count is a screening number with no external reference value to
+    pin - but it has a hard ceiling. Hazus rates four severities against the
+    occupants present at the scenario time, so the four counts can never sum
+    above the occupant count, and a run that reports more injuries than people
+    is wrong whichever way the rates were read. That is exactly the class of
+    defect presence-verification cannot see: the layer is full, every field is
+    populated, and the numbers are physically impossible.
+
+    The ceiling needs a floor under it to mean anything, so the run must also
+    put somebody in a building. Without that, zero occupants satisfies every
+    bound - see the note at the end of this function.
+    """
+    layer = QgsVectorLayer(str(path), "matrix_values", "ogr")
+    if not layer.isValid():
+        return f"did not load as a vector layer: {path}"
+    names = {field.name() for field in layer.fields()}
+    required = {"occupants", "cas_sev1", "cas_sev2", "cas_sev3", "cas_sev4",
+                "cas_total", "displaced_hh", "public_shelter"}
+    missing = required - names
+    if missing:
+        return f"missing impact column(s): {', '.join(sorted(missing))}"
+    if "occupants_2" in names:
+        # make_fields renames a collision, so 'occupants' below would be a
+        # column of the input layer, not this tool's.
+        return (f"the layer carries both 'occupants' and 'occupants_2', so the "
+                f"impact columns did not land where they should: {sorted(names)}")
+    seen = 0
+    modelled = 0.0
+    for feature in layer.getFeatures():
+        value = {name: feature[name] for name in required}
+        if any(item is None for item in value.values()):
+            return f"a NULL impact value in feature {feature.id()}"
+        people = float(value["occupants"])
+        modelled += people
+        severities = [float(value[f"cas_sev{s}"]) for s in range(1, 5)]
+        total = float(value["cas_total"])
+        if abs(total - sum(severities)) > 1e-6:
+            return (f"feature {feature.id()}: cas_total {total:.6f} is not the "
+                    f"sum of the four severities {sum(severities):.6f}")
+        # Outdoor casualties are counted against the same occupant pool, so
+        # the four severities are bounded by the occupants whoever they are.
+        if sum(severities) > people + 1e-6:
+            return (f"feature {feature.id()}: {sum(severities):.3f} casualties "
+                    f"from {people:.3f} occupants - more people hurt than the "
+                    f"building holds, so the rates or the shares were misread")
+        if float(value["displaced_hh"]) > people + 1e-6:
+            return (f"feature {feature.id()}: {value['displaced_hh']:.3f} "
+                    f"displaced households from {people:.3f} occupants")
+        if float(value["public_shelter"]) > people + 1e-6:
+            return (f"feature {feature.id()}: {value['public_shelter']:.3f} "
+                    f"people seeking shelter from {people:.3f} occupants")
+        seen += 1
+    if not seen:
+        return "no building to read an impact value from"
+    if modelled <= 0.0:
+        # Every bound above is a ceiling, so a run that puts nobody in any
+        # building satisfies all of them and reports a city of nobody with a
+        # clean sheet. That is not a hypothetical: it is how the point-centroid
+        # output of planx:seismicdebris hid a zero occupant count from this
+        # check while shelter still divided a default dwelling count by it.
+        return (f"the run put {modelled:.3f} people in {seen} building(s), so "
+                f"every casualty and shelter number above is bounded by zero "
+                f"and checks nothing")
+    return None
+
+
 #: algorithm id -> callable(output path) -> complaint or None. Run only when
 #: the ordinary output verification passed, so a complainer here is always
 #: describing a wrong value rather than a missing output.
 VALUE_EXPECTATIONS = {
     "planx:groundmotion": {
         "OUTPUT": _expect_groundmotion_distances_are_kilometres,
+    },
+    "planx:seismicimpact": {
+        "OUT": _expect_impact_casualties_conserve_occupants,
     },
 }
 

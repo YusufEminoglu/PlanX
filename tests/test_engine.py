@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, isochrone, morphology,
+    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, morphology,
     optimize, parking, paths, provenance, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
@@ -2094,6 +2094,253 @@ check("seismic: width parse - rubbish, empty, None and non-positive rejected",
       and seismic.parse_width_m(None) is None and seismic.parse_width_m(0) is None
       and seismic.parse_width_m(-3.0) is None and seismic.parse_width_m("5 km") is None
       and seismic.parse_width_m(float("nan")) is None)
+
+# --------------------------------------------------------------------------- #
+# Seismic human impact - casualties and shelter (Hazus 6.1 Sections 12-13)
+# --------------------------------------------------------------------------- #
+# The Section 12 tables are the whole model's input, so their shape is locked
+# first. A partial or mis-aligned re-transcription is the one failure that
+# would produce plausible-looking casualty numbers for every building type at
+# once, and nothing downstream could tell.
+_IMPACT_TABLES = {
+    "Table 12-3 (slight, indoor)": impact.INDOOR_CASUALTY_RATES,
+    "Table 12-4 (moderate, indoor)": impact.INDOOR_CASUALTY_RATES_MODERATE,
+    "Table 12-5 (extensive, indoor)": impact.INDOOR_CASUALTY_RATES_EXTENSIVE,
+    "Table 12-6 (complete, no collapse)": impact.INDOOR_CASUALTY_RATES_COMPLETE_INTACT,
+    "Table 12-7 (complete, collapse)": impact.INDOOR_CASUALTY_RATES_COMPLETE_COLLAPSED,
+    "Table 12-8 (collapse given complete)": impact.COLLAPSE_RATE_GIVEN_COMPLETE,
+    "Table 12-9 (moderate, outdoor)": impact.OUTDOOR_CASUALTY_RATES_MODERATE,
+    "Table 12-10 (extensive, outdoor)": impact.OUTDOOR_CASUALTY_RATES_EXTENSIVE,
+    "Table 12-11 (complete, outdoor)": impact.OUTDOOR_CASUALTY_RATES_COMPLETE,
+}
+check("impact: the 36-type casualty tables all share one key set",
+      all(set(table) == set(impact.CASUALTY_BUILDING_TYPES)
+          for table in _IMPACT_TABLES.values()))
+check("impact: every table is keyed by the manual's own type order",
+      all(tuple(table) == impact.CASUALTY_BUILDING_TYPES
+          for table in _IMPACT_TABLES.values()))
+# Every label engine.seismic can resolve ("C1M", "RM2H", ...) must have a
+# casualty row, or a real run would raise KeyError on exactly the types the
+# damage model offers the user.
+_seismic_labels = set()
+for _base, _floors in ((code, floors) for code, _label in seismic.BUILDING_TYPES
+                       for floors in (1.0, 5.0, 12.0)):
+    _seismic_labels.update(np.atleast_1d(
+        seismic.resolve_building_type(_base, np.array([_floors]))).tolist())
+check("impact: the casualty tables cover every label the damage model can emit",
+      _seismic_labels <= set(impact.CASUALTY_BUILDING_TYPES)
+      and len(_seismic_labels) >= 20)
+
+# Table 12-3 is uniformly 0.05 / 0 / 0 / 0 in the manual - slight damage hurts
+# 5% of occupants, mildly, and kills nobody. A near-uniform table is exactly
+# the kind that invites a plausible-looking edit.
+check("impact: Table 12-3 is uniformly 5% severity-1 injuries and no deaths",
+      all(value == (0.05, 0.0, 0.0, 0.0)
+          for value in impact.INDOOR_CASUALTY_RATES.values()))
+check("impact: Table 12-3 carries a row for every one of the 36 types",
+      len(impact.INDOOR_CASUALTY_RATES) == 36)
+# URML/URMM are the outliers that make a shuffled transcription visible.
+check("impact: unreinforced masonry carries the manual's outlier rates",
+      impact.INDOOR_CASUALTY_RATES_MODERATE["URML"] == (0.35, 0.4, 0.001, 0.001)
+      and impact.INDOOR_CASUALTY_RATES_EXTENSIVE["URML"] == (2.0, 0.2, 0.002, 0.002))
+check("impact: Table 12-8 collapse fractions match the manual rows",
+      close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["W1"], 0.03)
+      and close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["S1L"], 0.08)
+      and close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["C1L"], 0.13)
+      and close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["C3L"], 0.15)
+      and close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["PC1"], 0.15)
+      and close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["URML"], 0.15)
+      and close(impact.COLLAPSE_RATE_GIVEN_COMPLETE["MH"], 0.03))
+check("impact: every collapse fraction is a probability",
+      all(0.0 <= value <= 1.0
+          for value in impact.COLLAPSE_RATE_GIVEN_COMPLETE.values()))
+# Collapsing can only hurt more people, so the collapsed row of a Complete
+# building dominates the intact row, severity by severity.
+check("impact: Table 12-7 never rates below Table 12-6 for the same severity",
+      all(all(collapsed >= intact
+              for collapsed, intact in zip(impact.INDOOR_CASUALTY_RATES_COMPLETE_COLLAPSED[code],
+                                           impact.INDOOR_CASUALTY_RATES_COMPLETE_INTACT[code]))
+          for code in impact.CASUALTY_BUILDING_TYPES))
+
+# Table 12-2: the manual's own shares, with the products written out.
+check("impact: residential is nearly full at 2 a.m. and half full at 5 p.m.",
+      close(impact.POPULATION_DISTRIBUTION["Residential"]["2am"][0], 0.999 * 0.99)
+      and close(impact.POPULATION_DISTRIBUTION["Residential"]["5pm"][0], 0.70 * 0.50))
+check("impact: a school holds nobody at 2 a.m. and a hotel a fifth at 2 p.m.",
+      impact.POPULATION_DISTRIBUTION["Educational"]["2am"] == (0.0, 0.0)
+      and close(impact.POPULATION_DISTRIBUTION["Hotels"]["2pm"][0], 0.19))
+check("impact: population_distribution rejects an unknown occupancy or time",
+      _seismic_raises(KeyError, impact.population_distribution, "Museum", "2am")
+      and _seismic_raises(KeyError, impact.population_distribution, "Residential", "noon"))
+check("impact: occupancy text resolves to the Hazus class, longest token first",
+      impact.occupancy_class("Primary school") == "Educational"
+      and impact.occupancy_class("kindergarten") == "Educational"
+      and impact.occupancy_class("RESIDENTIAL") == "Residential"
+      and impact.occupancy_class("Retail unit") == "Commercial"
+      and impact.occupancy_class("Hotel") == "Hotels")
+check("impact: an unrecognised occupancy returns None rather than guessing",
+      impact.occupancy_class("zzz") is None and impact.occupancy_class(None) is None
+      and impact.occupancy_class("") is None)
+
+# The event tree, checked against its own algebra on a hand-built distribution.
+_one = {state: np.array([0.0]) for state in seismic.DAMAGE_STATES}
+_one["complete"] = np.array([1.0])
+_intact = impact.indoor_rates(_one, np.array(["C1L"]))[0]
+check("impact: a certainly-Complete building is rated at the collapse-weighted mean",
+      all(close(_intact[s],
+                (1.0 - impact.COLLAPSE_RATE_GIVEN_COMPLETE["C1L"])
+                * impact.INDOOR_CASUALTY_RATES_COMPLETE_INTACT["C1L"][s] / 100.0
+                + impact.COLLAPSE_RATE_GIVEN_COMPLETE["C1L"]
+                * impact.INDOOR_CASUALTY_RATES_COMPLETE_COLLAPSED["C1L"][s] / 100.0)
+          for s in range(4)))
+_one_none = {state: np.array([0.0]) for state in seismic.DAMAGE_STATES}
+_one_none["none"] = np.array([1.0])
+check("impact: no damage means no indoor and no outdoor casualties",
+      np.allclose(impact.indoor_rates(_one_none, np.array(["C1L"])), 0.0)
+      and np.allclose(impact.outdoor_rates(_one_none, np.array(["C1L"])), 0.0))
+check("impact: outdoor rates are zero at slight damage and above C3's slight row",
+      np.allclose(impact.outdoor_rates(
+          {"none": np.array([0.0]), "slight": np.array([1.0]),
+           "moderate": np.array([0.0]), "extensive": np.array([0.0]),
+           "complete": np.array([0.0])}, np.array(["C1L"])), 0.0))
+# Fatalities must rise with the probability of Complete damage: the model's
+# one orientation that a sign error would invert invisibly.
+_fatal = []
+for _p in (0.0, 0.25, 0.5, 0.75, 1.0):
+    _dist = {"none": np.array([1.0 - _p]), "slight": np.array([0.0]),
+             "moderate": np.array([0.0]), "extensive": np.array([0.0]),
+             "complete": np.array([_p])}
+    _fatal.append(float(impact.casualties(_dist, np.array(["C1L"]),
+                                          np.array([100.0]), ["Residential"], "2am")["total"][0][3]))
+check("impact: fatalities rise monotonically with P(complete)",
+      all(later > earlier for earlier, later in zip(_fatal, _fatal[1:])))
+check("impact: a certainly-Complete C1L home kills only a fraction of 100 residents",
+      0.0 < _fatal[-1] < 100.0)
+
+# Conservation: the severities are shares of the people the scenario time
+# actually puts in the building, so their sum cannot exceed that count.
+_conservation = impact.casualties(_probs, np.array(["C1M"] * 5), np.array([250.0] * 5),
+                                  ["Residential"] * 5, "2am")
+_present = 250.0 * impact.POPULATION_DISTRIBUTION["Residential"]["2am"][0]
+check("impact: casualties are bounded by the people the scenario time puts indoors",
+      bool(np.all(_conservation["indoor"].sum(axis=1) <= _present + 1e-9)))
+check("impact: indoor and outdoor casualties add to the reported total",
+      np.allclose(_conservation["total"], _conservation["indoor"] + _conservation["outdoor"]))
+check("impact: a school at 2 a.m. has no casualties whatever its damage",
+      np.allclose(impact.casualties(_probs, np.array(["S1M"] * 5), np.array([500.0] * 5),
+                                    ["Educational"] * 5, "2am")["total"], 0.0))
+check("impact: doubling the occupants doubles the casualties",
+      np.allclose(impact.casualties(_probs, np.array(["C1M"] * 5), np.array([500.0] * 5),
+                                    ["Residential"] * 5, "2am")["total"],
+                  2.0 * impact.casualties(_probs, np.array(["C1M"] * 5), np.array([250.0] * 5),
+                                          ["Residential"] * 5, "2am")["total"]))
+
+check("impact: occupants from floor area is footprint x storeys / density",
+      np.allclose(impact.occupants_from_floor_area(np.array([100.0]), np.array([3.0]), 30.0),
+                  [10.0]))
+check("impact: a non-positive area per occupant is rejected, not divided by",
+      _seismic_raises(ValueError, impact.occupants_from_floor_area,
+                      np.array([100.0]), np.array([3.0]), 0.0))
+
+# Shelter. Equation 13-1 and 13-2 with everything in Complete damage: a
+# single-family dwelling is 100% uninhabitable, a multi-family block 100% too,
+# so Equation 13-3 makes displaced households equal the dwelling units.
+check("impact: a certainly-Complete home displaces its household",
+      close(float(impact.displaced_households(_one, np.array([1.0]))[0]), 1.0)
+      and close(float(impact.displaced_households(_one, np.array([12.0]))[0]), 12.0))
+check("impact: Table 13-1 makes an extensively damaged single-family home habitable",
+      close(float(impact.displaced_households(
+          {"none": np.array([0.0]), "slight": np.array([0.0]), "moderate": np.array([0.0]),
+           "extensive": np.array([1.0]), "complete": np.array([0.0])},
+          np.array([1.0]))[0]), 0.0))
+check("impact: but the same damage displaces 90% of a multi-family block",
+      close(float(impact.displaced_households(
+          {"none": np.array([0.0]), "slight": np.array([0.0]), "moderate": np.array([0.0]),
+           "extensive": np.array([1.0]), "complete": np.array([0.0])},
+          np.array([10.0]))[0]), 9.0))
+check("impact: a non-residential building has no dwelling units to displace",
+      close(float(impact.displaced_households(_one, np.array([0.0]))[0]), 0.0)
+      and close(float(impact.shelter(_one, np.array([500.0]), np.array([0.0]))["public_shelter"][0]), 0.0))
+check("impact: the occupancy rate scales displaced households",
+      close(float(impact.displaced_households(_one, np.array([10.0]), 0.5)[0]), 5.0))
+check("impact: HAZUS_SHELTER weights and the neutral modifier give alpha exactly 1.0",
+      close(impact.shelter_alpha(), 1.0, 1e-15)
+      and close(sum(impact.SHELTER_CATEGORY_WEIGHTS.values()), 1.0, 1e-15))
+check("impact: the default modifier vector is exactly all-ones",
+      all(value == impact.NEUTRAL_SHELTER_MODIFIER
+          for value in (impact.NEUTRAL_SHELTER_MODIFIER,) * 4)
+      and close(impact.shelter_alpha(), 1.0, 1e-15)
+      and close(impact.shelter_alpha((0.73, 0.27, 0.0, 0.0)),
+                impact.shelter_alpha(), 1e-15))
+# Hazus's own Table 13-3 factors pull the answer well below the neutral bound,
+# which is the point the help text makes; a 1.0-uniform default is not a
+# calibrated US answer in disguise.
+_income_mean = sum(impact.SHELTER_MODIFICATION_FACTORS["income"].values()) / 5.0
+check("impact: a real Table 13-3 income mean reduces the shelter need",
+      0.0 < _income_mean < 1.0
+      and close(impact.shelter_alpha((1.0, 0.0, 0.0, 0.0), (_income_mean,) * 4), _income_mean))
+check("impact: shelter need is displaced households times people per household",
+      close(float(impact.shelter(_one, np.array([300.0]), np.array([10.0]))["public_shelter"][0]),
+            10.0 * 30.0)
+      and close(float(impact.shelter_need(np.array([4.0]), np.array([80.0]),
+                                          np.array([2.0]))[0]), 160.0))
+check("impact: alpha scales the public shelter count and nothing else",
+      close(float(impact.shelter_need(np.array([4.0]), np.array([80.0]),
+                                      np.array([2.0]), alpha=0.5)[0]), 80.0)
+      and close(float(impact.displaced_households(_one, np.array([2.0]))[0]), 2.0))
+check("impact: a building with no damage needs no shelter",
+      close(float(impact.shelter(_one_none, np.array([300.0]), np.array([10.0]))["displaced_households"][0]), 0.0)
+      and close(float(impact.shelter(_one_none, np.array([300.0]), np.array([10.0]))["public_shelter"][0]), 0.0))
+
+# One end-to-end worked example, derived by hand from the manual's tables so
+# the number is a real prediction rather than whatever the code last printed.
+# 100 residents, a C1L home, 2 a.m., damage distribution 0.2/0.3/0.25/0.25:
+#   indoors = 100 x 0.999 x 0.99 = 98.901 people (Table 12-2)
+#   severity-1 rate, per cent
+#     = 0.2*0.05 (T12-3) + 0.3*0.25 (T12-4) + 0.25*1.0 (T12-5)
+#     + 0.25*(0.87*5.0 (T12-6) + 0.13*40.0 (T12-7))
+#     = 0.01 + 0.075 + 0.25 + 1.0875 + 1.3 = 2.7225
+#   severity-1 injuries = 98.901 x 0.027225 = 2.6925797
+# and similarly 0.8915925, 0.1631124, 0.3238266 up the severities.
+_mix = {"none": np.array([0.0]), "slight": np.array([0.2]),
+        "moderate": np.array([0.3]), "extensive": np.array([0.25]),
+        "complete": np.array([0.25])}
+_worked = impact.casualties(_mix, np.array(["C1L"]), np.array([100.0]),
+                            ["Residential"], "2am")
+check("impact: the worked C1L example reproduces the hand-derived indoor counts",
+      np.allclose(_worked["indoor"][0],
+                  [2.6925797, 0.8915925, 0.1631124, 0.3238266], atol=1e-6))
+check("impact: almost nobody is outside a home at 2 a.m.",
+      float(_worked["outdoor"].sum()) < 0.01 * float(_worked["indoor"].sum()))
+
+# The four damage-state columns a fragility run writes carry no 'none': the
+# undamaged share is the complement. Handing only the four to the event tree
+# raised KeyError('none') in the tool - the matrix caught it on the chained
+# run, where every engine check above had passed because every one of them
+# supplied the five states by hand.
+_four = {"slight": np.array([0.2]), "moderate": np.array([0.3]),
+         "extensive": np.array([0.25]), "complete": np.array([0.25])}
+_filled = impact.fill_undamaged(_four)
+check("impact: fill_undamaged completes the four damaged states with the complement",
+      close(float(_filled["none"][0]), 0.0)
+      and close(float(impact.fill_undamaged(
+          {"slight": _four["slight"]})["none"][0]), 0.8))
+check("impact: fill_undamaged leaves the states it was given alone",
+      set(_four) == {"slight", "moderate", "extensive", "complete"}
+      and all(close(float(_filled[key][0]), float(_four[key][0]))
+              for key in _four))
+check("impact: fill_undamaged returns an already-complete distribution as it is",
+      close(float(impact.fill_undamaged(_mix)["none"][0]), 0.0)
+      and set(impact.fill_undamaged(_mix)) == set(_mix))
+check("impact: fill_undamaged clips a row summing above 1 rather than going negative",
+      close(float(impact.fill_undamaged(
+          {"complete": np.array([1.2])})["none"][0]), 0.0))
+check("impact: the filled four-state distribution gives the hand-derived counts",
+      np.allclose(impact.casualties(impact.fill_undamaged(
+          {"slight": np.array([0.2]), "moderate": np.array([0.3]),
+           "extensive": np.array([0.25]), "complete": np.array([0.25])}),
+          np.array(["C1L"]), np.array([100.0]), ["Residential"], "2am")["indoor"][0],
+          _worked["indoor"][0], atol=1e-12))
 
 # --------------------------------------------------------------------------- #
 # Exact isochrones (v4.7 Service Areas rebuild)

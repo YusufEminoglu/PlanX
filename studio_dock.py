@@ -78,7 +78,7 @@ class PlanXStudioDock(QDockWidget):
         layout.addWidget(hint)
 
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search 71 planning tools…")
+        self.search.setPlaceholderText("Search planning tools…")
         self.search.textChanged.connect(self._filter)
         layout.addWidget(self.search)
 
@@ -139,6 +139,12 @@ class PlanXStudioDock(QDockWidget):
             self.tree.addTopLevelItem(QTreeWidgetItem(["PlanX provider not loaded"]))
             return
         fallback = QIcon(os.path.join(PLUGIN_DIR, "icons", "icon.png"))
+        # Read the count off the provider rather than keeping a literal here: the
+        # number is in the manual, the README and metadata.txt already, and a
+        # fourth copy nobody checks is a fourth copy that goes stale. A late
+        # release shipped this reading "Search 71 planning tools" against 72.
+        self.search.setPlaceholderText(
+            f"Search {len(provider.algorithms())} planning tools…")
         self._shortcut_group(provider, "★ Favorites", self._stored_ids("favorites"), fallback)
         self._shortcut_group(provider, "↻ Recent", self._stored_ids("recent"), fallback)
         groups = {}

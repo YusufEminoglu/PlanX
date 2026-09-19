@@ -554,6 +554,16 @@ def debris_extent(
     Returns ``(radius_m, solid_m3, pile_m3, mass_t)``. ``solid_m3`` is the
     material volume, ``pile_m3`` the bulk volume the pile occupies once its
     voids are counted, and ``mass_t`` the tonnage to haul away.
+
+    Units: the volumes and the mass are cubic metres and tonnes only if
+    ``height`` is in metres and ``area`` in square metres. This function
+    cannot check that - it sees numbers. ``planx:seismicdebris`` currently
+    hands it ``QgsGeometry.area()`` in the layer's own area unit, so a layer
+    projected in feet, or one still in degrees, inflates every volume by the
+    square of the unit factor (roughly 1.76x for a metre grid stored on
+    EPSG:3857 at 41 N, where the scale factor itself is the culprit). Open
+    defect, recorded in the changelog rather than fixed here; the radius is
+    unaffected because it is driven by height alone.
     """
     height = np.asarray(height, dtype=np.float64)
     area = np.asarray(area, dtype=np.float64)

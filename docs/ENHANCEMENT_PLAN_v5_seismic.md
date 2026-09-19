@@ -7,15 +7,23 @@ one algorithm to five, as four releases.
 quality programme for the 71-algorithm plugin. It lists a candidate `v4.13.0` for traffic
 assignment; that number is now taken by the seismic debris rebuild. This document owns the
 seismic thread and takes `v4.14.0` upward. It does not supersede the other file.
-**Status:** Faz 1 built in the working tree at v4.14.0 (engine, algorithm, provider
-registration, icon, runtime-matrix binding, manual card, tests and fixture), not yet
-committed, tagged, pushed or uploaded. Faz 2 to Faz 4 are unstarted. The plan text below
-is left as written, with Faz 1's deviations from it recorded in §3.1 under "as built" -
-the plan is the contract, so where the implementation departed from it the departure is
-stated rather than the plan quietly edited to match. **Faz 1 is held only by commit, tag
-and upload.** A distance-unit defect found by the matrix's own run log (every receiver
-1000× too far) and the inverted unit factor that replaced it are both fixed; the engine
-suite stands at 627 checks and the matrix case passes with the new value check.
+**Status (2026-09-19, updated at Faz 2):** Faz 1 is **committed** at v4.14.0, `102cab2`,
+annotated tag `v4.14.0` — and **not pushed, not uploaded**. Faz 2 is built in the working
+tree at v4.15.0 (`planx:seismicimpact`: engine `engine/impact.py`, algorithm, provider
+registration, icon, runtime-matrix chaining case, manual card, README/METHODS/CHANGELOG
+and the Hazus Sections 12–13 notice), not yet committed, pushed or uploaded. Faz 3 and
+Faz 4 are unstarted. The plan text below is left as written, with each phase's deviations
+from it recorded under "as built" in its own section - the plan is the contract, so where
+the implementation departed from it the departure is stated rather than the plan quietly
+edited to match. **Both phases are held only by commit, tag and upload.**
+
+A distance-unit defect found by the matrix's own run log during Faz 1 (every receiver
+1000× too far) and the inverted unit factor that replaced it are both fixed. The engine
+suite stood at 627 checks after Faz 1 and stands at **670** after Faz 2; both matrix cases
+pass with their value checks. Faz 2's own first matrix run **failed** - the four
+damage-state columns carry no `none`, and the event tree indexes the distribution by state,
+so the tool raised `KeyError: 'none'` on the one workflow it exists for while every engine
+check passed. The fix and its five checks are recorded under "as built" in §3.2.
 
 ---
 
@@ -353,6 +361,128 @@ and a manifest.
    earthquake and 809-page hurricane technical manuals: zero hits. Hazus's time steps are
    Day 1/3/7/14/30/90 and belong to facility and infrastructure restoration. If this tool
    ever needs a ladder, it is our construct and it will be labelled as ours.
+
+**Verification — as run.** All six were executed, not merely intended.
+
+1. **Conservation** — `tests/test_engine.py`, "casualties are bounded by the people the
+   scenario time puts indoors", against `POPULATION_DISTRIBUTION["Residential"]["2am"]`.
+2. **Monotonicity** — same file, "fatalities rise monotonically with P(complete)", swept at
+   0.0/0.25/0.5/0.75/1.0, plus a second check that a certainly-Complete home kills only a
+   fraction of its 100 residents. The first alone would pass on a model that kills everyone.
+3. **Neutral default** — two checks: α is exactly 1.0 (tolerance 1e-15) at the shipped
+   weights, and it is unchanged when the weights are supplied explicitly.
+4. **Degenerate case** — "no damage means no indoor and no outdoor casualties" at the rate
+   level, and "a building with no damage needs no shelter" through the Section 13 functions.
+5. **Chaining** — `tests/qgis_runtime_algorithm_matrix.py:693` binds
+   `("planx:seismicimpact", "BUILDINGS")` to `art:planx:seismicdebris/OUT_BUILDINGS`, so
+   the scenario → debris → casualties workflow is executed on both runtimes.
+6. **Anti-fabrication** — re-run on 2026-09-19 against the extracted full text of the
+   **Hazus 6.1 earthquake** (975,605 characters) and **6.1 hurricane** (1,492,522
+   characters) technical manuals in `%TEMP%\hazus\`: **zero hits** for `Day 1 / Week 1 /
+   Month 2`, for `Week 1`, for `Month 2` and for `shelter ladder`. The only day-step
+   ladder the earthquake manual contains is "Day 1, Day 3, Day 7, Day 30, and Day 90",
+   and its context is water-pipeline repair restoration, not shelter. The tool ships no
+   such ladder anywhere in its help, its manual card or its output fields.
+
+**As built — where the implementation departed from this section.**
+
+- **The four probability columns are prepended, not appended** to
+  `alg_seismic_debris.output_fields()`, in the order this section required, with the reason
+  in the code beside them (`alg_seismic_debris.py:450–490`, the method's own docstring).
+  `footprint_area` was added to that list in this phase, after `height_m`; it carries no
+  renderer token, so it can sit anywhere in the matching run and `collapse_prob` stays the
+  coloured field — the guard above covers that too, which is why it reads the field list
+  back from the algorithm instead of from a copy of it. The guard is
+  `tests/smoke_plugin.py::_assert_seismic_renderer_field`, which reads the field list back
+  from the algorithm rather than from a copy of it, seeds a later field with a
+  renderer-matching name, and fails if the map colours by anything but `collapse_prob`.
+  Faz 2's own tool needed the same care for the opposite reason: none of its numeric fields
+  matches the renderer's token list, so without an explicit `RENDER_FIELD = "cas_total"` its
+  results would ship uncoloured — and no count-based test would have noticed.
+- **Hazus's bridge commuter path and street population are not implemented.** This section
+  listed Tables 12-3…12-11; what shipped is Tables 12-1…12-9. Equation 12-1, the bridge
+  rows of Tables 12-6 and 12-7, and the street-population parameters PRFIL, VISIT and CDF
+  are absent, because each needs an inventory PlanX does not model: a bridge layer carrying
+  damage states, and a count of people on the street away from any building. The engine
+  header, the tool's help text and the manual card all say so, rather than approximating
+  them.
+- **No `SEVERITY_LEVELS` parameter.** The four severities are always computed and written
+  as `cas_sev1`…`cas_sev4`. A parameter that could not vary would be a control that does
+  nothing, and the four rates come from one tree with only the branching rates changed.
+- **`public_shelter` only, not a separate temporary-shelter column.** Hazus's temporary and
+  public shelter terms are the same `#STP` product; a second column would print one number
+  under two names.
+- **`OCCUPANCY_SOURCE` kept the two paths this section named**, `field` (a population
+  column) and `area` (footprint × storeys ÷ `AREA_PER_OCCUPANT`, default 30 m²), and the
+  run log names which one produced the count and states that the divisor is this tool's
+  own screening assumption rather than a Hazus figure.
+- **Three defects the matrix found, and the reason §3.2's verification list was not
+  sufficient on its own.** The first two showed up as the same headline, `FAIL (72/73)`, on
+  both runtimes, and they were not the same failure: the first masked the second. Each of
+  the three was invisible to everything except a full chained run of the tool.
+
+  **1. The tool raised on its own primary workflow.** The first run reported
+  `KeyError: 'none'` at `alg_seismic_impact.py:489`. The four damage-state columns the
+  debris tool writes are the four *damaged* states; the undamaged share is their
+  complement, and the engine's event tree indexes the distribution by state. So the tool
+  raised on the exact workflow this phase exists to build, while all 665 engine checks
+  passed - because every one of them handed the engine a five-state distribution written
+  out by hand. Verification items 1-4 above are properties of the *engine*; item 5 is the
+  only one that runs the tool.
+  **Fix:** `engine/impact.py::fill_undamaged` completes a four-state distribution with its
+  complement, clipped at zero so a row already summing above 1.0 gets no undamaged share
+  rather than a negative one - which keeps the sum-to-1 warning in the tool meaningful
+  instead of hiding the mistake. Five checks were added for it, including one that the
+  filled distribution reproduces the hand-derived C1L counts exactly, which is what ties
+  the new path back to the value the worked example pins. The engine suite is 670 checks.
+
+  **2. The harness could not reach the tool's other two input paths.** With the first
+  fixed, the next run reported `KeyError: 'buildings_occupancy'` in 0.10 s - before the
+  tool ran at all. `_resolve_special` resolved a `fixture:` token against
+  `bundle["files"]`, which holds only the GTFS zip; the occupancy fixture is a *layer* and
+  lives in `bundle["layers"]`. Every earlier `fixture:` token in the file named that one
+  zip, so the branch had never had to look anywhere else. The three cases this phase added
+  were the first to name a layer as a fixture, and the two coverage cases they exist to
+  give - a population field against an occupancy field, and a single damage-state column -
+  had therefore never executed once.
+  **Fix:** the resolver now looks in both dictionaries and raises naming what it does hold.
+
+  **3. The chained run modelled a population of nobody, and the value check passed it.**
+  With the harness fixed the case ran clean, and the run log read
+  `Population modelled: 0 people across 70 feature(s)`. The same run reported 17.7
+  displaced households. That is precisely the silent-zero answer this tool refuses to give
+  in its own help text, produced by the tool, with the check green.
+
+  The cause is the seam between two phases. `planx:seismicdebris` writes its annotated
+  buildings as **point centroids** - `alg_seismic_debris.py:599`, because the debris
+  envelopes need a point to hang off - so `QgsGeometry.area()` is 0.0 at every building,
+  the floor-area occupant estimate multiplies out to zero everywhere, and casualties go to
+  zero with it. Shelter did not follow, because a residential building with no dwelling-unit
+  column counts as one dwelling and `#DH = κ·u·%` never divides by an occupant count. A
+  number coming out of a run with no people in it is what exposed the rest.
+
+  **Fix:** the footprint now survives the handover. `planx:seismicdebris` writes
+  `footprint_area`, and `planx:seismicimpact` reads a footprint from a column when the
+  geometry gives none - named on the new optional `AREA_FIELD`, or auto-detected in
+  `footprint_area`, `area_m2`, `area`, `shape_area` so the chain runs unconfigured. With no
+  footprint anywhere the tool **raises** rather than report a city of nobody; when only some
+  buildings lack one it warns with the count, and the run log names the source.
+
+  The check needed the same treatment, and this is the part worth carrying forward. Every
+  bound in `_expect_impact_casualties_conserve_occupants` was an *upper* bound - casualties
+  below occupants, shelter below occupants - and zero occupants satisfies all of them. The
+  check written to catch physically impossible numbers could not see a run with no numbers
+  in it. It now also requires the run to put somebody in a building. `planx:seismicimpact`
+  is the only entry in `VALUE_EXPECTATIONS` with a chained case behind it, which is why it
+  was the only case where this could happen.
+
+  All three are the same lesson, which is why they are recorded together: the first is a
+  defect the engine suite structurally could not see, the second a defect the *harness*
+  could not see about itself, and the third a defect the *value check* could not see about
+  its own bounds. A chained run of the real tool is the only thing that produces any of the
+  three signals, and after the first fix the headline stayed identical while the cause
+  underneath it changed - so a rerun that reports the same count is not evidence that
+  nothing moved.
 
 **Deliberately not in this phase:** repair cost and downtime. See §4.
 

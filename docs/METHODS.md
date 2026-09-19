@@ -125,7 +125,7 @@ Wang & Liu (2006) deterministic priority-flood depression filling using a priori
 
 ## Travel Demand
 
-Linear trip generation: `P = pop * p_rate` and `A = jobs * a_rate`. Doubly constrained gravity distribution using Furness/IPF balancing with exponential `exp(-beta * cost)` or power `cost^-beta` deterrence functions over network costs computed via Dijkstra many-to-many shortest paths. Mode split: multinomial logit shares `P_k = exp(U_k) / sum(exp(U_m))` and split flows based on mode travel times, time coefficients (betas), and constants (ASCs).
+Linear trip generation: `P = pop * p_rate` and `A = jobs * a_rate`. Doubly constrained gravity distribution using Furness/IPF balancing with exponential `exp(-beta * cost)` or power `cost^-beta` deterrence functions over network costs computed via Dijkstra many-to-many shortest paths. Mode split: multinomial logit shares `P_k = exp(U_k) / sum(exp(U_m))` and split flows based on mode travel times, time coefficients (betas), and constants (ASCs). Parking demand: a zone takes the first rate row whose category keyword it contains, and its size column is read in that row's own basis — `unit` = spaces per dwelling unit, `sqm` = `rate · size / 1000` (per 1000 m² gross floor area), `seat` = spaces per seat. A zone whose category matches no row demands zero and is reported as an uncovered category instead of being folded into the total, so a rate table that does not reach a category reads as a coverage gap and not as a zone with no parking problem. Parking balance: supply is the spaces of every inventory feature at or below the radius from the zone — street-network distance when a network is given, straight-line otherwise — and `balance_spaces = supply − demand`, which is NULL rather than negative where the inventory never surveyed the zone: `supply_status` is `counted`, `zero supply found` (surveyed, nothing in range — a real deficit) or `supply data absent` (not surveyed at all), in that precedence order.
 
 
 ## Scenario Pipeline & Population Allocation
@@ -221,3 +221,78 @@ rank first with zero wins. Metrics are skipped as `neutral` (direction
 0 or unknown), `not-shared` (missing in at least one snapshot) or
 `constant` (max equals min), with reason precedence
 neutral > not-shared > constant.
+
+## Seismic Risk
+
+Ground motion: the Akkar, Sandıkkaya & Bommer (2014) shallow-crustal model
+for Europe and the Middle East, one of the four models in the logic tree of
+Turkey's 2018 national seismic hazard map, with the authors' published
+coefficients. `ln IM = a₁ + a₃(8.5 − Mw)² + (a₄ + a₅(Mw − 6.75)) ln√(R² + a₆²)`,
+plus a magnitude slope that changes from `a₂` to `a₇` at the reference
+magnitude of 6.75 (the paper's saturation above it) and a mechanism offset
+from strike-slip. A nonlinear site term is then added, conditioned on the
+rock PGA of the same scenario: `b₁ ln(Vs30/750) + b₂ ln((PGA_rock + c(Vs30/750)ⁿ)/((PGA_rock + c)(Vs30/750)ⁿ))`
+for soft sites, and the linear hard-rock branch `b₁ ln(min(Vs30, 1500)/750)`
+above the reference velocity of 750 m/s, where the site term is exactly zero.
+`ε` shifts the median by that many total standard deviations. A point source
+and a fault trace differ only in the distance they produce — epicentral or
+hypocentral from the focal depth for the point, Joyner–Boore and epicentral
+as perpendicular distances to the trace for the rupture — and every distance
+is converted into kilometres from whatever the layer's CRS uses.
+
+Damage and debris: Hazus 6.1 equivalent-PGA structural fragility curves
+(Tables 5-37 to 5-40) as `P(DS ≥ ds | PGA) = Φ(ln(PGA/θ_ds)/β)`, with
+θ per building type, height class and seismic design level, and
+β = 0.64 = √(0.4² + 0.5²) as tabulated. Discrete state probabilities are the
+differences of the exceedance curve, so a building carries a full
+five-state distribution rather than a collapse yes/no. The design level
+comes from the construction year through a single mapping that is an
+uncalibrated screening assumption, not a Turkish code classification.
+Debris: `V_solid = A·H·η·f_state`, `V_pile = V_solid/(1 − void)` and
+`mass = V_solid·ρ`, with `f_state` the released-material fraction of the
+damage state (0 for slight and none, 1.0 for complete) and η the material
+share of the gross volume; the pile radius is the debris factor times the
+height, scaled by `f_state`. Passability is the street network minus the
+blocked footprint, opened morphologically at the minimum clear width, so a
+corridor with no navigable width left is not reported as open. The buildings
+are written as centroid points, with the footprint area carried alongside as
+a `footprint_area` column so the downstream casualty model still has one;
+that column is in the layer's own area unit, so `V_solid`, `V_pile` and `mass`
+are cubic metres and tonnes only on a metre-projected layer — an open defect,
+stated on `debris_extent` and in the changelog rather than silently assumed.
+The pile radius is unaffected because it is driven by height alone.
+
+Casualties: the Hazus Section 12 event tree, per building, as
+`rate = Σ_ds p_ds·r_ds` with the Complete state split into collapsed and
+intact by the probability of collapse given Complete (Table 12-8); the
+outdoor tree omits the slight branch and does not split on collapse. Rates
+are per injury severity (1 slight to 4 fatal, Table 12-1) and are applied
+to the indoor and outdoor populations separately — the population shares
+being the occupancy class crossed with the scenario time of day (Table 12-2,
+2 a.m. / 2 p.m. / 5 p.m.). The occupant count comes from a population field
+when the layer has one, and otherwise from floor area times storeys over an
+area per occupant, so the footprint is either the building geometry or, for
+point buildings — which is what the debris tool writes — a footprint column;
+with no footprint at all the run stops rather than return a city of zero
+casualties. The bridge commuter path and the street-population
+parameters are deliberately not implemented, because both need an inventory
+the plugin does not model.
+
+Shelter: the Hazus Section 13 displacement model. A building of one dwelling
+unit is treated as single-family and one of two or more as multi-family,
+which is how Hazus splits its residential classes (RES1 against RES3), and
+the uninhabitable fraction is `P(complete)` for single-family and
+`0.9·P(extensive) + P(complete)` for multi-family. Displaced households are
+`#DH = κ·u·%`, where `u` is the dwelling units and `κ` the occupancy rate
+(households per dwelling unit), so total households are `#HH = κ·u`. Public
+shelter demand is `#STP = #DH·(POP/#HH)·α`, with α the weighted sum of the
+four shelter modifier groups across income, ethnicity, ownership and age.
+The tool's modifiers are neutral, so α = 1.0 exactly and public shelter is an upper
+bound rather than a forecast; Hazus's own Table 13-3 factors run from 0.13
+to 0.62 and are quoted in the engine next to the neutral default.
+
+Both Hazus halves are transcribed from a United States federal publication
+and are applied here uncalibrated to Turkish stock; the ground-motion model
+carries no basin and no directivity term. Every one of those limits is
+stated in the tool's own help text and in the manual, beside the numbers it
+qualifies.

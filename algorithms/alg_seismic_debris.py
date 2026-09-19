@@ -158,9 +158,11 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             "use a projected CRS; network inputs in a different CRS are "
             "reprojected to the buildings CRS automatically.\n\n"
             "OUTPUTS\n"
-            "- Annotated building points: height, collapse probability, the "
-            "sampled damage state, debris radius, and the three debris "
-            "quantities.\n"
+            "- Annotated building points: height, the probability of each "
+            "damage state, collapse probability, the sampled damage state, "
+            "debris radius, and the three debris quantities. The four damage "
+            "probabilities are what the Seismic Human Impact tool consumes, "
+            "so this layer chains straight into it.\n"
             "- Debris spread envelope (dissolved).\n"
             "- Network blockage: the part of the street space debris covers.\n"
             "- Open evacuation corridors: street space minus blockage.\n"
@@ -456,9 +458,29 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         fields to put, say, ``collapse_freq`` later would repaint every result
         without failing a single output-count check, so tests/smoke_plugin.py
         asserts the choice against this method rather than a hand-copied list.
+
+        The four damage-state probabilities come first for that same reason.
+        They were added for the casualty and shelter model, which wants the
+        distribution rather than the one sampled realisation the
+        ``damage_state`` column holds, and every one of them matches the
+        renderer's ``prob`` token. Appending them after ``collapse_prob``
+        would have repainted every map this tool has ever drawn, silently, so
+        they go ahead of it and ``collapse_prob`` stays the last match.
+
+        ``footprint_area`` carries no renderer token, so it can sit anywhere in
+        that run; it is here, next to the height it pairs with. It is the raw
+        ``QgsGeometry.area()``, i.e. in the layer's own area unit, which is why
+        it is not called ``area_m2`` - see the CRS note on ``seismic.debris_extent``.
+        The casualties tool reads it back when the buildings arrive as the
+        point centroids this method writes, because a centroid has no area.
         """
         return PlanXAlgorithm.make_fields(
+            ("prob_slight", DOUBLE),
+            ("prob_moderate", DOUBLE),
+            ("prob_extensive", DOUBLE),
+            ("prob_complete", DOUBLE),
             ("height_m", DOUBLE),
+            ("footprint_area", DOUBLE),
             ("collapse_prob", DOUBLE),
             ("collapsed", INT),
             ("damage_state", STRING),
@@ -591,7 +613,9 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             out_feat = QgsFeature(out_fields)
             out_feat.setGeometry(geoms[i].centroid())
             out_feat.setAttributes(list(f.attributes())[:n_base] + [
-                float(heights[i]), float(probabilities["complete"][i]), int(collapsed[i]),
+                float(probabilities["slight"][i]), float(probabilities["moderate"][i]),
+                float(probabilities["extensive"][i]), float(probabilities["complete"][i]),
+                float(heights[i]), float(areas[i]), float(probabilities["complete"][i]), int(collapsed[i]),
                 seismic.DAMAGE_STATES[int(state_index[i])],
                 float(radius[i]), float(solid[i]), float(pile[i]), float(mass[i]),
                 None if collapse_freq is None else float(collapse_freq[i]),

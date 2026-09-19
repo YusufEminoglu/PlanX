@@ -35,7 +35,7 @@ STUDIO_DOCK = ROOT / "studio_dock.py"
 MANUAL = ROOT / "docs" / "PLANX_REFERENCE_MANUAL.html"
 
 #: The count may only go up. A drop means algorithms were dropped by accident.
-MIN_EXPECTED_ALGORITHM_COUNT = 72
+MIN_EXPECTED_ALGORITHM_COUNT = 73
 
 #: GROUP_* slugs in the order algorithms/base.py declares them. The manual
 #: numbers its group sections 1..N in this same order, so a reorder here

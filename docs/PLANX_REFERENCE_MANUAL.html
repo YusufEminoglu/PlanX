@@ -354,6 +354,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <ul class="toc-algs">
 <li><a href="#groundmotion" data-name="groundmotion" data-display="ground motion scenario"><img src="icons/tool_groundmotion.png" alt="" class="alg-icon">Ground Motion Scenario</a></li>
 <li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)"><img src="icons/tool_seismicdebris.png" alt="" class="alg-icon">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
+<li><a href="#seismicimpact" data-name="seismicimpact" data-display="seismic human impact (casualties and shelter)"><img src="icons/tool_seismicimpact.png" alt="" class="alg-icon">Seismic Human Impact (Casualties and Shelter)</a></li>
 </ul></li>
 </ul>
 <div id="sidebar-footer">
@@ -372,7 +373,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.14.0 &middot; 72 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.15.0 &middot; 73 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -397,14 +398,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.14.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.15.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 72 algorithms is documented to an identical eight-section
+<p>Every one of the 73 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -447,7 +448,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 72 algorithms span the
+platform delivered as a QGIS Processing provider. Its 73 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -14743,7 +14744,7 @@ DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(
 <div class="page-break"></div>
 <h2 id="group19" class="group-header">19. Seismic Risk</h2>
 
-<p>The Seismic Risk group contains two tools that form one chain. <strong>Ground
+<p>The Seismic Risk group contains three tools that form one chain. <strong>Ground
 Motion Scenario</strong> turns an earthquake scenario — magnitude, distance,
 faulting style and site stiffness — into shaking at every receiver, on the model
 that Turkey's 2018 national seismic hazard map puts in its own logic tree. <strong>Seismic
@@ -14756,7 +14757,11 @@ distribution defined by the construction-year vulnerability tiers and the
 scenario magnitude. The tool implements the full pipeline recommended by
 Goretti &amp; Sarli (2006) for post-earthquake road-network assessment and
 extends it with four alternative methods for defining the street/open-space
-network against which debris spread is measured.</p>
+network against which debris spread is measured. <strong>Seismic Human
+Impact</strong> closes the chain: it reads the damage distribution the debris
+tool writes and carries it into the two Hazus models that end in people —
+casualties by severity, and the households that lose their home and the people
+who will seek public shelter.</p>
 
 <div class="page-break"></div>
 
@@ -15501,7 +15506,7 @@ $$G = \big(C \ominus \tfrac{w}{2}\big) \oplus \tfrac{w}{2}, \qquad w = 3.5\ \tex
 <h3>6. Output Description</h3>
 <table class="field-table">
 <tr><th>Output</th><th>Fields</th><th>Description</th></tr>
-<tr><td><strong>Annotated Buildings</strong></td><td><code>height_m</code>, <code>collapse_prob</code>, <code>collapsed</code>, <code>damage_state</code>, <code>debris_radius_m</code>, <code>debris_vol_m3</code>, <code>debris_pile_m3</code>, <code>debris_mass_t</code>, <code>collapse_freq</code></td><td>Building centroid points. <code>collapse_prob</code> is P(complete) from the fragility curves &mdash; the stable, seed-independent diagnostic, and the field the default renderer colours by. <code>collapsed</code> and <code>damage_state</code> are this seed's realisation. <code>debris_radius_m</code>, <code>debris_vol_m3</code> (solid material), <code>debris_pile_m3</code> (bulked) and <code>debris_mass_t</code> are zero for states that release nothing. <code>collapse_freq</code> is filled only when Simulation runs is above zero, and is NULL otherwise.</td></tr>
+<tr><td><strong>Annotated Buildings</strong></td><td><code>prob_slight</code>, <code>prob_moderate</code>, <code>prob_extensive</code>, <code>prob_complete</code>, <code>height_m</code>, <code>footprint_area</code>, <code>collapse_prob</code>, <code>collapsed</code>, <code>damage_state</code>, <code>debris_radius_m</code>, <code>debris_vol_m3</code>, <code>debris_pile_m3</code>, <code>debris_mass_t</code>, <code>collapse_freq</code></td><td>Building centroid points. The four <code>prob_*</code> columns are the damage distribution from the fragility curves &mdash; the expectation, where <code>damage_state</code> is only this seed's realisation &mdash; and they are what Seismic Human Impact reads when the two tools are chained. They are the <em>damaged</em> states; the undamaged share is their complement, so they need not sum to 1.0. <code>footprint_area</code> is the building's own <code>QgsGeometry.area()</code>, kept because a centroid point has no area of its own and the casualties tool needs a footprint; it is in the layer's area unit, not necessarily square metres, so on a layer projected in feet the volume fields below are inflated with it. <code>collapse_prob</code> is P(complete) from the fragility curves &mdash; the stable, seed-independent diagnostic, and the field the default renderer colours by. <code>collapsed</code> and <code>damage_state</code> are this seed's realisation. <code>debris_radius_m</code>, <code>debris_vol_m3</code> (solid material), <code>debris_pile_m3</code> (bulked) and <code>debris_mass_t</code> are zero for states that release nothing. <code>collapse_freq</code> is filled only when Simulation runs is above zero, and is NULL otherwise.</td></tr>
 <tr><td><strong>Debris Envelope</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: the union of the individual debris buffers. The extent of rubble on the ground.</td></tr>
 <tr><td><strong>Network Blockage</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: street space covered by debris. The impassable sections.</td></tr>
 <tr><td><strong>Open Corridors</strong></td><td>(none &mdash; geometry only)</td><td>Single MultiPolygon: street space minus blockage. Continuous-looking, but includes strips too narrow to drive.</td></tr>
@@ -15655,6 +15660,454 @@ DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.20
 </p>
 
 <div class="page-break"></div>
+<!-- SEISMIC IMPACT                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="seismicimpact">Seismic Human Impact (Casualties and Shelter)</h2>
+<p><strong>Processing ID:</strong> <code>planx:seismicimpact</code>
+&middot; <strong>Engine:</strong> <code>engine/impact.py</code>
+&middot; <strong>Group:</strong> Seismic Risk (19)</p>
+
+<h3>1. Overview</h3>
+<p>This is the last link in the seismic chain and the only one that ends in
+people. The other two tools in the group answer physical questions &mdash; how
+hard the ground shakes, and what the shaking does to buildings and streets.
+This one takes the four damage-state probabilities the debris tool has already
+computed and carries them into <strong>Hazus Section 12</strong> (casualties)
+and <strong>Section 13</strong> (population displacement and shelter).</p>
+
+<p>The output is one feature per building, carrying the building geometry
+through unchanged: the occupancy class and building type used, the occupant
+count for the scenario time, the expected number of casualties at each of four
+severities, their total, the displaced households and the number of people who
+will seek public shelter. Because the geometry is preserved, the layer joins
+back to the damage, debris and corridor outputs it came from.</p>
+
+<h3>2. Theoretical Background</h3>
+
+<h4>2.1 The casualty event tree</h4>
+<p>Hazus does not put a death rate on a collapsed building. It builds the count
+from the whole damage distribution through the event tree of Figure 12-1: every
+damage state contributes its own four injury rates, and the Complete state is
+the only one that splits further &mdash; into complete-but-standing and
+collapsed. The split is the probability of collapse given Complete, Table 12-8,
+and the collapsed branch carries rates an order of magnitude higher. Collapse is
+what kills; without the split, Complete damage would read as almost
+harmless.</p>
+
+<p>The rates are percent of the occupants present, per damage state. The
+mid-rise concrete frame C1L is a useful worked row, because that type and height
+class is present in every Turkish city:</p>
+<table>
+<tr><th>Damage state</th><th>Severity 1</th><th>Severity 2</th><th>Severity 3</th><th>Severity 4</th><th>Hazus table</th></tr>
+<tr><td>Slight</td><td>0.05</td><td>0</td><td>0</td><td>0</td><td>12-3</td></tr>
+<tr><td>Moderate</td><td>0.25</td><td>0.03</td><td>0</td><td>0</td><td>12-4</td></tr>
+<tr><td>Extensive</td><td>1.0</td><td>0.1</td><td>0.001</td><td>0.001</td><td>12-5</td></tr>
+<tr><td>Complete, no collapse</td><td>5.0</td><td>1.0</td><td>0.01</td><td>0.01</td><td>12-6</td></tr>
+<tr><td>Complete, collapsed</td><td>40.0</td><td>20.0</td><td>5.0</td><td>10.0</td><td>12-7</td></tr>
+</table>
+
+<p>Table 12-8 gives C1L a collapse probability of 0.13, so its Complete state
+resolves to $0.87 \times (5, 1, 0.01, 0.01) + 0.13 \times (40, 20, 5, 10) =
+(9.55, 3.47, 0.66, 1.31)$ percent. At severity 4 the intact branch contributes
+0.009 percent against the collapsed branch's 1.30 &mdash; two orders of
+magnitude, from the same damage state.</p>
+
+<p>The four severities are Hazus's own, in Table 12-1's order:</p>
+<table>
+<tr><th>Severity</th><th>Meaning</th></tr>
+<tr><td>1</td><td>Injuries treatable without hospitalisation</td></tr>
+<tr><td>2</td><td>Injuries requiring hospitalisation, not life-threatening</td></tr>
+<tr><td>3</td><td>Life-threatening injuries</td></tr>
+<tr><td>4</td><td>Instantaneously killed or mortally injured</td></tr>
+</table>
+
+<p>Not every row is uniform. Unreinforced masonry (URML, URMM) is the exception
+Hazus flags: those two types carry nonzero severity 2, 3 and 4 rates already at
+<em>slight</em> damage &mdash; 0.35, 0.40, 0.001, 0.001 percent &mdash; because
+an unreinforced wall sheds material that injures and kills even when the
+structure has not failed. The rates here are keyed by the same 36 specific Hazus
+types the manual tabulates, and every type the damage model can produce has a
+row.</p>
+
+<p>People <em>outside</em> and close to the building are counted separately, on
+Hazus's own outdoor tables. The outdoor tree drops the slight branch entirely
+&mdash; there is no table for it &mdash; and does not split Complete on collapse,
+because falling parapets, infill and glazing hurt people on the pavement whether
+or not floors came down. The outdoor rates are small against the indoor ones,
+but they are not zero, and on a busy frontage they are what a passer-by is
+exposed to.</p>
+
+<h4>2.2 Who is in the building</h4>
+<p>An occupant count is not a casualty count. Hazus Table 12-2 gives, per
+occupancy class and per scenario time, the share of the building's population
+that is inside and the share that is outside and close to it. Three scenarios
+are defined &mdash; 2&nbsp;a.m., 2&nbsp;p.m. and 5&nbsp;p.m. &mdash; and the
+products of the table's two multipliers are:</p>
+<table>
+<tr><th>Occupancy</th><th>2 a.m. (night)</th><th>2 p.m. (daytime)</th><th>5 p.m. (commute)</th></tr>
+<tr><td>Residential</td><td>98.9&#37; in / 0.10&#37; out</td><td>52.5&#37; / 22.5&#37;</td><td>35.0&#37; / 15.0&#37;</td></tr>
+<tr><td>Commercial</td><td>2.0&#37; / 0.002&#37;</td><td>97.0&#37; / 1.0&#37;</td><td>49.0&#37; / 1.0&#37;</td></tr>
+<tr><td>Educational</td><td>0&#37; / 0&#37;</td><td>72.0&#37; / 8.0&#37;</td><td>40.0&#37; / 10.0&#37;</td></tr>
+<tr><td>Industrial</td><td>10.0&#37; / 0.01&#37;</td><td>72.0&#37; / 8.0&#37;</td><td>45.0&#37; / 5.0&#37;</td></tr>
+<tr><td>Hotels</td><td>99.9&#37; / 0.1&#37;</td><td>19.0&#37; / 1.0&#37;</td><td>29.9&#37; / 0.1&#37;</td></tr>
+</table>
+
+<p>Two of these rows carry a planning conclusion on their own. A school holds
+<strong>nobody</strong> at 2&nbsp;a.m. &mdash; the table's nighttime column is
+blank &mdash; so a nighttime earthquake produces no school casualties however
+badly the building is damaged, while the same building at 2&nbsp;p.m. is the
+most heavily occupied row in the table. And a hotel at 2&nbsp;p.m. holds a fifth
+of its guests, because most of them are out; 2&nbsp;a.m. is the row that matters
+for a hotel.</p>
+
+<p>The table also carries residents and hotel guests inside commercial premises,
+and a commuting population on the street. Those are tract-level mixing terms
+with no single building to belong to in a per-building model, so they are not
+modelled here.</p>
+
+<h4>2.3 Where the occupant count comes from</h4>
+<p>Two sources. A <strong>population field</strong> on the buildings is the real
+answer when one exists &mdash; a census or address-level count joined to the
+footprints. Without one, the tool derives occupants from floor area: footprint
+area times storeys, divided by an <strong>area per occupant</strong>. That
+divisor is this tool's own screening assumption, not a Hazus figure; Hazus's
+area-per-occupant values live in its Inventory Technical Manual, which this
+module does not carry and does not pretend to reproduce. The parameter is
+exposed so it can be set to something defensible, and the run log states which
+of the two sources was used.</p>
+
+<p>The occupant count is the number of people the building holds when it is
+occupied at all. Table 12-2 scales it, so the same 500-place school contributes
+500 people at 2&nbsp;p.m. and none at 2&nbsp;a.m.</p>
+
+<h4>2.4 Displacement and shelter</h4>
+<p>Section 13 has two stages. The first decides which damaged dwellings become
+<em>uninhabitable</em>, Equations 13-1 to 13-3, weighted by Table 13-1. Hazus
+splits the residential stock into single-family and multi-family and applies
+different weights to each, on a behavioural argument rather than a structural
+one: a single-family occupant tolerates most damage short of loss, while a
+renter in a moderately or extensively damaged block may reasonably read it as
+uninhabitable and leave.</p>
+<table>
+<tr><th>Damage state</th><th>Single-family (RES1)</th><th>Multi-family (RES3)</th></tr>
+<tr><td>Moderate</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>Extensive</td><td>0.0</td><td>0.9</td></tr>
+<tr><td>Complete</td><td>1.0</td><td>1.0</td></tr>
+</table>
+
+<p>The second stage converts displaced households into people who will seek
+<strong>publicly provided</strong> shelter, Equations 13-4 and 13-5. This is not
+the same number as "homeless": most displaced households go to family, friends
+or a hotel, and never appear at a shelter at all. Hazus filters the displaced
+population by income, ethnicity, tenure and age, because in the American data
+those predict who actually turns up. The structure is implemented in full and
+every modifier defaults to neutral:</p>
+$$\alpha = IW \cdot IM + EW \cdot EM + OW \cdot OM + AW \cdot AM$$
+<p>with the category weights of Table 13-2 &mdash; income 0.73, ethnicity 0.27,
+tenure 0.00, age 0.00, summing to 1.00 &mdash; and the modifiers defaulting to
+1.0. At neutral the modifiers change nothing and <strong>&alpha; is exactly
+1.0</strong>, so every displaced person is assumed to seek public shelter. That
+is an <strong>upper bound, not a forecast</strong>: Hazus's own Table 13-3
+factors, drawn from Red Cross shelter data, run from 0.13 to 0.62, and a real
+answer sits well below the neutral one. A planner who has distribution data for
+any of the four categories can enter that category's share-weighted mean and get
+a filtered number; a planner who does not gets the unfiltered one and should
+label it as such. The tool states which of the two situations the run is in,
+in the log, every time.</p>
+
+<h4>2.5 Assumptions and limitations</h4>
+<ul>
+<li><strong>The casualty rates are American.</strong> They were fitted to United
+States earthquake experience and are applied here to Turkish building stock
+without calibration. The shelter factors carry the same caveat: they come from
+United States Red Cross shelter data.</li>
+<li><strong>The damage distribution is inherited, not recomputed.</strong> This
+tool evaluates no fragility of its own. It reads the four probabilities it is
+given, so every caveat attached to the damage model &mdash; Hazus medians, a
+western United States reference spectrum, a design-level mapping that is an
+analogy rather than a calibration &mdash; arrives with them.</li>
+<li><strong>One building type per run.</strong> Hazus keys its casualty rates by
+specific type, but the tool asks for a single type, which must be the type the
+damage run used. A study area with several construction types needs several
+runs, or the type whose rates are closest to the majority.</li>
+<li><strong>One scenario time per run.</strong> Casualties at 2&nbsp;a.m. and
+2&nbsp;p.m. are two runs. This is worth the second run: the difference between
+them is usually larger than the difference between two scenario magnitudes.</li>
+<li><strong>Occupancy is one class per building.</strong> Mixed-use buildings
+take the dominant class. A shop with flats above is either a shop or a dwelling,
+not both.</li>
+<li><strong>Bridges and the street population are not modelled.</strong> Hazus
+estimates casualties on bridges and among people in the street away from any
+building. Both need data PlanX does not have &mdash; a bridge layer with its own
+damage states, and a count of people outdoors by location &mdash; so they are
+left out rather than approximated.</li>
+<li><strong>Damage is independent across buildings,</strong> inherited from the
+damage model. Neighbours share ground motion, soil and construction quality,
+which induces a correlation the chain does not carry, so the casualty pattern is
+less clustered than reality would be.</li>
+<li><strong>No time dimension.</strong> The output is the expected count in the
+immediate post-event condition: no search-and-rescue delay, no hospital surge,
+no aftershocks, no secondary deaths from fire, cold or lack of care.</li>
+<li><strong>Casualty counts are expectations, not realisations.</strong> A
+building with 0.3 expected severity-4 casualties does not mean three tenths of a
+person; it means a small probability of one death. Read the district total and
+compare districts, not the per-building fraction.</li>
+</ul>
+
+<h3>3. Mathematical Formulation</h3>
+
+<p><strong>Damage-state probabilities.</strong> $p_{i,ds}$ for $ds \in
+\{\text{slight}, \text{moderate}, \text{extensive}, \text{complete}\}$, read
+from the four columns and used as given.</p>
+
+<p><strong>Indoor rate per severity.</strong> The event tree collapses to a
+weighted sum over damage states, with $t_i$ the type of building $i$ including
+its height class:</p>
+$$r^{(s)}_i = \sum_{ds} p_{i,ds} \, r^{(s)}_{ds,\,t_i} \tag{10}$$
+
+<p><strong>The Complete split.</strong> With $c_t$ the collapse probability
+given Complete, Table 12-8:</p>
+$$r^{(s)}_{\text{complete},t} = (1 - c_t)\, r^{(s)}_{\text{complete,intact}}
++ c_t\, r^{(s)}_{\text{complete,collapsed}} \tag{9}$$
+
+<p><strong>People at risk.</strong> Occupant count $n_i$, and the indoor and
+outdoor shares of Table 12-2 for occupancy class $o_i$ at scenario time
+$\tau$:</p>
+$$N^{\text{in}}_i = n_i \, \sigma^{\text{in}}(o_i, \tau), \qquad
+N^{\text{out}}_i = n_i \, \sigma^{\text{out}}(o_i, \tau) \tag{8}$$
+
+<p><strong>Casualties.</strong> Indoor and outdoor rates come from separate
+tables, and the outdoor table has no slight row:</p>
+$$C^{(s)}_i = N^{\text{in}}_i \, r^{(s)}_i + N^{\text{out}}_i \,
+\tilde{r}^{(s)}_i \tag{7}$$
+
+<p><strong>Occupant count.</strong> From the population field, or from footprint
+area $A_i$, storeys $f_i$ and the area per occupant $a$:</p>
+$$n_i = \begin{cases}
+\text{POP}_i & \text{population field given} \\
+A_i f_i / a & \text{otherwise, } a = 30\ \text{m}^2 \text{ by default}
+\end{cases} \tag{6}$$
+
+<p><strong>Uninhabitable dwellings.</strong> With $u_i$ the dwelling units of
+building $i$, split single-family ($u_i \le 1$) against multi-family:</p>
+$$\%SF_i = p_{\text{com},i}, \qquad
+\%MF_i = 0.9\, p_{\text{ext},i} + p_{\text{com},i} \tag{5}$$
+
+<p><strong>Displaced households.</strong> With $\kappa$ the households per
+dwelling unit:</p>
+$$\#DH_i = \kappa \cdot \begin{cases}
+u_i \, \%SF_i & u_i \le 1 \\
+u_i \, \%MF_i & u_i > 1
+\end{cases} \tag{4}$$
+
+<p><strong>Households.</strong> The manual's #HH:</p>
+$$\#HH_i = \kappa \, u_i \tag{3}$$
+
+<p><strong>Shelter need.</strong> People needing public short-term shelter:</p>
+$$\#STP_i = \#DH_i \cdot \frac{\text{POP}_i}{\#HH_i} \cdot \alpha \tag{1}$$
+
+<p>The double sum of Equation 13-4 reduces to the single product above because
+the shares within each category sum to one; the argument is in
+<code>shelter_alpha</code>, and the identity is asserted in the engine tests,
+not merely intended.</p>
+
+<h3>4. Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Buildings</td><td>Vector polygons or points</td><td>Yes</td><td>The debris tool's annotated building layer is the intended input. A projected CRS is required. Footprint area is read from the geometry when occupants are derived from floor area, or from a column when the buildings are points &mdash; see <code>AREA_FIELD</code>.</td></tr>
+<tr><td>The four damage-state probabilities</td><td>Numeric fields</td><td>Yes, unless a damage-state field is named</td><td><code>prob_slight</code>, <code>prob_moderate</code>, <code>prob_extensive</code>, <code>prob_complete</code>, matched case-insensitively so the names survive a GeoPackage, shapefile or spreadsheet round trip. Written by Seismic Collapse and Debris Spread. These four are the <em>damaged</em> states, so the undamaged share of a building is their complement and a row summing below 1.0 is not an error &mdash; a building with less damage simply has more undamaged share. A row summing <em>above</em> 1.0 leaves no undamaged share at all, and the run log counts those buildings and says their casualties are scaled by the probabilities as given.</td></tr>
+<tr><td>Damage state field</td><td>Text</td><td>No &mdash; fallback</td><td>Used only when the four columns are absent, or named explicitly. Each building is then treated as <em>certainly</em> being in the state it names, which discards the distribution this tool exists to use. With neither the columns nor a state field the run stops: it does not return zeros, because a zero casualty count is indistinguishable from a good outcome.</td></tr>
+<tr><td>Floor count field</td><td>Numeric</td><td>No</td><td>Sets the height class of the building type (L for 1&ndash;3 storeys, M for 4&ndash;7, H above) and the storey count used by the floor-area occupant estimate. Missing reads as one storey.</td></tr>
+<tr><td>Occupancy field</td><td>Text</td><td>No</td><td>Recognises residential, commercial, educational, industrial and hotel wording, including the Turkish "konut". Unrecognised values fall back to the single class chosen for the run, and the log lists them.</td></tr>
+<tr><td>Population field</td><td>Numeric</td><td>No</td><td>People in the building when it is occupied. The best available occupant count.</td></tr>
+<tr><td>Dwelling units field</td><td>Numeric</td><td>No</td><td>Dwelling units per building; drives the shelter equations and the single-family / multi-family split. Without it a residential building counts as one dwelling and a non-residential one as none.</td></tr>
+</table>
+
+<h3>5. Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>BUILDINGS</code></td><td>Vector layer (Polygon or Point)</td><td>&mdash;</td><td>Buildings to assess. Projected CRS required. Point input is accepted: the footprint area then has to come from a column (<code>AREA_FIELD</code>, or one of the auto-detected names) because a point has no area of its own. If no footprint is available at all the run stops, since every occupant count would be zero.</td></tr>
+<tr><td><code>FLOOR_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Storeys per building. Sets the height class of the Hazus type and, with the footprint area, the floor-area occupant estimate.</td></tr>
+<tr><td><code>AREA_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Footprint area per building, in the layer's own area unit. Needed only when the buildings are points, since a point has no area of its own and the debris tool &mdash; this tool's intended upstream &mdash; writes building centroids. Leave it unset and the column is found automatically in <code>footprint_area</code>, <code>area_m2</code>, <code>area</code> and <code>shape_area</code>, in that order, so the debris-to-casualties chain runs with nothing to configure. With no footprint anywhere the run stops rather than model a population of nobody; when only some buildings lack one, it warns with the count and the run log names the source that supplied each area.</td></tr>
+<tr><td><code>DAMAGE_STATE_FIELD</code></td><td>Field</td><td>(optional)</td><td>Name of a damage-state column, used only as a fallback when the four probability columns are absent. Values must be one of none, slight, moderate, extensive, complete.</td></tr>
+<tr><td><code>BUILDING_TYPE</code></td><td>Enum</td><td>C1</td><td>Hazus structural type whose casualty rates are used. Must match the type the damage run used &mdash; the rates belong to the type, not to the map. The height class is appended automatically from the floor count.</td></tr>
+<tr><td><code>TIME_OF_DAY</code></td><td>Enum</td><td>2:00 a.m. (0)</td><td>Scenario time: 2 a.m. (night), 2 p.m. (daytime) or 5 p.m. (commute). Selects the occupancy shares of Table 12-2 for every building in the run.</td></tr>
+<tr><td><code>OCCUPANCY</code></td><td>Enum</td><td>Residential (0)</td><td>Occupancy class applied to every building that has no occupancy field: Residential, Commercial, Educational, Industrial or Hotels.</td></tr>
+<tr><td><code>OCCUPANCY_FIELD</code></td><td>Field</td><td>(optional)</td><td>Text field naming each building's occupancy. Without it the whole layer takes the single class above, which is rarely true of a city.</td></tr>
+<tr><td><code>OCCUPANCY_SOURCE</code></td><td>Enum</td><td>Floor area (1)</td><td>Where the occupant count comes from: a population field, or floor area divided by an area per occupant. The default is the floor-area route because it needs no extra data; the population field is the better answer whenever one exists.</td></tr>
+<tr><td><code>POPULATION_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>People in the building when it is occupied. Required when the occupant source is set to the population field.</td></tr>
+<tr><td><code>AREA_PER_OCCUPANT</code></td><td>Double</td><td>30.0</td><td>Square metres of floor area per occupant, for the floor-area route. This tool's own screening assumption, not a Hazus figure. Range 1&ndash;500.</td></tr>
+<tr><td><code>UNITS_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Dwelling units per building. Blank means one unit for a residential building and none otherwise.</td></tr>
+<tr><td><code>HOUSEHOLD_RATE</code></td><td>Double</td><td>1.0</td><td>Households per dwelling unit &mdash; the manual's #HH / (#SFU + #MFU). 1.0 when every unit is lived in; lower with high vacancy. Range 0.1&ndash;1.0.</td></tr>
+<tr><td><code>WEIGHT_INCOME</code></td><td>Double</td><td>0.73</td><td>Table 13-2 category weight IW. The four weights must sum to 1.0 for alpha to read as a share of the displaced population; the log warns when they do not.</td></tr>
+<tr><td><code>WEIGHT_ETHNICITY</code></td><td>Double</td><td>0.27</td><td>Table 13-2 category weight EW.</td></tr>
+<tr><td><code>WEIGHT_OWNERSHIP</code></td><td>Double</td><td>0.0</td><td>Table 13-2 category weight OW. Zero in Hazus's own defaults.</td></tr>
+<tr><td><code>WEIGHT_AGE</code></td><td>Double</td><td>0.0</td><td>Table 13-2 category weight AW. Zero in Hazus's own defaults.</td></tr>
+<tr><td><code>MOD_INCOME</code></td><td>Double</td><td>1.0</td><td>Share-weighted mean of the Table 13-3 income factors for the study area. 1.0 is neutral and makes the result an upper bound. Range 0&ndash;2.</td></tr>
+<tr><td><code>MOD_ETHNICITY</code></td><td>Double</td><td>1.0</td><td>Share-weighted mean of the Table 13-3 ethnicity factors. 1.0 is neutral.</td></tr>
+<tr><td><code>MOD_OWNERSHIP</code></td><td>Double</td><td>1.0</td><td>Share-weighted mean of the Table 13-3 tenure factors. 1.0 is neutral. Table 13-3 gives owner and renter the same factor (0.40).</td></tr>
+<tr><td><code>MOD_AGE</code></td><td>Double</td><td>1.0</td><td>Share-weighted mean of the Table 13-3 age factors. 1.0 is neutral. Table 13-3 gives all three age classes the same factor (0.40).</td></tr>
+<tr><td><code>OUT</code></td><td>Vector layer</td><td>&mdash;</td><td>Building impact: the input attributes plus the ten computed columns below.</td></tr>
+</table>
+
+<h3>6. Output Description</h3>
+<table class="field-table">
+<tr><th>Output</th><th>Fields</th><th>Description</th></tr>
+<tr><td><strong>Building impact</strong></td><td><code>occ_class</code>, <code>bldg_type</code>, <code>occupants</code>, <code>cas_sev1</code>, <code>cas_sev2</code>, <code>cas_sev3</code>, <code>cas_sev4</code>, <code>cas_total</code>, <code>displaced_hh</code>, <code>public_shelter</code> &mdash; plus every field of the input layer</td><td>One feature per building, geometry unchanged. <code>occ_class</code> is the occupancy class actually used, after any field lookup and fallback, and <code>bldg_type</code> the resolved Hazus type including its height class, so the run is auditable from the layer alone. <code>occupants</code> is the count before the Table 12-2 scaling. <code>cas_sev1</code> to <code>cas_sev4</code> are expected casualties at each severity, indoor and outdoor combined; <code>cas_total</code> is their sum and is the field the default renderer colours by. <code>displaced_hh</code> is uninhabitable dwelling units converted to households, and <code>public_shelter</code> the people seeking public shelter at the run's alpha.</td></tr>
+</table>
+
+<p>The input layer's own fields are preserved unchanged and in order, so the
+output can be joined straight back to the damage run it came from. The four
+probability columns come through with it, which means a second impact run with a
+different scenario time or building type can be made without re-running the
+damage model.</p>
+
+<h3>7. Symbolic Representation</h3>
+<ul>
+<li><strong>Base layer:</strong> the building layer classified by
+<code>cas_total</code> on a sequential ramp (pale yellow low to dark red high).
+The default renderer chooses this field.</li>
+<li><strong>Fatalities are a different map.</strong> <code>cas_sev1</code>
+dominates <code>cas_total</code> numerically &mdash; treatable injuries are
+common and deaths are rare &mdash; so a total map is a map of injuries. Style
+<code>cas_sev4</code> on the same ramp when the message is about life safety and
+the two maps will disagree about which districts are worst.</li>
+<li><strong>Shelter demand:</strong> classify by <code>public_shelter</code> or
+<code>displaced_hh</code> to show where the demand lands. A district dark on
+both casualties and shelter is the one to pre-position in.</li>
+<li><strong>With the damage chain underneath:</strong> keep the debris tool's
+navigable core on the map below. Buildings with high casualties that sit outside
+the navigable core are the ones rescuers cannot reach, and the combination is
+the map an emergency plan is actually built on.</li>
+</ul>
+
+<h3>8. Interpretation Guide</h3>
+
+<h4>8.1 Reading a casualty number</h4>
+<p>A 100-occupant residential building of one dwelling, type C1L, at 2&nbsp;a.m.,
+with damage probabilities slight 0.20, moderate 0.30, extensive 0.25 and
+complete 0.25:</p>
+<table>
+<tr><th>Severity</th><th>Indoor rate</th><th>Indoor</th><th>Outdoor</th><th>Total</th></tr>
+<tr><td>1</td><td>2.72&#37;</td><td>2.69</td><td>0.0005</td><td>2.69</td></tr>
+<tr><td>2</td><td>0.90&#37;</td><td>0.89</td><td>0.0001</td><td>0.89</td></tr>
+<tr><td>3</td><td>0.16&#37;</td><td>0.16</td><td>0.00003</td><td>0.16</td></tr>
+<tr><td>4</td><td>0.33&#37;</td><td>0.32</td><td>0.00003</td><td>0.32</td></tr>
+</table>
+<p>Almost everyone is indoors at 2&nbsp;a.m., so the outdoor column is
+negligible. The same building and the same damage at 2&nbsp;p.m. gives totals of
+1.55, 0.50, 0.09 and 0.18 &mdash; about 42&#37; fewer treatable injuries and
+45&#37; fewer deaths, because Table 12-2 puts 52.5&#37; of the occupants indoors
+at 2&nbsp;p.m. against 98.9&#37; at 2&nbsp;a.m. The clock is an input on the same
+footing as the damage.</p>
+<p>The occupancy class matters as much. A 500-place school under the identical
+damage distribution returns 10.02 expected severity-1 casualties at 2&nbsp;p.m.
+and exactly zero at 2&nbsp;a.m. &mdash; not because the building is safer at
+night, but because nobody is in it.</p>
+
+<h4>8.2 Which severity to report</h4>
+<p>Severity 1 and severity 4 answer different questions for different readers.
+Severity 1 plus severity 2 is the load on hospitals and clinics; severity 3 is
+the group that becomes deaths without prompt treatment, and severity 4 is
+immediate mortality. A plan that quotes only the total is quoting a number
+dominated by the least serious category; a plan that quotes only severity 4 has
+discarded the number an emergency department actually has to absorb. Report at
+least both ends.</p>
+
+<h4>8.3 Shelter</h4>
+<p>For the same 100-occupant building with complete probability 0.25: 0.25
+uninhabitable dwellings, so 0.25 displaced households, and 25 people seeking
+public shelter at neutral modifiers. Give the building eight dwellings instead
+of one and it becomes 3.8 displaced households and 47.5 people, because the
+multi-family column counts extensive damage at 0.9 and there are more households
+to displace. Enter an income modifier of 0.42 &mdash; a share-weighted mean of
+Hazus's own Table 13-3 income factors &mdash; and the same building's shelter
+demand falls to 10.5.</p>
+<p>That 25 is an upper bound, and it is the default for a reason: with no local
+demographic data there is nothing to filter with. Label it as an upper bound in
+anything that leaves the office. It is the right number for sizing a worst-case
+shelter plan and the wrong number for announcing how many people will sleep in a
+gymnasium.</p>
+
+<h4>8.4 Cross-references to other PlanX tools</h4>
+<ul>
+<li><strong>Seismic Collapse and Debris Spread:</strong> the upstream tool. Point
+Buildings at its annotated output and the two runs share one damage model, one
+building type and one scenario. That layer is <em>points</em> &mdash; building
+centroids, because the debris envelopes need a point to hang off &mdash; so the
+floor-area occupant route has no geometry to measure and reads the
+<code>footprint_area</code> column it writes instead. Leave <code>AREA_FIELD</code>
+unset and it is found. Without either, the run stops: it does not report zero
+casualties for a city, because that answer is indistinguishable from good news.</li>
+<li><strong>Ground Motion Scenario:</strong> supplies the PGA field that drives
+the damage model. A casualty estimate from a different PGA scenario than the one
+you are briefing is a number from a different earthquake.</li>
+<li><strong>Nearest Facility:</strong> the severity-2 count is the demand on
+hospitals. Compare it against hospital capacity reachable through the navigable
+core, not through the street network as drawn.</li>
+<li><strong>Access Equity:</strong> join casualties per district against the
+distribution of the population they fall on. Casualty counts concentrated in the
+districts with the least access to services are the emergency-planning finding,
+not the casualty total.</li>
+<li><strong>Plan Performance Report:</strong> feed the district totals in as a
+scenario indicator so a resilience plan reports casualties and shelter alongside
+its growth and accessibility figures.</li>
+</ul>
+
+<h4>8.5 Pitfalls</h4>
+<ul>
+<li><strong>Never mix the building type between tools.</strong> The damage run
+used one Hazus type; the casualty run must name the same one. C1L and C1M have
+different collapse probabilities and different height classes, and a mismatch
+produces a full set of plausible-looking numbers attached to the wrong
+building.</li>
+<li><strong>Do not run the damage-state fallback when the four columns exist.</strong>
+Treating every building as certainly moderately damaged turns a distribution
+into a single outcome and removes the variance the risk assessment is about.</li>
+<li><strong>One occupancy class for a whole layer is a modelling choice, not a
+default to ignore.</strong> It is reasonable for a residential district and
+badly wrong for a mixed city; the daytime case then over-counts homes and
+under-counts workplaces.</li>
+<li><strong>Floor-area occupants are an assumption.</strong> A 30&nbsp;m&#178;
+divisor is defensible for housing and wrong for a shopping centre. If any
+population field exists, use it.</li>
+<li><strong>The four modifiers have no local calibration.</strong> Leaving them
+at 1.0 gives a defensible upper bound; entering an invented 0.3 gives a number
+that looks calibrated and is not. Enter only a value you can derive from
+distribution data you hold.</li>
+<li><strong>This is not a death-toll tool.</strong> The rates are American, the
+damage distribution is uncalibrated to Turkish stock, and the counting unit is
+the building. Use it to rank districts, size a response and compare scenarios
+&mdash; the manual's own words are orders of magnitude, not counts.</li>
+</ul>
+
+<h3>9. Academic References</h3>
+<p class="ref">FEMA (2024). <em>Hazus Earthquake Model Technical Manual &mdash;
+Hazus 6.1.</em> Federal Emergency Management Agency, Washington, DC. The
+casualty model of this tool is the event tree of Section 12 (Figure 12-1, and
+the Tables 12-1 to 12-9 the engine transcribes verbatim: severity definitions,
+occupancy population shares, damage-state injury rates, and the collapse
+probability given Complete). The shelter model is Section 13: Equations 13-1 to
+13-5 with Tables 13-1 to 13-3. Public domain as a work of the United States
+federal government.
+Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus">fema.gov/hazus</a>
+</p>
+<p class="ref">Coburn, A. &amp; Spence, R. (2002). <em>Earthquake Protection.</em>
+2nd edition. John Wiley &amp; Sons, Chichester. The standard treatment of
+earthquake casualty estimation and of why occupancy and time of day dominate the
+result.
+DOI: <a href="https://doi.org/10.1002/0470855185">10.1002/0470855185</a>
+</p>
+<p class="ref">Ansal, A., Akinci, A., Cultrera, G., Erdik, M., Pessina, V., Tonuk, G. &amp;
+Zulfikar, C. (2011). "Loss scenarios for the city of Istanbul and its
+vulnerability to earthquakes." <em>Soil Dynamics and Earthquake Engineering</em>,
+31(3), 534&ndash;546. A Turkish loss scenario built on the same
+damage-to-casualty structure, useful for reading this tool's output against a
+published local study rather than against intuition.
+DOI: <a href="https://doi.org/10.1016/j.soildyn.2010.10.008">10.1016/j.soildyn.2010.10.008</a>
+</p>
+
+<div class="page-break"></div>
 <h2 id="appendix-a">Appendix A: Data Sources Directory</h2>
 <table>
 <tr><th>Data Type</th><th>Global Source</th><th>Resolution</th><th>Notes</th></tr>
@@ -15747,7 +16200,7 @@ DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.20
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.14.0 &middot; 72 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.15.0 &middot; 73 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 

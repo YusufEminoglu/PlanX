@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/github/v/tag/YusufEminoglu/PlanX?label=version&color=blue)](https://gitlab.com/geophilo1/planx/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](LICENSE)
 [![QGIS Plugin Hub](https://img.shields.io/badge/QGIS%20Hub-install-589632?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
-[![Documentation](https://img.shields.io/badge/📖_Reference_Manual-72_algorithms-13a0a0)](https://geophilo.com/planx/)
+[![Documentation](https://img.shields.io/badge/📖_Reference_Manual-73_algorithms-13a0a0)](https://geophilo.com/planx/)
 
 <img src="docs/hero.png" width="800" alt="PlanX in action"/>
 
@@ -34,11 +34,11 @@ validate against observed shares, and Annual Solar can calibrate clear-sky
 results with an EPW weather file. The Studio adds search, favorites, recents,
 active-layer filtering, presets, and guided workflows.
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-two Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-three Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## 📖 Documentation
 
-**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 72 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (314 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (388 entries, 298 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
+**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 73 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (323 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (391 entries, 300 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
 
 ## ✨ Features
 
@@ -66,8 +66,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the seventy-two tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 627 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the seventy-three tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 670 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio toolbar panel** — click the single PlanX toolbar icon to browse and launch the whole toolset, every tool with its own icon.
 
 ## 🚀 Installation
@@ -150,6 +150,8 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Travel Demand | Trip Generation | Calculates production and attraction trip rates from population and jobs |
 | Travel Demand | Gravity Distribution | Computes doubly constrained zone-to-zone travel demand matrix over network costs |
 | Travel Demand | Mode Split | Splits OD flows into multiple mode shares and flows using a multinomial logit model |
+| Travel Demand | Parking Demand Estimator | Zone parking spaces from your own per-category rate table (dwelling unit / floor area / seat basis) |
+| Travel Demand | Parking Supply-Demand Balance | Demanded spaces vs the spaces actually in reach (radius or network) → surplus or deficit per zone |
 | Reporting & Dashboard | Batch Plan Auditor | One run chains the standard battery into a scenario snapshot + HTML report |
 | Optimization | Facility Location Optimizer | Maximal coverage / p-median siting on the network + candidate screening |
 | Optimization | Capacitated Facility Siting | Choose where to build facilities under capacity constraints and travel limits |
@@ -159,6 +161,9 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Equity | Accessibility Equity | Population-weighted Gini, Theil between/within decomposition, P90/P10, access-poverty share |
 | Equity | Inequality Curves (Lorenz & Atkinson) | Exportable Lorenz/concentration curve + Gini + Atkinson index at chosen inequality aversion |
 | Equity | Demographic Equity Cross-Tabs | Value classes × subgroup representation ratios, per-group stats + Duncan dissimilarity |
+| Seismic Risk | Ground Motion Scenario | PGA, PGV and any spectral accelerations at every site from magnitude, distance and site terms (Akkar, Sandıkkaya & Bommer 2014) |
+| Seismic Risk | Seismic Collapse and Debris Spread (Monte Carlo) | Hazus fragility curves → per-building damage-state probabilities, debris volume and mass, and the corridors left open |
+| Seismic Risk | Seismic Human Impact (Casualties and Shelter) | Hazus Sections 12 and 13 → expected casualties at four severities, unhoused households and public-shelter demand |
 
 Methodology notes and the release roadmap live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

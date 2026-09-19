@@ -79,6 +79,7 @@ from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
 from .algorithms.alg_scenario_pipeline import ScenarioPipelineAlgorithm
 from .algorithms.alg_ground_motion import GroundMotionAlgorithm
 from .algorithms.alg_seismic_debris import SeismicDebrisAlgorithm
+from .algorithms.alg_seismic_impact import SeismicImpactAlgorithm
 
 
 class PlanXProvider(QgsProcessingProvider):
@@ -190,3 +191,4 @@ class PlanXProvider(QgsProcessingProvider):
         # 19 | Seismic Risk
         self.addAlgorithm(GroundMotionAlgorithm())
         self.addAlgorithm(SeismicDebrisAlgorithm())
+        self.addAlgorithm(SeismicImpactAlgorithm())

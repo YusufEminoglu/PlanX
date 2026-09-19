@@ -60,6 +60,34 @@ and seismic design level.
   screening assumption, is documented as such in the engine, the tool's
   help text and the manual, and is not part of any FEMA publication.
 
+## Hazus casualty and shelter tables
+
+`engine/impact.py` embeds the tables of **Sections 12 and 13** of the same
+manual — Section 12 *Casualties* and Section 13 *Population Displacement and
+Shelter* — transcribed value for value:
+
+- **Section 12** — Figure 12-1 (the damage-state casualty event tree) as
+  implemented logic, Table 12-1 (the four injury severities), Table 12-2
+  (indoor and outdoor population shares per occupancy class and scenario
+  time), Tables 12-3 to 12-7 (injury rates per damage state, with Complete
+  split into collapsed and intact), Table 12-8 (the probability of collapse
+  given Complete damage, per building type) and Table 12-9 (outdoor rates
+  per damage state).
+- **Section 13** — Equations 13-1 to 13-5 as implemented arithmetic,
+  Table 13-1 (displaced-household weights, single-family against
+  multi-family), Table 13-2 (shelter category weights) and Table 13-3 (the
+  shelter modification factors, quoted in the engine so the methodology's
+  own figures are visible next to the neutral default).
+- Public domain as a work of the United States federal government, and
+  transcribed rather than adapted. Copyright in the methodology remains
+  with FEMA.
+- Two limits are stated wherever these numbers are reported and are not
+  part of any FEMA publication: the rates were fitted to United States
+  earthquake experience and are applied to Turkish building stock without
+  calibration; and the shelter modification factors are *not* the tool's
+  defaults, which are neutral and therefore produce an upper bound on
+  public-shelter demand rather than a forecast of it.
+
 ## OpenStreetMap data
 
 Where a tool accepts OpenStreetMap data, that data is fetched or supplied
