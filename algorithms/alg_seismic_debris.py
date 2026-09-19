@@ -21,6 +21,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_SEISMIC, INT, STRING, PlanXAlgorithm
+from . import _units
 from ..engine import seismic
 from ..engine import uncertainty
 
@@ -156,7 +157,11 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             "areas, otherwise only a hull-shaped perimeter ring is added.\n\n"
             "All widths and debris radii are metric, so the buildings layer must "
             "use a projected CRS; network inputs in a different CRS are "
-            "reprojected to the buildings CRS automatically.\n\n"
+            "reprojected to the buildings CRS automatically. Areas, volumes and "
+            "tonnes are ground metres on the CRS's ellipsoid, not coordinate "
+            "units: on a state-plane layer in feet, or on EPSG:3857 away from "
+            "the equator, the layer's own area is not square metres and the "
+            "footprint, the volumes and the tonnage would all inherit the error.\n\n"
             "OUTPUTS\n"
             "- Annotated building points: height, the probability of each "
             "damage state, collapse probability, the sampled damage state, "
@@ -335,8 +340,17 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             raise QgsProcessingException(f"No usable features found in the {name} layer.")
         return pairs
 
-    def _network_union(self, parameters, context, feedback, mode, default_width, target_crs):
-        """Street/open-space geometry for the chosen network source, in ``target_crs``."""
+    def _network_union(self, parameters, context, feedback, mode, default_width, target_crs,
+                       units):
+        """Street/open-space geometry for the chosen network source, in ``target_crs``.
+
+        Every width the user supplies - the fallback width, a width attribute,
+        the automatic ROI expansion - is a distance in metres, so it is
+        converted into the layer's own coordinate units before it is buffered.
+        On a layer whose unit is not the metre, or whose projection has a scale
+        factor (see ``_units``), the unconverted buffer builds a road of the
+        wrong width and nothing about the result looks wrong.
+        """
         if mode == self.MODE_POLYGONS:
             src = self.parameterAsSource(parameters, self.NETWORK, context)
             if src is None:
@@ -379,7 +393,8 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
                 if width is None:
                     width = float(default_width)
                     n_fallback += 1
-                buffered.append(g.buffer(width / 2.0, 8).makeValid())
+                buffered.append(
+                    g.buffer(width / 2.0 * units.per_metre(g), 8).makeValid())
             label = "B (OSM class widths)" if mode == self.MODE_OSM_LINES else "C (width attribute)"
             note = f", {n_fallback} on the fallback width" if n_fallback else ""
             feedback.pushInfo(f"Network {label}: buffered {len(buffered)} centerlines{note}.")
@@ -401,7 +416,8 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
                 ).makeValid()
                 feedback.pushInfo("Network D: street space = region of interest minus dissolved blocks.")
             else:
-                roi = blocks.convexHull().buffer(float(default_width), 8)
+                roi = blocks.convexHull().buffer(
+                    float(default_width) * units.per_metre(blocks), 8)
                 feedback.pushInfo(
                     f"Network D: no ROI given - using the convex hull of the blocks expanded "
                     f"by {default_width:g} m. Provide an explicit ROI for concave study areas.")
@@ -428,23 +444,23 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
     # Run helpers
     # ------------------------------------------------------------------ #
     @staticmethod
-    def _debris_geometry(geoms, radius):
+    def _debris_geometry(geoms, radius, units):
         """Buffered debris footprint per building, skipping the zeros."""
         debris = []
         for geom, reach in zip(geoms, radius):
             if reach <= 0.0:
                 continue
             debris.append(geom.buffer(
-                float(reach), 8, QgsGeometry.EndCapStyle.Square,
+                float(reach) * units.per_metre(geom), 8, QgsGeometry.EndCapStyle.Square,
                 QgsGeometry.JoinStyle.Miter, 2.0).makeValid())
         return debris
 
     @staticmethod
-    def _blocked_area(blocked):
-        """Planar area of a possibly empty or null geometry."""
+    def _blocked_area(blocked, units):
+        """Ground area of a possibly empty or null geometry, in square metres."""
         if blocked is None or blocked.isEmpty():
             return 0.0
-        return float(blocked.area())
+        return units.area(blocked)
 
     @staticmethod
     def output_fields(base=None):
@@ -468,11 +484,16 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         they go ahead of it and ``collapse_prob`` stays the last match.
 
         ``footprint_area`` carries no renderer token, so it can sit anywhere in
-        that run; it is here, next to the height it pairs with. It is the raw
-        ``QgsGeometry.area()``, i.e. in the layer's own area unit, which is why
-        it is not called ``area_m2`` - see the CRS note on ``seismic.debris_extent``.
-        The casualties tool reads it back when the buildings arrive as the
-        point centroids this method writes, because a centroid has no area.
+        that run; it is here, next to the height it pairs with. It is the
+        building's ground area in square metres, measured on the ellipsoid
+        (``_units.GroundUnits``), which is the quantity the debris volumes and
+        tonnes are built from - a raw ``QgsGeometry.area()`` is that number only
+        on a metre-unit layer with no projection scale factor, and reads 10.76x
+        too large on a state-plane layer in feet and 1.76x too large on
+        EPSG:3857 at 41 N. The casualties tool reads it back when the buildings
+        arrive as the point centroids this method writes, because a centroid has
+        no area; an area column arriving from anywhere else is in whatever unit
+        that layer's producer used.
         """
         return PlanXAlgorithm.make_fields(
             ("prob_slight", DOUBLE),
@@ -515,11 +536,12 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         mode = self.parameterAsEnum(parameters, self.NETWORK_MODE, context)
         default_width = self.parameterAsDouble(parameters, self.DEFAULT_WIDTH, context)
         target_crs = buildings.sourceCrs()
+        units = _units.GroundUnits(target_crs, context.transformContext())
 
         # Build the street/open-space geometry first so a wrong mode/layer
         # combination fails immediately, before the Monte Carlo pass.
         network_union = self._network_union(
-            parameters, context, feedback, mode, default_width, target_crs)
+            parameters, context, feedback, mode, default_width, target_crs, units)
 
         b_feats = [f for f in buildings.getFeatures() if f.hasGeometry()]
         if not b_feats:
@@ -538,7 +560,10 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         for i, f in enumerate(b_feats):
             g = f.geometry().makeValid()
             geoms.append(g)
-            areas[i] = g.area()
+            # Ground square metres, not coordinate units: this is the number the
+            # debris volumes and the tonnage are built from, and it is reported
+            # in footprint_area so a reader can check the arithmetic.
+            areas[i] = units.area(g)
             attributes = f.attributes()
             if floor_idx >= 0:
                 floors[i] = _float_or(attributes[floor_idx], 1.0)
@@ -588,10 +613,10 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
                 run_debris = self._debris_geometry(
                     geoms, seismic.debris_extent(
                         heights, areas, seismic.material_factor(run_states),
-                        debris_factor, solid_ratio, void_ratio, density)[0])
+                        debris_factor, solid_ratio, void_ratio, density)[0], units)
                 envelope = QgsGeometry.unaryUnion(run_debris).makeValid() if run_debris else None
                 blocked_samples.append(0.0 if envelope is None else self._blocked_area(
-                    network_union.intersection(envelope).makeValid()))
+                    network_union.intersection(envelope).makeValid(), units))
                 feedback.setProgress(int((run + 1) / runs * 70))
             collapse_freq = frequency / max(1, runs)
             summary = uncertainty.summarize_samples(np.asarray(blocked_samples, dtype=np.float64))
@@ -634,7 +659,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         sink_navigable, dest_navigable = self.parameterAsSink(
             parameters, self.OUT_NAVIGABLE, context, QgsFields(), QgsWkbTypes.Type.MultiPolygon, target_crs)
 
-        debris_geoms = self._debris_geometry(geoms, radius)
+        debris_geoms = self._debris_geometry(geoms, radius, units)
         blocked = None
         if debris_geoms:
             envelope = QgsGeometry.unaryUnion(debris_geoms).makeValid()
@@ -656,7 +681,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             cor_feat = QgsFeature()
             cor_feat.setGeometry(corridors)
             sink_corridors.addFeature(cor_feat, QgsFeatureSink.Flag.FastInsert)
-            navigable = self._navigable_core(corridors, clear_width)
+            navigable = self._navigable_core(corridors, clear_width, units)
             if not navigable.isEmpty():
                 n_navigable = 1
                 nav_feat = QgsFeature()
@@ -675,8 +700,8 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             f"of pile ({float(np.sum(mass)) / 1000.0:.2f} kt)."
         )
         if n_navigable:
-            corridor_area = float(corridors.area())
-            navigable_area = float(navigable.area())
+            corridor_area = units.area(corridors)
+            navigable_area = units.area(navigable)
             feedback.pushInfo(
                 f"Navigable core: corridors opened at {clear_width:g} m clear width - "
                 f"{navigable_area:.1f} m2 of street stays reachable where the open corridors "
@@ -693,18 +718,21 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         return results
 
     @staticmethod
-    def _navigable_core(corridors, clear_width):
+    def _navigable_core(corridors, clear_width, units):
         """Corridors narrowed to the minimum clear width.
 
         Morphological opening - erode by half the clear width, then regrow by
         the same amount - which drops every part of the network too narrow for
         the gap to survive the erosion. A 0.5 m sliver left beside a debris
-        pile stops counting as an evacuation route.
+        pile stops counting as an evacuation route. Both radii are given in
+        metres and converted, or the opening would be measured in whatever the
+        layer's coordinates happen to be.
         """
         half = float(clear_width) / 2.0
         if half <= 0.0:
             return corridors
-        return corridors.buffer(-half, 8).buffer(half, 8).makeValid()
+        factor = units.per_metre(corridors)
+        return corridors.buffer(-half * factor, 8).buffer(half * factor, 8).makeValid()
 
     def createInstance(self):
         return SeismicDebrisAlgorithm()

@@ -47,6 +47,12 @@ dimension `2 ln(P/4) / ln A`, shared walls. Morphological tessellation
 follows Fleischmann's momepy recipe: densified boundaries → Voronoi →
 dissolve per building. Spacematrix classifies GSI/FSI/OSR/L (Berghauser
 Pont & Haupt). Street orientation entropy and order follow Boeing (2019).
+Street Network Morphology reports `total_length_km`, `avg_segment_length_m`
+and `intersection_density_km2` in ground metres too, converted from the
+layer's own units through `algorithms/_units.py`: the graph's edge lengths
+and the network hull are in coordinate units, and a foot layer or an
+EPSG:3857 layer at 41°N would otherwise report a length wrong by 3.28 or
+1.33 and an area wrong by 10.76 or 1.76.
 
 ## Accessibility
 
@@ -256,11 +262,16 @@ height, scaled by `f_state`. Passability is the street network minus the
 blocked footprint, opened morphologically at the minimum clear width, so a
 corridor with no navigable width left is not reported as open. The buildings
 are written as centroid points, with the footprint area carried alongside as
-a `footprint_area` column so the downstream casualty model still has one;
-that column is in the layer's own area unit, so `V_solid`, `V_pile` and `mass`
-are cubic metres and tonnes only on a metre-projected layer — an open defect,
-stated on `debris_extent` and in the changelog rather than silently assumed.
-The pile radius is unaffected because it is driven by height alone.
+a `footprint_area` column so the downstream casualty model still has one.
+`A` is a **ground** area in square metres, measured on the layer's CRS
+ellipsoid, and so are the street widths, the reach along the street axis and
+the radius the morphological opening uses: a raw `QgsGeometry.area()` is
+square metres only on a metre CRS, and not even there away from the equator —
+EPSG:3857 at 41°N inflates area by 1.757 and a US survey foot layer by 10.76.
+`planx/algorithms/_units.py` (`GroundUnits`) does the conversion for every one
+of those quantities, and the same helper backs the length and area claims of
+Street Network Morphology. The pile radius is unaffected because it is driven
+by height alone.
 
 Casualties: the Hazus Section 12 event tree, per building, as
 `rate = Σ_ds p_ds·r_ds` with the Complete state split into collapsed and

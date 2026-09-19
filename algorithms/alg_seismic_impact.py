@@ -17,6 +17,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_SEISMIC, STRING, PlanXAlgorithm
+from . import _units
 from ..engine import impact
 from ..engine import seismic
 
@@ -149,7 +150,10 @@ class SeismicImpactAlgorithm(PlanXAlgorithm):
             "comes from a field instead. That field is found automatically "
             "(the debris tool writes footprint_area), or you can name one. "
             "With neither, the run stops rather than report a population of "
-            "zero.\n\n"
+            "zero. A footprint read from the geometry is in ground square "
+            "metres, measured on the CRS's ellipsoid; one read from a column is "
+            "in whatever unit that column's producer used, which is square "
+            "metres for the debris tool's footprint_area.\n\n"
             "THE DEMOGRAPHIC TERMS - READ THIS BEFORE QUOTING A SHELTER "
             "NUMBER\n"
             "Hazus's shelter equation filters the displaced population by "
@@ -508,6 +512,11 @@ class SeismicImpactAlgorithm(PlanXAlgorithm):
         population_index = self._index(fields, self.POPULATION_FIELD, "Population")
         units_index = self._index(fields, self.UNITS_FIELD, "Dwelling units")
         area_index, area_field = self._area_column(fields)
+        # Ground square metres for the geometry path: the occupant count is a
+        # density times this area, so a raw QgsGeometry.area() would report
+        # 1.76x the population on EPSG:3857 at 41 N and 10.76x on a state-plane
+        # layer in feet, with every casualty and shelter number scaled to match.
+        ground = _units.GroundUnits(buildings.sourceCrs(), context.transformContext())
 
         floors = np.ones(n, dtype=np.float64)
         areas = np.zeros(n, dtype=np.float64)
@@ -517,7 +526,7 @@ class SeismicImpactAlgorithm(PlanXAlgorithm):
         area_from_column = 0
         for i, feature in enumerate(features):
             attributes = feature.attributes()
-            area = feature.geometry().area()
+            area = ground.area(feature.geometry())
             if area > 0.0:
                 area_from_geometry += 1
             elif area_index >= 0:

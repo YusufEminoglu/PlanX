@@ -18,6 +18,7 @@ from qgis.core import (
 )
 
 from .base import DOUBLE, GROUP_MORPHOLOGY, INT, PlanXAlgorithm, STRING
+from . import _units
 from ..engine import graphs, morphology
 
 
@@ -45,6 +46,10 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
             "Outputs a junction layer typed as cul-de-sac / continuation / "
             "intersection and a summary table of all indicators - ideal for "
             "comparing neighbourhoods or tracking plan alternatives.\n\n"
+            "Lengths and areas are ground metres, not the layer's coordinate "
+            "units: on a state-plane layer in feet, or on EPSG:3857 away from "
+            "the equator, those two differ by a constant factor and the metric "
+            "rows would be wrong without saying so.\n\n"
             "How to read the results\n"
             "- orientation order: 1 = one perfect grid, 0 = bearings in "
             "every direction. ~0.7+ planned grid fabric, ~0.1-0.3 organic "
@@ -79,6 +84,15 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
         network = self.parameterAsSource(parameters, self.NETWORK, context)
         self.require_projected(network, "Street network")
+        # The graph's lengths are in the layer's coordinate units, not metres.
+        # total_length_km, avg_segment_length_m and the intersections-per-km2
+        # denominator are all metric claims, so they go through the layer's own
+        # ground scale: a state-plane layer in feet would otherwise report a
+        # network 3.28x too long on a city 10.8x too large, and a metre layer on
+        # EPSG:3857 is off by 1/cos(lat) - 1.33x at 41 N - with nothing in the
+        # result to suggest it. See algorithms/_units.py.
+        units = _units.GroundUnits(network.sourceCrs(), context.transformContext())
+        per_unit = units.scale(network.sourceExtent())
         graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         n, e = graph.num_nodes, graph.num_edges
 
@@ -91,10 +105,10 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
         components = self._component_count(graph)
         mesh = morphology.meshedness(n, e, components)
         hull = morphology.convex_hull(graph.node_xy)
-        hull_km2 = morphology.ring_area(hull) / 1e6 if len(hull) >= 3 else 0.0
+        hull_km2 = morphology.ring_area(hull) / (per_unit * per_unit) / 1e6 if len(hull) >= 3 else 0.0
         n_intersections = int((degrees >= 3).sum())
         n_culdesac = int((degrees == 1).sum())
-        total_len_km = float(graph.edge_len.sum()) / 1000.0
+        total_len_km = float(graph.edge_len.sum()) / per_unit / 1000.0
 
         crs = network.sourceCrs()
         node_fields = self.make_fields(("node_id", INT), ("degree", INT), ("node_type", STRING))
@@ -111,7 +125,7 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
         rows = [
             ("nodes", n), ("edges", e), ("components", components),
             ("total_length_km", round(total_len_km, 3)),
-            ("avg_segment_length_m", round(float(graph.edge_len.mean()), 2)),
+            ("avg_segment_length_m", round(float(graph.edge_len.mean()) / per_unit, 2)),
             ("avg_node_degree", round(float(degrees.mean()), 3)),
             ("intersections_deg3plus", n_intersections),
             ("culdesac_count", n_culdesac),

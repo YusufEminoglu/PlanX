@@ -557,13 +557,13 @@ def debris_extent(
 
     Units: the volumes and the mass are cubic metres and tonnes only if
     ``height`` is in metres and ``area`` in square metres. This function
-    cannot check that - it sees numbers. ``planx:seismicdebris`` currently
-    hands it ``QgsGeometry.area()`` in the layer's own area unit, so a layer
-    projected in feet, or one still in degrees, inflates every volume by the
-    square of the unit factor (roughly 1.76x for a metre grid stored on
-    EPSG:3857 at 41 N, where the scale factor itself is the culprit). Open
-    defect, recorded in the changelog rather than fixed here; the radius is
-    unaffected because it is driven by height alone.
+    cannot check that - it sees numbers, so the unit belongs to the caller.
+    ``planx:seismicdebris`` measures both on the CRS's ellipsoid
+    (``algorithms/_units.py``) rather than taking ``QgsGeometry.area()`` in the
+    layer's coordinate units, which is the same number only on a metre-unit
+    layer with no projection scale factor and is 10.76x too large on a
+    state-plane layer in US feet and 1.76x too large on EPSG:3857 at 41 N.
+    The radius is unaffected either way: it is driven by height alone.
     """
     height = np.asarray(height, dtype=np.float64)
     area = np.asarray(area, dtype=np.float64)

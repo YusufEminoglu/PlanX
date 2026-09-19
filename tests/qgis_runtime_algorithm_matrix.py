@@ -48,6 +48,7 @@ import argparse
 import json
 import os
 import shutil
+import sqlite3
 import sys
 import tempfile
 import time
@@ -1376,6 +1377,66 @@ def _verify_file(path):
 DEMO_CITY_SPAN_KM = 0.75
 
 
+def _read_gpkg(path):
+    """``(column names, rows as dicts, complaint)`` for a written GeoPackage.
+
+    Read with ``sqlite3``, never with a ``QgsVectorLayer`` - and that is the
+    whole point of this function. **Reading attributes** out of a written
+    GeoPackage through QGIS leaves the file held open for the rest of the
+    process on Windows, and an open file cannot be deleted. The extra runs
+    below re-create a destination that the primary run already wrote, so a
+    value check that read its output through QGIS made the *next* run of that
+    algorithm die with::
+
+        Could not create layer ...gpkg: Creation of data source failed
+        (OGR error: A file system object called '...gpkg' already exists.)
+
+    Measured on 3.44, not guessed. With no prior read, re-creating the file
+    succeeds and deleting it succeeds. So does a ``featureCount()`` - which is
+    why this stayed hidden: ``_verify_vector`` counts every output and those
+    files stayed replaceable. Iterating the features and reading one attribute
+    is what locks it, and then nothing releases it - re-creating and deleting
+    both fail with ``winerror 32`` for every release strategy tried (the
+    wrapper kept, ``del``-ed, and ``del``-ed plus ``gc.collect()``).
+
+    ``sqlite3`` holds no GDAL handle: the database is opened, read and closed
+    inside this call, so the file stays exactly as replaceable as it was. It
+    is also the honest reading - these columns are what any other program
+    would find in the file, with no QGIS interpretation in between.
+
+    A value check must return a complaint rather than a wrong number, so
+    every way of failing to read the table - unreadable file, no feature
+    table, more than one, no rows - is reported here.
+    """
+    uri = Path(path).resolve().as_uri() + "?mode=ro"
+    try:
+        connection = sqlite3.connect(uri, uri=True)
+    except sqlite3.Error as exc:
+        return None, None, f"could not open {path} as a GeoPackage: {exc}"
+    try:
+        connection.row_factory = sqlite3.Row
+        tables = [row[0] for row in connection.execute(
+            "SELECT table_name FROM gpkg_contents WHERE data_type = 'features'"
+            " ORDER BY table_name")]
+        if not tables:
+            return None, None, f"{path} holds no feature table"
+        if len(tables) > 1:
+            return None, None, (
+                f"{path} holds {len(tables)} feature tables ({', '.join(tables)}), "
+                f"so a column cannot be read unambiguously")
+        table = tables[0]
+        names = [row["name"] for row in connection.execute(
+            f'PRAGMA table_info("{table}")')]
+        rows = [dict(row) for row in connection.execute(f'SELECT * FROM "{table}"')]
+    except sqlite3.Error as exc:
+        return None, None, f"could not read {path}: {exc}"
+    finally:
+        connection.close()
+    if not rows:
+        return names, rows, f"{path} holds no row to read a value from"
+    return names, rows, None
+
+
 def _expect_groundmotion_distances_are_kilometres(path):
     """The demo city is under a kilometre across, so no distance may be larger.
 
@@ -1389,10 +1450,9 @@ def _expect_groundmotion_distances_are_kilometres(path):
     model saturates at about 0.5 g, so it exercises the site term and the row
     indexing but not the distance decay. That belongs to the engine tests.
     """
-    layer = QgsVectorLayer(str(path), "matrix_values", "ogr")
-    if not layer.isValid():
-        return f"did not load as a vector layer: {path}"
-    names = [field.name() for field in layer.fields()]
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
     if "r_km_2" in names:
         # make_fields renames a computed column that would collide with an
         # input field of the same name, so the column called r_km here would
@@ -1401,12 +1461,11 @@ def _expect_groundmotion_distances_are_kilometres(path):
         # loudly rather than measure the wrong column.
         return (f"the layer carries both 'r_km' and 'r_km_2', so 'r_km' is an "
                 f"input field and the computed distance was renamed: {names}")
-    index = layer.fields().indexOf("r_km")
-    if index < 0:
+    if "r_km" not in names:
         return "no r_km column to read a distance from"
     distances = []
-    for feature in layer.getFeatures():
-        value = feature.attributes()[index]
+    for row in rows:
+        value = row["r_km"]
         if value is None:
             return "an r_km value is NULL"
         distances.append(float(value))
@@ -1437,10 +1496,10 @@ def _expect_impact_casualties_conserve_occupants(path):
     put somebody in a building. Without that, zero occupants satisfies every
     bound - see the note at the end of this function.
     """
-    layer = QgsVectorLayer(str(path), "matrix_values", "ogr")
-    if not layer.isValid():
-        return f"did not load as a vector layer: {path}"
-    names = {field.name() for field in layer.fields()}
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    names = set(names)
     required = {"occupants", "cas_sev1", "cas_sev2", "cas_sev3", "cas_sev4",
                 "cas_total", "displaced_hh", "public_shelter"}
     missing = required - names
@@ -1453,29 +1512,29 @@ def _expect_impact_casualties_conserve_occupants(path):
                 f"impact columns did not land where they should: {sorted(names)}")
     seen = 0
     modelled = 0.0
-    for feature in layer.getFeatures():
-        value = {name: feature[name] for name in required}
+    for index, row in enumerate(rows, start=1):
+        value = {name: row[name] for name in required}
         if any(item is None for item in value.values()):
-            return f"a NULL impact value in feature {feature.id()}"
+            return f"a NULL impact value in row {index}"
         people = float(value["occupants"])
         modelled += people
         severities = [float(value[f"cas_sev{s}"]) for s in range(1, 5)]
         total = float(value["cas_total"])
         if abs(total - sum(severities)) > 1e-6:
-            return (f"feature {feature.id()}: cas_total {total:.6f} is not the "
-                    f"sum of the four severities {sum(severities):.6f}")
+            return (f"row {index}: cas_total {total:.6f} is not the sum of the "
+                    f"four severities {sum(severities):.6f}")
         # Outdoor casualties are counted against the same occupant pool, so
         # the four severities are bounded by the occupants whoever they are.
         if sum(severities) > people + 1e-6:
-            return (f"feature {feature.id()}: {sum(severities):.3f} casualties "
-                    f"from {people:.3f} occupants - more people hurt than the "
+            return (f"row {index}: {sum(severities):.3f} casualties from "
+                    f"{people:.3f} occupants - more people hurt than the "
                     f"building holds, so the rates or the shares were misread")
         if float(value["displaced_hh"]) > people + 1e-6:
-            return (f"feature {feature.id()}: {value['displaced_hh']:.3f} "
-                    f"displaced households from {people:.3f} occupants")
+            return (f"row {index}: {value['displaced_hh']:.3f} displaced "
+                    f"households from {people:.3f} occupants")
         if float(value["public_shelter"]) > people + 1e-6:
-            return (f"feature {feature.id()}: {value['public_shelter']:.3f} "
-                    f"people seeking shelter from {people:.3f} occupants")
+            return (f"row {index}: {value['public_shelter']:.3f} people seeking "
+                    f"shelter from {people:.3f} occupants")
         seen += 1
     if not seen:
         return "no building to read an impact value from"
@@ -1491,12 +1550,90 @@ def _expect_impact_casualties_conserve_occupants(path):
     return None
 
 
+def _expect_debris_volume_uses_the_reported_footprint(path):
+    """The debris volume must be built from the area the column reports.
+
+    ``footprint_area`` was added so the arithmetic is checkable by hand:
+    material = footprint x height x the solid share of the gross volume x the
+    released fraction of the damage state. If the two numbers ever come from
+    different areas the identity breaks feature by feature - and nothing else
+    here would notice, because the counts, the geometry and both magnitudes
+    stay entirely plausible.
+
+    That is not hypothetical: the footprint was the layer's own
+    ``QgsGeometry.area()`` until v4.15.1, which is square metres only on a
+    metre-unit layer with no projection scale factor. Both tools now measure
+    the geometry on the ellipsoid (``planx.algorithms._units``), so this check
+    also stands between the reported column and a volume converted while the
+    column is not.
+
+    Read through :func:`_read_gpkg`, not through QGIS. This is the one
+    expectation whose algorithm has an extra run that re-writes the very
+    destination being checked, so holding a QGIS datasource here would make
+    that extra run fail on Windows - see the reasoning there.
+    """
+    from planx.engine import seismic
+
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    required = {"footprint_area", "height_m", "debris_vol_m3", "damage_state"}
+    missing = required - set(names)
+    if missing:
+        return f"missing debris column(s): {', '.join(sorted(missing))}"
+    algorithm = QgsApplication.processingRegistry().algorithmById("planx:seismicdebris")
+    if algorithm is None:
+        return "planx:seismicdebris is not registered, so its solid ratio is unknown"
+    declared = float(algorithm.parameterDefinition("SOLID_VOLUME_RATIO").defaultValue())
+    states = {name: index for index, name in enumerate(seismic.DAMAGE_STATES)}
+    ratio = None
+    for index, row in enumerate(rows, start=1):
+        area = float(row["footprint_area"])
+        height = float(row["height_m"])
+        volume = float(row["debris_vol_m3"])
+        state = row["damage_state"]
+        if state not in states:
+            return f"row {index}: unknown damage state {state!r}"
+        factor = float(seismic.material_factor([states[state]])[0])
+        if factor == 0.0:
+            # slight and none shed nothing that reaches the street; a non-zero
+            # volume there would be a different bug, as would dividing by it.
+            if volume != 0.0:
+                return (f"row {index}: {volume:.6f} m3 of debris from '{state}' "
+                        f"damage, which releases no material")
+            continue
+        if area <= 0.0 or height <= 0.0:
+            return f"row {index}: {area:.3f} m2 of footprint at {height:.3f} m"
+        candidate = volume / (area * height * factor)
+        if ratio is None:
+            ratio = candidate
+        elif abs(candidate - ratio) > 1e-6 * max(1.0, abs(ratio)):
+            return (f"row {index}: material volume is {candidate:.6f} of footprint x "
+                    f"height x state factor where an earlier row gave {ratio:.6f}, so "
+                    f"the volume and the footprint_area column are not the same area")
+    if ratio is None:
+        return ("no building in {0} carried both a footprint and a damage state that "
+                "releases material, so the volume identity checked nothing".format(
+                    path))
+    if abs(ratio - declared) > 1e-6:
+        return (f"the material volume is {ratio:.6f} of footprint x height x state "
+                f"factor where SOLID_VOLUME_RATIO declares {declared:.6f}")
+    return None
+
+
 #: algorithm id -> callable(output path) -> complaint or None. Run only when
 #: the ordinary output verification passed, so a complainer here is always
 #: describing a wrong value rather than a missing output.
+#:
+#: A check reads its output with :func:`_read_gpkg`, never with a
+#: ``QgsVectorLayer``: the harness re-creates destinations in its extra runs,
+#: and an open QGIS datasource on a file stops Windows from replacing it.
 VALUE_EXPECTATIONS = {
     "planx:groundmotion": {
         "OUTPUT": _expect_groundmotion_distances_are_kilometres,
+    },
+    "planx:seismicdebris": {
+        "OUT_BUILDINGS": _expect_debris_volume_uses_the_reported_footprint,
     },
     "planx:seismicimpact": {
         "OUT": _expect_impact_casualties_conserve_occupants,

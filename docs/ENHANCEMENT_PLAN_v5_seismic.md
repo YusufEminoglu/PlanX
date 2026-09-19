@@ -7,15 +7,56 @@ one algorithm to five, as four releases.
 quality programme for the 71-algorithm plugin. It lists a candidate `v4.13.0` for traffic
 assignment; that number is now taken by the seismic debris rebuild. This document owns the
 seismic thread and takes `v4.14.0` upward. It does not supersede the other file.
-**Status (2026-09-19, updated at Faz 2):** Faz 1 is **committed** at v4.14.0, `102cab2`,
-annotated tag `v4.14.0` — and **not pushed, not uploaded**. Faz 2 is built in the working
-tree at v4.15.0 (`planx:seismicimpact`: engine `engine/impact.py`, algorithm, provider
-registration, icon, runtime-matrix chaining case, manual card, README/METHODS/CHANGELOG
-and the Hazus Sections 12–13 notice), not yet committed, pushed or uploaded. Faz 3 and
+**Status (2026-09-19, updated after the unit fix):** Faz 1 is **committed** at v4.14.0,
+`102cab2`, annotated tag `v4.14.0`; Faz 2 is **committed** at v4.15.0, `589dbb6`,
+annotated tag `v4.15.0` (`planx:seismicimpact`: engine `engine/impact.py`, algorithm,
+provider registration, icon, runtime-matrix chaining case, manual card,
+README/METHODS/CHANGELOG and the Hazus Sections 12–13 notice). Both are **not pushed and
+not uploaded**. A **unit fix, v4.15.1**, is built on top of Faz 2 and is its own release,
+because it changes reported values in three tools: see "The unit fix" below. Faz 3 and
 Faz 4 are unstarted. The plan text below is left as written, with each phase's deviations
 from it recorded under "as built" in its own section - the plan is the contract, so where
 the implementation departed from it the departure is stated rather than the plan quietly
 edited to match. **Both phases are held only by commit, tag and upload.**
+
+**The unit fix (v4.15.1, after Faz 2, before Faz 3).** 4.15.0's changelog recorded an open
+defect: `planx:seismicdebris` fed `QgsGeometry.area()` — the layer's own area unit — into
+`seismic.debris_extent`, which documents m³ and tonnes, and into the `footprint_area`
+column, which documents m². The same class sat in `planx:streetmorphology` (carried from
+4.14.0) and in the Faz 2 tool itself, whose geometry fallback read a raw area. All three
+are fixed together in one release, because fixing one and leaving the others would report
+one city two ways.
+
+Both defects are the same question — how long is a layer unit on the ground here — and
+they are not the same defect. The **coordinate unit** is not always the metre (EPSG:2229,
+US survey feet: areas 10.76× too large), and a **conformal projection carries its own
+scale factor** (EPSG:3857 at 41°N: 1.757×, which is the "~1,76×" the 4.15.0 note
+recorded — on a metre CRS). `algorithms/_units.py` answers it once, with a
+`QgsDistanceArea` bound to the layer's CRS and ellipsoid.
+
+The finding worth keeping is *why nothing caught it*. The runtime matrix cannot: its
+fixture city is generated at `(0, 0)` in EPSG:3857 (`engine/demo.py`), the one place on
+that grid where the scale factor is exactly 1, so 73 cases were green over a defect every
+real city would show. A fixture at the origin is a fixture that tests the unit question
+only where the unit question has no answer. `tests/smoke_plugin.py` now carries the
+checks the matrix structurally cannot — 41°N on EPSG:3857, Los Angeles on EPSG:2229, and
+UTM 35N as a control that a metre CRS is left near 1 — with each expectation written out
+from the CRS definition rather than read back from the module under test.
+
+The same class is still live in about a dozen other tools that publish an `area_m2` or a
+`km2` column from raw geometry. That pass is deliberately not folded into this release;
+it changes reported values in most of the analytical tools and belongs in its own.
+
+Two test-infrastructure facts came out of verifying this release, and both are in
+`docs/TRAPS.md` (4.6, 4.8, 5.8). The debris value check first read its own output with a
+`QgsVectorLayer` and the case went red on **both** runtimes — an open QGIS datasource
+keeps Windows from replacing the file, and the matrix's extra runs re-create the
+destinations the primary run wrote; the checks now read with `sqlite3`. And the smoke
+test's hang is the **profile** trap (4.6), not the teardown the first reading suggested:
+the same module exits 0 with `QGIS_CUSTOM_CONFIG_PATH` set and never returns without it.
+Faz 3 will meet both again — it adds an algorithm, so the 73-count in `smoke_plugin.py`
+and the matrix's case floor move with it, and any new value check must read its output
+the same way.
 
 A distance-unit defect found by the matrix's own run log during Faz 1 (every receiver
 1000× too far) and the inverted unit factor that replaced it are both fixed. The engine
