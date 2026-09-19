@@ -24,8 +24,8 @@ def main():
             provider.loadAlgorithms()
             algorithms = provider.algorithms()
             names = [algorithm.name() for algorithm in algorithms]
-            if len(algorithms) != 70:
-                raise AssertionError(f"Expected 70 algorithms, got {len(algorithms)}")
+            if len(algorithms) != 71:
+                raise AssertionError(f"Expected 71 algorithms, got {len(algorithms)}")
             if len(names) != len(set(names)):
                 raise AssertionError("Duplicate PlanX algorithm ids")
             for algorithm in algorithms:

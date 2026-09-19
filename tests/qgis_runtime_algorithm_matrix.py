@@ -111,7 +111,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 70
+MIN_EXPECTED_CASE_COUNT = 71
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -391,6 +391,12 @@ LAYER_OVERRIDES = {
     # no dwelling count, so that row's magnitude is arithmetic, not a planning
     # figure. The case checks execution and wiring, not the totals.
     ("planx:parkingdemand", "ZONES"): "landuse",
+    # parksupplybalance's SUPPLY is a parking inventory, which no role in
+    # ROLE_BY_PARAM describes; the `facilities` layer carries the `capacity`
+    # column it counts spaces from. ZONES is not a fixture at all here: it is
+    # the demand layer the parking-demand case produced earlier in the run, so
+    # this pair is a real two-step chain rather than two isolated smoke tests.
+    ("planx:parkingsupplybalance", "SUPPLY"): "facilities",
 }
 
 # A `MultipleLayers` parameter takes a list, not a single role.
@@ -413,6 +419,7 @@ FIELD_BY_PARAM = {
     "CATEGORY_FIELD": "category",
     "COST_FIELD": "cost",
     "DEMAND_POP": "pop",
+    "DEMAND_FIELD": "parking_demand",
     "DENSITY_FIELD": "dens_ha",
     "DEST_ID": "dest_id",
     "DISTRICT_FIELD": "district",
@@ -447,6 +454,7 @@ FIELD_BY_PARAM = {
     "SCORE_FIELD": "score",
     "SITE_COST": "site_cost",
     "SIZE_FIELD": "area_m2",
+    "SUPPLY_FIELD": "capacity",
     "SPEED_FIELD": "speed",
     "SURVIVAL_FIELD": "survival",
     "VALUE_FIELD": "value",
@@ -517,6 +525,11 @@ RUN_FIRST = (
     "planx:landusebalance",
     "planx:facilityadequacy",
     "planx:scenariosnapshot",
+    # parkingdemand -> parksupplybalance. The pair is registered in that order
+    # anyway, but the consumer reads the producer's OUTPUT as its ZONES layer,
+    # so the chain is declared here rather than left to depend on registration
+    # order holding.
+    "planx:parkingdemand",
 )
 
 # A second, differently-parameterised run of an algorithm, so that tools needing
@@ -574,6 +587,9 @@ VALUE_OVERRIDES = {
     ("planx:gtfsimport", "FILE"): "fixture:gtfs",
     ("planx:transitaccess", "FILE"): "fixture:gtfs",
     ("planx:transitfrequency", "FILE"): "fixture:gtfs",
+    # The balance reads the demand case's own output, so the matrix runs the
+    # documented workflow end to end: area -> demand -> supply balance.
+    ("planx:parkingsupplybalance", "ZONES"): "art:planx:parkingdemand/OUTPUT",
 }
 
 # Timestamps the sun tools can actually compute a position for: a solstice noon.
@@ -1031,6 +1047,18 @@ def build_inputs(algorithm, bundle, tables, rasters, artifacts, out_dir, result)
                 definition.parentLayerParameterName(), "").split("->")[-1]
             parent_role = parent_role.replace("override:", "")
             layer = tables.get(parent_role)
+            if layer is None and _is_token(parent_role):
+                # The parent is an artefact or fixture file rather than a
+                # fixture layer. Read it back so the field is resolved against
+                # the schema actually written - a field guessed onto a layer
+                # that does not have it would leave the algorithm on its own
+                # default and the case green having tested nothing.
+                layer = QgsVectorLayer(
+                    str(_resolve_special(parent_role, artifacts, bundle)),
+                    parent_role, "ogr")
+                if not layer.isValid():
+                    raise RuntimeError(
+                        f"'{name}' parent '{parent_role}' did not load")
             if layer is None:
                 if optional:
                     result.choices[name] = "skipped(no parent layer)"

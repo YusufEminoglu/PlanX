@@ -114,3 +114,114 @@ def category_subtotals(categories, demand) -> list:
         key = str(category)
         totals[key] = totals.get(key, 0.0) + float(value)
     return [(key, totals[key]) for key in sorted(totals)]
+
+
+# --------------------------------------------------------------------------
+# Supply balance
+# --------------------------------------------------------------------------
+#: Inventory reached this zone and holds no spaces: a real deficit.
+SUPPLY_COUNTED = "counted"
+#: Inventory reached this zone; the zone has none of it in range.
+SUPPLY_ZERO = "zero supply found"
+#: No inventory in range and the inventory layer does not reach this zone.
+SUPPLY_ABSENT = "supply data absent"
+
+
+def supply_within(costs, spaces, radius):
+    """Spaces and inventory features reachable from each zone.
+
+    ``costs`` is a (zones, features) matrix of access costs - metres of
+    street network, or straight-line distance, whichever the caller computed.
+    A feature counts for a zone when its cost is at or below ``radius``.
+
+    Returns ``(spaces_found, features_found)``, both one value per zone.
+    """
+    costs = np.atleast_2d(np.asarray(costs, dtype=np.float64))
+    spaces = np.asarray(spaces, dtype=np.float64).reshape(-1)
+    n_zones = costs.shape[0]
+    if costs.shape[1] == 0 or spaces.size == 0:
+        return np.zeros(n_zones), np.zeros(n_zones, dtype=np.int64)
+    inside = costs <= float(radius)
+    features = inside.sum(axis=1).astype(np.int64)
+    found = np.where(inside, spaces[None, :], 0.0).sum(axis=1)
+    return found, features
+
+
+def straight_line_costs(zone_xy, supply_xy):
+    """Euclidean zone-to-inventory distance matrix, ``(zones, features)``.
+
+    The no-network fallback for :func:`supply_within`. With no network the
+    caller has not said what route anyone walks, so the only distance the data
+    itself supports is the straight line between the two points.
+
+    The shape is ``(n_zones, n_supply)`` even when there is no inventory, so an
+    empty inventory reaches :func:`supply_within` as a matrix of width zero
+    rather than as a special case.
+    """
+    zone_xy = np.atleast_2d(np.asarray(zone_xy, dtype=np.float64))
+    supply_xy = np.asarray(supply_xy, dtype=np.float64).reshape(-1, 2)
+    if supply_xy.size == 0:
+        return np.full((zone_xy.shape[0], 0), np.inf)
+    delta = zone_xy[:, None, :] - supply_xy[None, :, :]
+    return np.hypot(delta[:, :, 0], delta[:, :, 1])
+
+
+def nearest_supply_cost(costs):
+    """Per-zone cost to the closest inventory feature; inf where none exists."""
+    costs = np.atleast_2d(np.asarray(costs, dtype=np.float64))
+    if costs.shape[1] == 0:
+        return np.full(costs.shape[0], np.inf)
+    return costs.min(axis=1)
+
+
+def classify_supply(features_found, covered):
+    """Per-zone supply status - the distinction S3 exists to preserve.
+
+    ``covered`` says whether the inventory layer reaches that zone at all. A
+    zone the inventory never surveyed has *no supply data*, which is a
+    different claim from a surveyed zone that has *no parking*: reporting the
+    first as a deficit turns a coverage gap into a finding.
+    """
+    features = np.asarray(features_found)
+    covered = np.asarray(covered, dtype=bool)
+    status = np.where(covered, SUPPLY_ZERO, SUPPLY_ABSENT).astype(object)
+    status = np.where(features > 0, SUPPLY_COUNTED, status)
+    return [str(item) for item in status]
+
+
+def balance(demand, spaces_found, status):
+    """Supply minus demand per zone; None where the supply is unknown.
+
+    An unknown zone gets no balance rather than a deficit, so that summing
+    the column cannot present unsurveyed ground as a parking shortfall.
+    """
+    demand = np.asarray(demand, dtype=np.float64).reshape(-1)
+    supply = np.asarray(spaces_found, dtype=np.float64).reshape(-1)
+    out = []
+    for i, state in enumerate(status):
+        out.append(None if state == SUPPLY_ABSENT
+                   else float(supply[i]) - float(demand[i]))
+    return out
+
+
+def balance_summary(demand, spaces_found, status) -> list:
+    """[(label, value)] for a deterministic log, sorted by label."""
+    demand = np.asarray(demand, dtype=np.float64).reshape(-1)
+    supply = np.asarray(spaces_found, dtype=np.float64).reshape(-1)
+    known = np.array([state != SUPPLY_ABSENT for state in status])
+    counts = {}
+    for state in status:
+        counts[state] = counts.get(state, 0) + 1
+    rows = [(f"zones {key}", float(counts[key])) for key in sorted(counts)]
+    rows.append(("parking demand (all zones, spaces)", float(demand.sum())))
+    if known.any():
+        surplus = supply[known] - demand[known]
+        rows.append(("parking supply (surveyed zones, spaces)",
+                     float(supply[known].sum())))
+        rows.append(("surplus (+) or deficit (-), surveyed zones, spaces",
+                     float(surplus.sum())))
+        rows.append(("surveyed zones in deficit",
+                     float((surplus < 0).sum())))
+    rows.sort(key=lambda row: row[0])
+    return rows
+

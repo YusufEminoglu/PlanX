@@ -2390,6 +2390,98 @@ check("parking: the demand total does not depend on feature order",
             parking.parking_demand(
                 ["Office", "Office"], np.array([1000.0, 4000.0]), _pk_rates).sum()))
 
+# --- supply balance (v4.12.0 phase 2) -------------------------------------- #
+# Two zones against two inventory features holding 10 and 5 spaces. Zone 0 is
+# 10 m from the first and 100 m from the second; zone 1 is 50 m and 200 m away.
+_pk_costs = np.array([[10.0, 100.0], [50.0, 200.0]])
+_pk_spaces = np.array([10.0, 5.0])
+
+_pk_found, _pk_count = parking.supply_within(_pk_costs, _pk_spaces, 50.0)
+check("parking: supply_within sums only features inside the radius",
+      np.allclose(_pk_found, [10.0, 10.0]))
+check("parking: supply_within counts the features it summed",
+      np.array_equal(_pk_count, [1, 1]))
+# The boundary is inclusive: a facility at exactly the radius is reachable.
+_pk_at = parking.supply_within(_pk_costs, _pk_spaces, 50.0)
+_pk_under = parking.supply_within(_pk_costs, _pk_spaces, 49.999)
+check("parking: a feature exactly at the radius counts, just inside it does not",
+      np.array_equal(_pk_at[1], [1, 1]) and np.array_equal(
+          _pk_under[1], [1, 0]))
+check("parking: supply_within ignores infinite costs",
+      np.array_equal(
+          parking.supply_within(
+              np.array([[np.inf, 5.0]]), _pk_spaces, 10.0)[1], [1]))
+_pk_empty = parking.supply_within(np.empty((2, 0)), np.empty(0), 50.0)
+check("parking: an empty inventory yields zero spaces, not an error",
+      np.allclose(_pk_empty[0], [0.0, 0.0]) and
+      np.array_equal(_pk_empty[1], [0, 0]))
+
+check("parking: nearest_supply_cost is the closest feature per zone",
+      np.allclose(parking.nearest_supply_cost(_pk_costs), [10.0, 50.0]))
+check("parking: nearest_supply_cost is inf where nothing is reachable",
+      np.array_equal(parking.nearest_supply_cost(
+          np.array([[np.inf, np.inf], [3.0, np.inf]])), [np.inf, 3.0]))
+check("parking: nearest_supply_cost of an empty inventory is all inf",
+      np.array_equal(parking.nearest_supply_cost(np.empty((2, 0))),
+                     [np.inf, np.inf]))
+
+# A 3-4-5 triangle, so the expected distance is exact rather than approximate.
+check("parking: straight-line costs are Euclidean",
+      np.allclose(parking.straight_line_costs(
+          np.array([[0.0, 0.0], [6.0, 8.0]]), np.array([[3.0, 4.0]])),
+          [[5.0], [5.0]]))
+check("parking: straight-line costs of an empty inventory have width zero",
+      parking.straight_line_costs(
+          np.array([[1.0, 2.0], [3.0, 4.0]]), np.empty((0, 2))).shape == (2, 0))
+
+_pk_status = parking.classify_supply([1, 0, 0, 2], [True, True, False, False])
+check("parking: a zone with inventory in range is 'counted'",
+      _pk_status[0] == parking.SUPPLY_COUNTED)
+check("parking: surveyed ground with nothing in range is 'zero supply found'",
+      _pk_status[1] == parking.SUPPLY_ZERO)
+check("parking: unsurveyed ground is 'supply data absent', not a deficit",
+      _pk_status[2] == parking.SUPPLY_ABSENT)
+# The two are different findings, and keeping them apart is the point of S3:
+# anything found in range is counted even if the coverage proxy missed it.
+check("parking: inventory found in range outranks the coverage proxy",
+      _pk_status[3] == parking.SUPPLY_COUNTED)
+
+_pk_balance = parking.balance([10.0, 10.0, 10.0], [4.0, 0.0, 0.0], _pk_status[:3])
+check("parking: balance is supply minus demand, signed",
+      close(_pk_balance[0], -6.0) and close(_pk_balance[1], -10.0))
+check("parking: an unsurveyed zone gets no balance at all",
+      _pk_balance[2] is None)
+
+_pk_summary = parking.balance_summary(
+    [10.0, 10.0, 10.0], [4.0, 0.0, 0.0],
+    [parking.SUPPLY_COUNTED, parking.SUPPLY_ZERO, parking.SUPPLY_ABSENT])
+check("parking: balance_summary is sorted by label",
+      [label for label, _ in _pk_summary] == sorted(
+          label for label, _ in _pk_summary))
+_pk_rows = dict(_pk_summary)
+check("parking: the survey totals cover the surveyed zones only",
+      close(_pk_rows["parking supply (surveyed zones, spaces)"], 4.0) and
+      close(_pk_rows["surplus (+) or deficit (-), surveyed zones, spaces"], -16.0))
+check("parking: the unsurveyed zone is counted but excluded from the balance",
+      close(_pk_rows["zones supply data absent"], 1.0))
+check("parking: deficit zones are counted for the reader",
+      close(_pk_rows["surveyed zones in deficit"], 2.0))
+_pk_all_absent = dict(parking.balance_summary(
+    [5.0, 5.0], [0.0, 0.0], [parking.SUPPLY_ABSENT] * 2))
+check("parking: with nothing surveyed no balance is reported at all",
+      "parking supply (surveyed zones, spaces)" not in _pk_all_absent and
+      "surplus (+) or deficit (-), surveyed zones, spaces" not in _pk_all_absent)
+check("parking: balance_summary is deterministic across calls",
+      parking.balance_summary(
+          [10.0, 10.0, 10.0], [4.0, 0.0, 0.0],
+          [parking.SUPPLY_COUNTED, parking.SUPPLY_ZERO,
+           parking.SUPPLY_ABSENT]) == _pk_summary)
+_pk_surplus = dict(parking.balance_summary(
+    [10.0], [25.0], [parking.SUPPLY_COUNTED]))
+check("parking: a surplus is reported as a positive balance and no deficit",
+      close(_pk_surplus["surplus (+) or deficit (-), surveyed zones, spaces"],
+            15.0) and close(_pk_surplus["surveyed zones in deficit"], 0.0))
+
 # --------------------------------------------------------------------------- #
 def _failures():
     return [label for label, ok in CHECKS if not ok]
@@ -2408,7 +2500,7 @@ def test_engine_checks():
 
     Every check in this module executes at module level, so by the time pytest
     calls this function the whole suite has already run and CHECKS is full -
-    this assertion is only the verdict. It is what makes the 528 checks
+    this assertion is only the verdict. It is what makes the 570 checks
     enforced by the monorepo's pure-test gate.
 
     Without it the module is invisible to pytest: it used to end in a bare
