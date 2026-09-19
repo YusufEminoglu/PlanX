@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, liquefaction as liq, morphology,
+    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, landslide as lsl, liquefaction as liq, morphology,
     optimize, parking, paths, provenance, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
@@ -3324,6 +3324,223 @@ check("Hazus: an unrecognised category returns None rather than a guess",
       and liq.normalise_category("medium") is None
       and liq.normalise_category(None) is None
       and liq.normalise_category("") is None)
+
+# --------------------------------------------------------------------------- #
+# Coseismic landslide screening
+# Jibson (2007) Equation 8, on a critical acceleration from Hazus 6.1 4.2.2.2
+# --------------------------------------------------------------------------- #
+# The two halves of this model are published separately and were transcribed
+# separately, so the checks below are mostly *cross*-checks: the tables say the
+# same thing about the same ground in three different ways, and none of the
+# three was derived from the others.
+
+_LSL_SLOPES = (0.0, 2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0, 25.0,
+               30.0, 35.0, 40.0, 45.0, 60.0)
+_LSL_ROWS = [(g, m) for g, _n, _s in lsl.HAZUS_LANDSLIDE_GROUPS
+             for m in lsl.HAZUS_LANDSLIDE_MOISTURE]
+_LSL_BANDS = range(len(lsl.HAZUS_LANDSLIDE_BANDS_DEG))
+
+# Table 4-14 names a category; Table 4-16 gives it an acceleration; Table 4-17
+# gives it an area share. A partial re-transcription is the failure that
+# produces a plausible map for four groups and a crash or a silent zero for the
+# other two, and if it landed in Table 4-17 the missing category would read as
+# "no susceptible deposit here" - the safest answer in the tool.
+check("Hazus: every Table 4-14 cell resolves through Table 4-16 and Table 4-17",
+      {c for row in lsl.HAZUS_LANDSLIDE_CATEGORY.values() for c in row}
+      - {"None"} == set(lsl.HAZUS_LANDSLIDE_AC_G)
+      and set(lsl.HAZUS_LANDSLIDE_AREA_FRACTION)
+      == set(lsl.HAZUS_LANDSLIDE_CATEGORIES)
+      and set(lsl.HAZUS_LANDSLIDE_CATEGORY) == set(_LSL_ROWS))
+
+# Ordering is the one thing a reader is entitled to assume and nothing in the
+# arithmetic enforces it: two transposed proportions give a plausible map with
+# the colours in the wrong order.
+check("Hazus: susceptibility never decreases as the slope steepens",
+      all(all(lsl.hazard_rank(row[i]) <= lsl.hazard_rank(row[i + 1])
+              for i in range(len(row) - 1))
+          for row in lsl.HAZUS_LANDSLIDE_CATEGORY.values()))
+check("Hazus: a wet slope is never less susceptible than the same slope dry",
+      all(lsl.hazard_rank(lsl.HAZUS_LANDSLIDE_CATEGORY[(g, "dry")][i])
+          <= lsl.hazard_rank(lsl.HAZUS_LANDSLIDE_CATEGORY[(g, "wet")][i])
+          for g in "ABC" for i in _LSL_BANDS))
+check("Hazus: group C is never less susceptible than B, and B never less than A",
+      all(lsl.hazard_rank(lsl.HAZUS_LANDSLIDE_CATEGORY[(firmer, m)][i])
+          <= lsl.hazard_rank(lsl.HAZUS_LANDSLIDE_CATEGORY[(softer, m)][i])
+          for m in lsl.HAZUS_LANDSLIDE_MOISTURE for i in _LSL_BANDS
+          for firmer, softer in (("A", "B"), ("B", "C"))))
+check("Hazus: the categories are ordered - acceleration strictly down, area share strictly up",
+      all(a > b for a, b in zip(
+          [lsl.HAZUS_LANDSLIDE_AC_G[c] for c in lsl.HAZUS_LANDSLIDE_CATEGORIES[1:]],
+          [lsl.HAZUS_LANDSLIDE_AC_G[c] for c in lsl.HAZUS_LANDSLIDE_CATEGORIES[2:]]))
+      and all(a < b for a, b in zip(
+          [lsl.HAZUS_LANDSLIDE_AREA_FRACTION[c] for c in lsl.HAZUS_LANDSLIDE_CATEGORIES],
+          [lsl.HAZUS_LANDSLIDE_AREA_FRACTION[c] for c in lsl.HAZUS_LANDSLIDE_CATEGORIES[1:]])))
+
+# Table 4-15's slope bound and Table 4-14's six columns were read independently
+# and answer the same question - "is this ground susceptible at all?" - so they
+# are required to agree everywhere, not merely where the bound happens to fall
+# on a column edge. Group C dry is the case that makes this bite: its bound
+# (5 degrees) cuts inside the 0-10 column, and the category that column holds
+# above the bound is not the category below it.
+check("Hazus: Table 4-15's bound and Table 4-14's columns never disagree",
+      all((lsl.hazus_susceptibility(g, m, s)["category"] == "None")
+          == (s < lsl.HAZUS_LANDSLIDE_SLOPE_BOUND_DEG[(g, m)])
+          for g, m in _LSL_ROWS for s in _LSL_SLOPES))
+
+# The one place the two halves of Section 4.2.2.2 touch. Table 4-15's
+# acceleration is applied as a floor on Table 4-16's value, and across the whole
+# 3-by-2-by-6 table it changes exactly one cell. Asserting the list rather than
+# its length means a single mistyped digit in either table fails here with the
+# cell named.
+check("Hazus: Table 4-15's floor bites exactly once in the whole table",
+      lsl.ac_table_floor_conflicts() == [("B", "wet", 5, 0.05, 0.10)])
+_bw = lsl.hazus_susceptibility("B", "wet", 45.0)
+check("Hazus: the floored cell is raised to the bound, and the row says so",
+      _bw["category"] == "X" and close(_bw["ac_g"], 0.10, 1e-12)
+      and _bw["floor_applied"] and close(_bw["ac_floor_g"], 0.10, 1e-12)
+      and _bw["band_label"] == ">40")
+_bd = lsl.hazus_susceptibility("B", "dry", 45.0)
+check("Hazus: a cell the floor does not reach is left at its Table 4-16 value",
+      _bd["category"] == "VII" and close(_bd["ac_g"], 0.20, 1e-12)
+      and not _bd["floor_applied"] and close(_bd["ac_floor_g"], 0.15, 1e-12))
+
+# "None" is the word the manual prints in Table 4-16's value row, not a value,
+# so it is absent from the table rather than mapped to zero - and it has to stay
+# absent, because a zero reaching Equation 8 is an infinity, which would turn
+# the model's safest answer into its loudest one.
+_hi = lsl.hazus_susceptibility("B", "wet", 3.0)
+check("Hazus: below the bound the answer is 'None' with no acceleration, not zero",
+      _hi["category"] == "None" and _hi["ac_g"] is None
+      and _hi["area_fraction"] == 0.0 and _hi["below_bound"]
+      and _hi["slope_bound_deg"] == 5.0
+      and _hi["band"] is None and _hi["band_label"] is None
+      and not _hi["floor_applied"])
+check("Hazus: no route through the tables ever returns a critical acceleration of zero",
+      all(lsl.hazus_susceptibility(g, m, s)["ac_g"] in (None,) or
+          lsl.hazus_susceptibility(g, m, s)["ac_g"] > 0.0
+          for g, m in _LSL_ROWS for s in _LSL_SLOPES))
+check("Hazus: a susceptibility answer carries the row it came from and the floor it met",
+      set(lsl.hazus_susceptibility("C", "dry", 25.0))
+      == {"category", "ac_g", "area_fraction", "band", "band_label",
+          "slope_bound_deg", "below_bound", "floor_applied", "ac_floor_g"})
+check("Hazus: the band edges are half-open, so 40 degrees belongs to the steepest band",
+      lsl.slope_band(9.999) == 0 and lsl.slope_band(10.0) == 1
+      and lsl.slope_band(39.999) == 4 and lsl.slope_band(40.0) == 5
+      and lsl.slope_band(89.0) == 5 and lsl.slope_band(0.0) == 0)
+check("Hazus: the hazard rank runs 0 for None up to 10 for X",
+      lsl.hazard_rank("None") == 0 and lsl.hazard_rank("I") == 1
+      and lsl.hazard_rank("X") == 10
+      and lsl.hazard_rank("X") > lsl.hazard_rank("IX") > lsl.hazard_rank("I"))
+try:
+    lsl.hazus_susceptibility("D", "dry", 20.0)
+    _lsl_missing_row = False
+except KeyError:
+    _lsl_missing_row = True
+check("Hazus: a group the manual does not define raises rather than falling back",
+      _lsl_missing_row)
+
+check("Hazus: a geologic group is matched on its letter or the manual's own name",
+      lsl.normalise_group("a") == "A" and lsl.normalise_group(" A ") == "A"
+      and lsl.normalise_group("Argillaceous") == "C"
+      and lsl.normalise_group("weakly cemented rocks and soils.") == "B")
+check("Hazus: a group that is not A, B or C comes back None, not the nearest letter",
+      lsl.normalise_group("D") is None and lsl.normalise_group("granite") is None
+      and lsl.normalise_group("AB") is None and lsl.normalise_group(None) is None
+      and lsl.normalise_group("") is None)
+check("Hazus: a susceptibility category accepts the Roman numerals and the word None",
+      lsl.normalise_susceptibility("vii") == "VII"
+      and lsl.normalise_susceptibility(" VIII ") == "VIII"
+      and lsl.normalise_susceptibility("None") == "None"
+      and lsl.normalise_susceptibility("x") == "X")
+# The refusal that matters. Hazus counts I as the *least* susceptible, while a
+# GIS column of 1..10 is as likely to have been written the other way round;
+# reading one as the other reverses the hazard, and nothing downstream would
+# notice. So digits are refused outright rather than guessed at.
+check("Hazus: a digit column is refused outright rather than read as a Roman numeral",
+      lsl.normalise_susceptibility("1") is None
+      and lsl.normalise_susceptibility(1) is None
+      and lsl.normalise_susceptibility("10") is None
+      and lsl.normalise_susceptibility("IV - high") is None
+      and lsl.normalise_susceptibility("high") is None)
+check("Hazus: moisture is dry or wet and nothing else",
+      lsl.normalise_moisture("DRY") == "dry"
+      and lsl.normalise_moisture(" wet ") == "wet"
+      and lsl.normalise_moisture("moist") is None
+      and lsl.normalise_moisture(None) is None)
+
+# One site by hand. The arithmetic is written out with the published numbers
+# rather than read from the module's own dict, so a change to either the
+# coefficients or the equation's shape fails here: a_c/PGA = 0.5 at Mw 7.5.
+#   log10 D_N = -2.71 + 2.335*log10(1 - 0.5) - 1.478*log10(0.5) + 0.424*7.5
+_log10_hand = (-2.71 + 2.335 * math.log10(0.5) - 1.478 * math.log10(0.5)
+               + 0.424 * 7.5)
+_hand = lsl.jibson_displacement(0.5, 1.0, 7.5)
+check("Jibson: Equation 8 reproduces the hand-computed median displacement",
+      _hand["moving"] and close(_hand["ratio"], 0.5, 1e-15)
+      and close(_hand["log10_disp"], _log10_hand, 1e-12)
+      and close(_hand["disp_cm"], 10.0 ** _log10_hand, 1e-12)
+      and abs(_hand["disp_cm"] - 1.6294) < 1e-3
+      and not _hand["notes"])
+# The regression predicts the mean of log10 D_N, so the median is its
+# exponentiation and the published sigma is symmetric *in log10* - a 3.8-fold
+# spread on the map, which is what the manual tells the user to expect.
+check("Jibson: the 90th percentile is the published one-sigma spread above the median",
+      close(_hand["p90_cm"], 10.0 ** (_log10_hand + 1.2815515655446004 * 0.454),
+            1e-12)
+      and close(_hand["p90_cm"] / _hand["disp_cm"],
+                10.0 ** (1.2815515655446004 * 0.454), 1e-12)
+      and abs(_hand["p90_cm"] / _hand["disp_cm"] - 3.8) < 0.05)
+
+check("Jibson: the displacement falls to zero as the critical acceleration approaches the peak",
+      lsl.jibson_displacement(0.9999, 1.0, 7.5)["disp_cm"] < 1e-4
+      and lsl.jibson_displacement(0.9999, 1.0, 7.5)["disp_cm"] > 0.0
+      and lsl.jibson_displacement(1.0, 1.0, 7.5)["disp_cm"] == 0.0)
+# Above unity (1 - a_c/PGA) is negative and a fractional power of it is
+# undefined, so the guard has to cover the whole half-line, not just the point.
+_stop = lsl.jibson_displacement(1.5, 1.0, 7.5)
+check("Jibson: a block whose strength meets the shaking has no displacement, and says why",
+      _stop["disp_cm"] == 0.0 and _stop["p90_cm"] == 0.0
+      and _stop["log10_disp"] is None and _stop["moving"] is False
+      and len(_stop["notes"]) == 1 and "not missing data" in _stop["notes"][0])
+_by_ac = [lsl.jibson_displacement(a, 0.6, 7.5)["disp_cm"]
+          for a in (0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.59)]
+check("Jibson: a stronger material slides less - strictly, at every step",
+      all(a > b for a, b in zip(_by_ac, _by_ac[1:])))
+_by_mw = [lsl.jibson_displacement(0.3, 0.6, m)["disp_cm"]
+          for m in (5.5, 6.5, 7.0, 7.5, 8.0)]
+check("Jibson: the same slope slides further in a larger earthquake",
+      all(a < b for a, b in zip(_by_mw, _by_mw[1:])))
+
+# The threshold is this tool's own, not a published one: it is the ratio a
+# 1.0 g peak produces against Table 4-16's smallest acceleration. Below it the
+# number is an extrapolation and the row says so; it is never clipped, because
+# clipping it would be inventing a limit no paper states.
+check("Jibson: the extrapolation past the tables' own ratio is reported, not clipped",
+      lsl.JIBSON_LOW_RATIO == min(lsl.HAZUS_LANDSLIDE_AC_G.values())
+      and lsl.jibson_displacement(lsl.JIBSON_LOW_RATIO, 1.0, 7.5)["moving"]
+      and not lsl.jibson_displacement(lsl.JIBSON_LOW_RATIO, 1.0, 7.5)["notes"]
+      and "extrapolation" in lsl.jibson_displacement(0.03, 1.0, 7.5)["notes"][0]
+      and lsl.jibson_displacement(0.03, 1.0, 7.5)["disp_cm"] > 0.0)
+
+# Rule R7: a missing input is not a missing hazard. Every one of these has a
+# tempting substitute - zero displacement, the previous row, a clamp - and every
+# substitute would put an invented number on the map.
+_lsl_raises = []
+for _args in ((0.3, 0.0, 7.5), (0.3, -0.2, 7.5), (0.3, None, 7.5),
+              (0.0, 0.6, 7.5), (None, 0.6, 7.5), (-0.1, 0.6, 7.5)):
+    try:
+        lsl.jibson_displacement(*_args)
+        _lsl_raises.append(False)
+    except ValueError:
+        _lsl_raises.append(True)
+check("Jibson: an input the equation cannot be evaluated on is refused, not substituted",
+      all(_lsl_raises) and len(_lsl_raises) == 6)
+try:
+    lsl.jibson_displacement(0.0, 0.6, 7.5)
+except ValueError as _exc:
+    _zero_message = str(_exc)
+check("Jibson: the refusal for a zero critical acceleration names what diverges",
+      "diverges" in _zero_message and "liquefaction" in _zero_message)
 
 # --------------------------------------------------------------------------- #
 def _failures():

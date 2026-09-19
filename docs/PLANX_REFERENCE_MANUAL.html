@@ -356,6 +356,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <li><a href="#seismicdebris" data-name="seismicdebris" data-display="seismic collapse and debris spread (monte carlo)"><img src="icons/tool_seismicdebris.png" alt="" class="alg-icon">Seismic Collapse and Debris Spread (Monte Carlo)</a></li>
 <li><a href="#seismicimpact" data-name="seismicimpact" data-display="seismic human impact (casualties and shelter)"><img src="icons/tool_seismicimpact.png" alt="" class="alg-icon">Seismic Human Impact (Casualties and Shelter)</a></li>
 <li><a href="#liquefaction" data-name="liquefaction" data-display="liquefaction screening (regression and susceptibility)"><img src="icons/tool_liquefaction.png" alt="" class="alg-icon">Liquefaction Screening</a></li>
+<li><a href="#coseismiclandslide" data-name="coseismiclandslide" data-display="coseismic landslide screening (newmark displacement)"><img src="icons/tool_coseismiclandslide.png" alt="" class="alg-icon">Coseismic Landslide Screening</a></li>
 </ul></li>
 </ul>
 <div id="sidebar-footer">
@@ -374,7 +375,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.16.0 &middot; 74 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.17.0 &middot; 75 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -399,14 +400,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.16.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.17.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 74 algorithms is documented to an identical eight-section
+<p>Every one of the 75 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -449,7 +450,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 74 algorithms span the
+platform delivered as a QGIS Processing provider. Its 75 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -14746,7 +14747,7 @@ DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(
 <div class="page-break"></div>
 <h2 id="group19" class="group-header">19. Seismic Risk</h2>
 
-<p>The Seismic Risk group contains four tools that form one chain. <strong>Ground
+<p>The Seismic Risk group contains five tools that form one chain. <strong>Ground
 Motion Scenario</strong> turns an earthquake scenario — magnitude, distance,
 faulting style and site stiffness — into shaking at every receiver, on the model
 that Turkey's 2018 national seismic hazard map puts in its own logic tree. <strong>Seismic
@@ -14773,6 +14774,14 @@ scale, and not correlated with building age the way collapse is. It carries two
 published models behind one interface: a global regression that runs from a DEM
 and a shaking level, and the Hazus susceptibility tables for map units somebody
 has already classified. It refuses to run the second without that map.</p>
+
+<p><strong>Coseismic Landslide Screening</strong> is the third of the
+ground-failure questions, and the one that needs a slope: a hillside shaken hard
+enough that the block of ground on it slides. It is the only tool in this group
+that reads terrain for its own sake rather than as a proxy for something else,
+and the only one whose answer is a distance in centimetres &mdash; how far the
+ground moved &mdash; rather than a probability or a volume. Three routes lead to
+the same displacement, and each row records which one it took.</p>
 
 <div class="page-break"></div>
 
@@ -16619,6 +16628,446 @@ Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map
 </p>
 
 <div class="page-break"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="coseismiclandslide">Coseismic Landslide Screening</h2>
+<p><strong>Processing ID:</strong> <code>planx:coseismiclandslide</code>
+&middot; <strong>Engine:</strong> <code>engine/landslide.py</code>
+&middot; <strong>Group:</strong> Seismic Risk (19)</p>
+
+<h3>1. Overview</h3>
+<p>Three tools in this group now ask what the ground does: ground motion says how
+hard it shakes, liquefaction asks whether the soil loses its strength, and this
+one asks whether the hillside moves. An earthquake triggers landslides on
+slopes that were stable before it, and in a hilly city they are a large part of
+the physical damage &mdash; severed roads, blocked valleys, and slopes that stay
+unstable for months after the shaking stops.</p>
+
+<p>The method is the Newmark sliding-block calculation, in the disposable-parameter
+form of Jibson (2007): a critical acceleration $a_c$ is the shaking level at
+which a block of ground on a slope begins to slide, and a regression turns the
+ratio between that and the peak ground acceleration into the distance the block
+travels. The answer is therefore a <strong>distance in centimetres</strong> &mdash;
+the only quantity in this group that is a length rather than a probability or a
+volume.</p>
+
+<p>The difficulty is $a_c$. It is a shear-strength property of the ground, and a
+city almost never has it. Three routes supply it, and the tool makes you choose:</p>
+<ul>
+<li><strong>Field</strong> &mdash; a column of critical accelerations you already
+have. This is the best route whenever it is available, because it is a
+measurement rather than an inference from a map unit.</li>
+<li><strong>Geologic group</strong> &mdash; Hazus 6.1 Section 4.2.2.2. A column
+holding the group letter A, B or C, the groundwater state, and the terrain: the
+group letter and the slope angle together give a susceptibility category, and
+the category gives the acceleration.</li>
+<li><strong>Susceptibility category</strong> &mdash; somebody else's landslide
+susceptibility map, already classified I to X. Table 4-16 gives the
+acceleration directly.</li>
+</ul>
+
+<p>Every row records which route produced its acceleration, in
+<code>ac_src</code>, and a row cannot be produced without one. That column is not
+bookkeeping: the same 0.25&nbsp;g is a measurement, a table lookup off a
+geological map, and a table lookup off somebody else's susceptibility map, and
+the three say different things about the ground.</p>
+
+<p>What this is not: it is not a slope-stability analysis. It has no groundwater
+model, no pore-pressure ratio, no cohesion or friction angle, no retaining
+structure and no vegetation. It is a <strong>screening</strong> tool on a United
+States calibration that is <strong>UNCALIBRATED for T&#252;rkiye</strong>, and a
+zero displacement is not a certificate that a slope is stable.</p>
+
+<h3>2. Theoretical Background</h3>
+
+<h4>2.1 The sliding-block idea</h4>
+<p>Newmark's insight was that the earthquake's effect on a slope can be reduced
+to one question: how far does a rigid block slide when the shaking exceeds the
+acceleration that would just hold it in place? Below that threshold nothing
+happens; above it the block accelerates downhill for as long as the shaking
+exceeds it, and the accumulated travel is the displacement. The method needs no
+constitutive model of the soil and no time-history of pore pressures, which is
+why forty years later it is still what regional-scale coseismic landslide
+screening is built on.</p>
+
+<p>The quantity that drives everything is therefore the ratio $a_c / a_{max}$,
+not either number on its own. A 0.6&nbsp;g slope under 0.7&nbsp;g of shaking
+moves; the same slope under 0.3&nbsp;g does not. Both facts have to be in the
+run, and the tool refuses a run that supplies only one of them.</p>
+
+<h4>2.2 Why this regression, and not the others</h4>
+<p>Jibson (2007) fits several displacement models, and they fall into two
+families: regressions on the critical-acceleration ratio and the moment
+magnitude, and regressions that carry Arias intensity &mdash; the total energy
+the shaking deposits. The Arias forms are often better correlated with
+displacement, and they are unusable here: <strong>Ground Motion Scenario does
+not produce Arias intensity</strong>, and neither does any other tool in this
+plugin. Deriving one would mean a ground-motion model of its own, which is a
+different release and a different set of coefficients to transcribe.</p>
+
+<p>Both of the other published forms are Arias forms. Jibson's own Equation 9 is
+$0.561\log_{10} I_a - 3.8331\log_{10}(a_c/a_{max}) - 1.474$, which is Arias
+intensity and the ratio together, and the regression of the public-domain USGS
+Open-File Report 98-113 is Arias-based as well. Equation 8 is therefore the one
+form in the paper that takes exactly the two quantities the seismic chain
+already produces &mdash; the ratio and the magnitude &mdash; with nothing to
+import from outside it.</p>
+
+<p>The paper is paywalled and was <strong>not</strong> read for this
+implementation. Its coefficients were read from an open-access article that
+reproduces Equation 8 and cross-checks it &mdash; Yi&#287;it (2026), whose own
+refit of the same data prints different exponents (1.3593) beside the original,
+and whose Equation 9 reproduces the published Arias-intensity form
+digit-for-digit, which is what makes it usable as a transcription and not just
+as a citation.</p>
+
+<h4>2.3 The three routes to a critical acceleration</h4>
+<p><strong>The field route is a measurement.</strong> The column holds $a_c$ in
+g, and the tool checks only that it is positive. Zero is refused rather than
+substituted, which is the one case the code has to be opinionated about: the
+$(a_c/a_{max})^{-1.478}$ term diverges as $a_c$ goes to zero, because a material
+with no strength to mobilise is not a slope with a displacement, it is a flow
+&mdash; and a flow is the liquefaction question, not this one. That refusal is
+in the engine and in the run, not in the documentation.</p>
+
+<p><strong>The geologic-group route is an inference, and Hazus says so.</strong>
+Section 4.2.2.2.1 states that no generally accepted relationship for estimating
+$a_c$ has been developed, and describes the one it uses as conservative,
+representing the most susceptible material likely to be found in the group. The
+group letter carries a shear strength: A is strongly cemented rock
+($c' = 300$ psf, $\varphi' = 35^\circ$), B is weakly cemented rock and soil
+($c' = 0$, $\varphi' = 35^\circ$), C is argillaceous rock ($c' = 0$,
+$\varphi' = 20^\circ$). The group and the slope angle index a susceptibility
+category, and the category gives the acceleration. Nothing in that chain is a
+site measurement.</p>
+
+<p>The route also carries a groundwater choice, and it is not a detail: dry and
+wet are up to four susceptibility categories apart at one slope and group, which
+is a factor of eight in the acceleration the displacement is computed from. A
+third of Table 4-14's cells change between them, so there is no default.</p>
+
+<p><strong>The category route is somebody else's judgment.</strong> It reads a
+column of classifications I to X and takes the acceleration from Table 4-16.
+Roman numerals only, deliberately: a numeric column would not say whether 1
+meant the least susceptible, as Hazus counts it, or the most. Guessing that
+wrong reverses the map, so the tool refuses digits with the list of the values
+it found. On this route the slope is still read &mdash; every route needs the
+terrain &mdash; but it does not change the answer.</p>
+
+<h4>2.4 What the Hazus tables actually contain</h4>
+<p>Table 4-14 has six slope bands (0&ndash;10, 10&ndash;15, 15&ndash;20,
+20&ndash;30, 30&ndash;40, and above 40 degrees), three geologic groups and two
+groundwater states. Table 4-15 then establishes lower bounds: below the bound
+slope angle the manual establishes no susceptibility at all, because otherwise a
+nearly flat cell would be given the same category as a real hillside in the same
+band. Those bounds are 15, 10 and 5 degrees dry, and 10, 5 and 3 degrees wet,
+for groups A, B and C.</p>
+
+<p>Table 4-15 also sets a <em>lower bound on the critical acceleration</em> for
+each group and groundwater state, applied as a floor on the Table 4-16 value.
+Across the whole $3 \times 2 \times 6$ table this floor changes exactly one cell:
+group B, wet, above 40 degrees, where the category is X (0.05&nbsp;g) and the
+bound is 0.10&nbsp;g. The tool applies the floor, and every row it applies to
+says so in <code>ls_notes</code>. Which cells conflict is asserted in the test
+suite rather than assumed, so a future edit to either table cannot move it
+silently.</p>
+
+<p>Table 4-17 gives the fraction of a map unit that Hazus expects to be
+susceptible deposit. It is reported in its own column and is <strong>never
+multiplied into the displacement</strong>, because the displacement is a
+property of the sliding block and the fraction is a property of the map unit:
+folding them together would produce a number that is neither.</p>
+
+<h4>2.5 What is not modelled</h4>
+<p>No pore-pressure ratio, no Arias intensity, no duration term, no topographic
+amplification of the shaking, no liquefaction-induced lateral spread (that is
+<strong>Liquefaction Screening</strong>'s question), no rockfall, no debris flow,
+and no runout &mdash; the displacement is how far the block moves, not how far
+the material travels afterwards. The slope is a single D8 steepest-descent
+gradient sampled at one point per feature, so a large map unit is represented by
+one point on it. All of these are screening assumptions, and all of them are why
+the output is a ranking instrument rather than a design number.</p>
+
+<h3>3. Mathematical Formulation</h3>
+
+<p><strong>The displacement.</strong> Jibson (2007) Equation 8, with $D_N$ in
+centimetres, $a_c$ and $a_{max}$ in g, and $M$ the moment magnitude:</p>
+$$\log_{10} D_N = -2.71 + \log_{10}\!\left[\left(1 -
+\frac{a_c}{a_{max}}\right)^{2.335}\left(\frac{a_c}{a_{max}}\right)^{-1.478}
+\right] + 0.424\,M \tag{1}$$
+
+<p>Evaluated directly, the median displacement is $D_N = 10^{\log_{10} D_N}$.
+Writing Equation 1 as a single ratio term is what makes the two failure cases
+visible: $(a_c/a_{max})^{-1.478}$ diverges as the ratio goes to zero, and
+$(1 - a_c/a_{max})^{2.335}$ is undefined once the ratio reaches unity.</p>
+
+<p><strong>The dispersion.</strong> The regression's standard deviation is
+$\sigma = 0.454$ in log10 units, so the reported 90th percentile is the median
+of a lognormal:</p>
+$$D_{90} = D_N \cdot 10^{1.2816\,\sigma} = 3.82\,D_N \tag{2}$$
+
+<p><strong>The two non-sliding cases.</strong> With $r = a_c / a_{max}$:</p>
+$$D_N = 0 \quad \text{when } r \ge 1, \qquad
+D_N \to \infty \quad \text{as } r \to 0^{+} \tag{3}$$
+
+<p>Both are reported as what they are. At $r \ge 1$ the block does not move and
+the displacement is genuinely zero &mdash; that is the model's answer, not
+missing data &mdash; and <code>ls_notes</code> says so. Below $r = 0.05$ the
+number is an extrapolation and the row says that instead; the equation's value
+is reported as it stands and is not clipped.</p>
+
+<p><strong>The slope.</strong> With $p$ the DEM cell size, $k$ ranging over the
+eight D8 neighbours, $d_k$ the neighbour distance in cells and $\Delta_k$ the
+drop to it, the gradient and the slope angle are:</p>
+$$S = \frac{1}{p}\max_k \frac{\Delta_k}{d_k}, \qquad
+\beta = \arctan S \tag{4}$$
+
+<p>A cell with no strictly lower neighbour gets $S = 0$ &mdash; a pit, a flat or
+a nodata edge &mdash; which is the same convention the flow-accumulation and
+wetness-index passes use. The pixel is left in the DEM's own CRS units rather
+than converted to metres, because a slope is a ratio of a vertical to a
+horizontal difference and converting one of the two alone would rescale every
+slope on a DEM whose elevations are in feet. The run log states that assumption.</p>
+
+<p><strong>The slope band</strong>, as a half-open interval index $b$ over the
+six bands of Table 4-14:</p>
+$$b(\beta) = i \quad \text{where } \beta \in [\,l_i, h_i\,) \tag{5}$$
+
+<p><strong>The category</strong>, from the group $g$, the groundwater state $m$
+and the slope, with Table 4-15's bound $\beta_{\min}(g,m)$ deciding whether
+Hazus establishes anything at all:</p>
+$$C = \begin{cases}
+\text{None} & \beta < \beta_{\min}(g,m) \\
+T_{14}[\,g, m\,][\,b(\beta)\,] & \text{otherwise}
+\end{cases} \tag{6}$$
+
+<p><strong>The critical acceleration</strong> by route, with $a_{16}$ the
+Table 4-16 value for the category and $a_{\min}$ the Table 4-15 acceleration
+bound:</p>
+$$a_c = \begin{cases}
+\text{the column's value} & \text{field route} \\
+\max\big(a_{16}[C],\ a_{\min}(g,m)\big) & \text{geologic-group route} \\
+a_{16}[C] & \text{category route}
+\end{cases} \tag{7}$$
+
+<p><strong>The two reported companions:</strong> the ratio the regression turns
+on, and the fraction of the map unit Table 4-17 expects to be susceptible
+deposit &mdash; the latter reported beside the displacement and never folded
+into it:</p>
+$$r = \frac{a_c}{a_{max}}, \qquad f = T_{17}[C] \tag{8}$$
+
+<p>Equations 1 and 2 are the model. Equations 4 to 6 are the terrain and the
+Hazus chain; Equation 7 is the three routes; Equation 8 is the two columns that
+let a reader see what the number is standing on.</p>
+
+<h3>4. Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Layer to evaluate</td><td>Vector, any geometry, projected</td><td>Yes</td><td>One output row per feature, sampled at the feature's point on its surface. Its CRS must be projected; a geographic layer is refused.</td></tr>
+<tr><td>Terrain DEM</td><td>Raster, projected</td><td>Yes, in every route</td><td>The slope angle is part of reading the answer whichever route supplies the acceleration, so this is never optional. A DEM in a geographic CRS measures its pixels in degrees and is refused. A feature whose sample point falls off the DEM or on a nodata cell stops the run rather than being skipped.</td></tr>
+<tr><td>Critical-acceleration field</td><td>Numeric field</td><td>Field route</td><td>In g, and positive. A blank, zero or negative value stops the run.</td></tr>
+<tr><td>Geologic group field</td><td>Text field</td><td>Geologic-group route</td><td>Values must be the group letters A, B or C, ignoring case. Anything else stops the run, with the list of values it found in the message.</td></tr>
+<tr><td>Susceptibility category field</td><td>Text field</td><td>Category route</td><td>Roman numerals I to X, or the word None, ignoring case and separators. Digits are deliberately refused.</td></tr>
+<tr><td>PGA field</td><td>Numeric field</td><td>No</td><td>Peak ground acceleration in g. Wins over the constant. <strong>Ground Motion Scenario</strong> writes exactly this column for you.</td></tr>
+</table>
+
+<p>The shaking level is the input a city is least likely to hold as a map, and it
+is the one the rest of this group exists to produce: run <strong>Ground Motion
+Scenario</strong> over any layer and name its <code>pga_g</code> column here as
+the PGA field.</p>
+
+<h3>5. Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>AC_SOURCE</code></td><td>Enum</td><td>no default</td><td>Where the critical acceleration comes from: the field route, the Hazus geologic group, or a susceptibility category. There is no default, and a run that leaves it unset stops with a message rather than picking a route.</td></tr>
+<tr><td><code>TARGET</code></td><td>Vector layer (any geometry)</td><td>&mdash;</td><td>The layer to evaluate, one sample per feature. Must be projected.</td></tr>
+<tr><td><code>TERRAIN</code></td><td>Raster</td><td>&mdash;</td><td>The DEM the slope is read from. Required in every route. A projected CRS is required.</td></tr>
+<tr><td><code>AC_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Critical acceleration in g, field route only. Required when that route is chosen. Values of zero or below stop the run.</td></tr>
+<tr><td><code>GROUP_FIELD</code></td><td>Field (Text)</td><td>(optional)</td><td>Geologic group letter A, B or C, geologic-group route only. Required when that route is chosen.</td></tr>
+<tr><td><code>CATEGORY_FIELD</code></td><td>Field (Text)</td><td>(optional)</td><td>Susceptibility category I to X, category route only. Required when that route is chosen.</td></tr>
+<tr><td><code>MOISTURE</code></td><td>Enum</td><td>no default</td><td>Dry or wet, geologic-group route only. It changes a third of Table 4-14's cells and is worth a factor of eight in the acceleration at one slope and group, so there is no default and the route refuses to run until it is set.</td></tr>
+<tr><td><code>PGA_G</code></td><td>Double</td><td>0.0</td><td>Constant peak ground acceleration in g, used when no PGA field is named. Range 0 to 5. A value of zero stops the run: with no shaking there is no ratio to take, and a zero-filled layer would otherwise read as a city where nothing slides.</td></tr>
+<tr><td><code>PGA_FIELD</code></td><td>Field (Numeric)</td><td>(optional)</td><td>Per-feature acceleration in g; wins over the constant. A blank or non-positive value stops the run.</td></tr>
+<tr><td><code>MAGNITUDE</code></td><td>Double</td><td>7.5</td><td>Moment magnitude of the scenario. Enters Equation 1 as the $0.424M$ term. Range 3 to 9.5.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector layer</td><td>&mdash;</td><td>The screening result: the input attributes plus the twelve computed columns below.</td></tr>
+</table>
+
+<h3>6. Output Description</h3>
+<table class="field-table">
+<tr><th>Output</th><th>Fields</th><th>Description</th></tr>
+<tr><td><strong>Coseismic landslide screening</strong></td><td><code>nw_disp_cm</code>, <code>nw_disp_p90_cm</code>, <code>ls_log_disp</code>, <code>ac_g</code>, <code>ac_src</code>, <code>ac_ratio</code>, <code>ls_category</code>, <code>ls_area_frac</code>, <code>pga_g</code>, <code>mw</code>, <code>slope_deg</code>, <code>ls_notes</code> &mdash; plus every field of the input layer</td><td>One feature per input feature, geometry unchanged. <code>nw_disp_cm</code> is the median displacement in centimetres and the field the default renderer colours by; <code>nw_disp_p90_cm</code> is the 90th percentile of the same prediction, 3.82 times the median. <code>ac_ratio</code> is $a_c/a_{max}$ and is the number Equation 1 actually turns on. <code>ac_src</code> names the route and, for the Hazus routes, the group, groundwater state and category that produced the row's acceleration. Columns a route does not compute stay empty rather than disappearing, so a saved Processing model reading one of them keeps working when the route changes.</td></tr>
+</table>
+
+<p><code>ac_g</code> is <strong>empty rather than zero</strong> where Hazus
+assigns no susceptible deposit, and the distinction is load-bearing: zero is the
+value Equation 1 diverges on, so a zeroed row would be the model's loudest
+answer arriving disguised as its safest. The two rows below look identical in
+the displacement column and mean opposite things &mdash; the first is a genuinely
+stable slope, the second is a slope the model never evaluated.</p>
+<table>
+<tr><th>Case</th><th><code>nw_disp_cm</code></th><th><code>ac_g</code></th><th>Reading</th></tr>
+<tr><td>Block does not move ($r \ge 1$)</td><td>0.0</td><td>the acceleration used</td><td>The model answered: the critical acceleration meets or exceeds the shaking.</td></tr>
+<tr><td>Below Table 4-15's slope bound</td><td>0.0</td><td><em>empty</em></td><td>The model never started. Hazus assigns no susceptible deposit on this map unit at this slope.</td></tr>
+</table>
+
+<h3>7. Symbolic Representation</h3>
+<ul>
+<li><strong>Base layer:</strong> the result classified by <code>nw_disp_cm</code>
+on a sequential ramp. That field is named explicitly in the algorithm rather than
+left to the renderer's preference list, which contains no token any of these
+columns carries &mdash; left to itself the tool would write a correct table with
+no colour scale at all.</li>
+<li><strong>The two zero cases must be separated on the map, not only in the
+table.</strong> A palette that renders 0.0 cm as the pale end of the ramp puts
+the "no susceptible deposit" rows in the same colour as the genuinely stable
+ones, and puts both next to a value that was never computed. Style
+<code>ac_g</code> as a null/not-null category alongside, or filter to
+<code>ac_g IS NOT NULL</code> before classifying.</li>
+<li><strong>The p90 is a different map</strong> at a constant ratio of 3.82, so
+styling both and comparing them tells you nothing. Use the median for ranking and
+the 90th percentile for the tail question: where is a large displacement possible
+even though the median is modest.</li>
+<li><strong><code>ac_ratio</code> is the diagnostic layer.</strong> Below 0.05
+the equation is extrapolating and the numbers are large for arithmetic reasons;
+above 1.0 the block does not move. Styling the ratio as its own map shows which
+part of the result is interpolation and which is the tail of a diverging term.</li>
+<li><strong><code>ls_category</code> is categorical and ordered</strong> from
+None through I to X, so a sequential categorical palette from pale to dark reads
+correctly; it is the only column on the layer whose order is the model's own.</li>
+</ul>
+
+<h3>8. Interpretation Guide</h3>
+
+<h4>8.1 A displacement is not damage</h4>
+<p>The output is how far the ground moved, not what it cost. Converting a
+displacement into damage needs a fragility relationship between displacement and
+structural performance, and this tool does not carry one. Its legitimate uses are
+ranking, comparing scenarios, and deciding where a geotechnical investigation is
+worth paying for. A district at 30 cm is not "thirty centimetres of damage"; it
+is a place where the model, on the evidence it was given, is more likely than not
+to be worth investigating.</p>
+
+<h4>8.2 The two zeros</h4>
+<p>Section 6 sets them out; on a map they are the most easily confused pair in
+the whole seismic family. A zero with an acceleration beside it is the model
+saying the slope is strong enough for this shaking. A zero with an empty
+acceleration is the model saying it was never asked. The run log reports the
+second count separately, and <code>ls_notes</code> carries the reason on the row.</p>
+
+<h4>8.3 Read the ratio before the displacement</h4>
+<p>Because Equation 1 is a power law in the ratio, small differences in
+$a_c/a_{max}$ produce large differences in centimetres. Sort by
+<code>ac_ratio</code> to see the structure of a result: the rows below 0.05 are
+the tail of a diverging term and their displacements are extrapolations, the rows
+above 1.0 are immobile, and everything in between is the model interpolating.
+A single 200 cm row in a run whose median is 3 cm is usually the first kind, and
+<code>ls_notes</code> says whether it is.</p>
+
+<h4>8.4 The point sample is a real limitation</h4>
+<p>The slope is read at one point per feature &mdash; the feature's point on its
+surface. A parcel whose point-on-surface lands on the flat bench above a scarp
+will read as not susceptible while the scarp itself is the hazard. Clip map units
+to terrain-homogeneous areas, or evaluate them separately, before trusting a
+per-unit result on real topography. This is a sampling limit, not a bug, and no
+amount of care in the parameters removes it.</p>
+
+<h4>8.5 Cross-references to other PlanX tools</h4>
+<ul>
+<li><strong>Ground Motion Scenario:</strong> supplies the PGA field this tool
+runs on. Run it first; a screening run driven by a typed constant and one driven
+by a modelled field are different statements, and the run log says which you
+made.</li>
+<li><strong>Seismic Collapse and Debris Spread</strong> and <strong>Seismic Human
+Impact:</strong> the building half of the hazard. Overlay them with this result:
+a hillside district that is high on all three is where the hazards compound, and
+the evacuation corridors those tools plan run along slopes this one is
+screening.</li>
+<li><strong>Liquefaction Screening:</strong> the other ground-failure question.
+They are mutually exclusive on the ground &mdash; a saturated sand that
+liquefies is not a sliding rock block &mdash; and a map unit that comes out high
+on both should be read as a unit whose geology is uncertain, not as a unit with
+two hazards.</li>
+<li><strong>Flow Accumulation</strong> and <strong>Slope</strong> in the Terrain
+group, if you want to see the gradient on its own rather than as an input to a
+displacement. The DEM handling matches theirs: one D8 pass, the same pixel-size
+discipline.</li>
+<li><strong>Service Areas</strong> and <strong>Nearest Facility:</strong> a
+landslide changes which roads exist. Re-running access with the affected links
+removed is the planning use of this layer, not the displacement map itself.</li>
+</ul>
+
+<h4>8.6 Pitfalls</h4>
+<ul>
+<li><strong>Do not read the zero as safety in general.</strong> It means the
+slope does not move <em>in this scenario, by this model</em>. A larger magnitude,
+a wetter year, or a slope that has already been undercut all change the answer,
+and none of them are in the run.</li>
+<li><strong>Do not run the geologic-group route on a land-use column.</strong> A
+column of "residential" and "green" is refused with the list of values found.
+That refusal is the tool protecting you from a map of nowhere-slides.</li>
+<li><strong>Do not leave the groundwater state to chance.</strong> Dry and wet are
+a factor of eight in the acceleration at one slope and group. If you do not know
+the state, run both and treat the difference as the uncertainty it is.</li>
+<li><strong>Do not use the category route on a numeric susceptibility column.</strong>
+Digits are refused because the direction of the scale cannot be recovered from
+them, and guessing wrong reverses the map while leaving every count and every
+schema check green.</li>
+<li><strong>Do not put a DEM whose vertical unit differs from its horizontal one
+into this tool.</strong> It will not fail; every slope will be off by that ratio.
+The pixel is read in the DEM's own CRS units, deliberately, so a DEM in feet with
+feet of elevation is consistent and a DEM in metres with feet of elevation cannot
+be rescued.</li>
+<li><strong>This is not a slope-stability analysis and not a code check.</strong>
+It has no strength parameters, no groundwater model and no structures. Use it to
+rank and to prioritise, not to certify.</li>
+</ul>
+
+<h3>9. Academic References</h3>
+<p class="ref">Jibson, R. W. (2007). "Regression models for estimating coseismic
+landslide displacement." <em>Engineering Geology</em>, 91(2&ndash;4),
+209&ndash;218. Equation 8 is the model this tool implements: a regression of
+log displacement on the critical-acceleration ratio and the moment magnitude,
+with a standard deviation of 0.454 in log10 units. The paper is paywalled and was
+not read for this implementation; its coefficients were transcribed from the
+open-access reproduction in Yi&#287;it (2026), below.
+DOI: <a href="https://doi.org/10.1016/j.enggeo.2007.01.013">10.1016/j.enggeo.2007.01.013</a>
+</p>
+<p class="ref">Yi&#287;it, M. E. (2026). "Coseismic landslide displacement models:
+a comparative assessment." <em>Pamukkale &#220;niversitesi M&#252;hendislik
+Bilimleri Dergisi</em>, 32(1), 191&ndash;199. The source the Equation 8
+coefficients were read from. It reproduces the published Newmark regressions
+side by side with its own refits, which is what makes it usable as a
+transcription: its own fit of the same data prints different exponents (1.3593)
+beside the original 2.335, and its Equation 9 reproduces the Arias-intensity form
+digit-for-digit, including its dispersion of 0.616, against the CRAN
+<code>newmark</code> package's independent implementation of the same form. Open access.
+DOI: <a href="https://doi.org/10.5505/pajes.2025.29499">10.5505/pajes.2025.29499</a>
+</p>
+<p class="ref">FEMA (2024). <em>Hazus Earthquake Model Technical Manual &mdash;
+Hazus 6.1.</em> Federal Emergency Management Agency, Washington, DC. Section
+4.2.2.2 is the critical-acceleration chain of this tool: Table 4-14 (landslide
+susceptibility of geologic groups, by slope band, group and groundwater state),
+Table 4-15 (lower bounds for slope angles and critical accelerations), Table 4-16
+(critical acceleration by susceptibility category) and Table 4-17 (estimated area
+of the susceptible deposit). All four were transcribed from the manual, and the
+one cell where Table 4-15's floor overrides Table 4-16 is asserted in the test
+suite. The section itself states that no generally accepted relationship for
+estimating $a_c$ has been developed. Public domain as a work of the United
+States federal government.
+Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus">fema.gov/hazus</a>
+</p>
+<p class="ref">Jibson, R. W., Harp, E. L. &amp; Michael, J. A. (1998). <em>A
+Method for Producing Digital Probabilistic Seismic Landslide Hazard Maps: An
+Example from the Los Angeles, California, Area.</em> U.S. Geological Survey
+Open-File Report 98-113. The Arias-intensity regression that this tool does
+<em>not</em> implement, and the reason it does not: the form works from Arias
+intensity, which no tool in this plugin produces. It is public domain, and it is
+the model most often misremembered as the one this tool uses. Public domain as a
+work of the United States federal government.
+Available at: <a href="https://pubs.usgs.gov/of/1998/ofr-98-113/">pubs.usgs.gov/of/1998/ofr-98-113</a>
+</p>
+
+<div class="page-break"></div>
 <h2 id="appendix-a">Appendix A: Data Sources Directory</h2>
 <table>
 <tr><th>Data Type</th><th>Global Source</th><th>Resolution</th><th>Notes</th></tr>
@@ -16711,7 +17160,7 @@ Available at: <a href="https://www.fema.gov/flood-maps/tools-resources/flood-map
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.16.0 &middot; 74 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.17.0 &middot; 75 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 

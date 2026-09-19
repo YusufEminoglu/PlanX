@@ -347,10 +347,72 @@ amplitude — the manual's own definition — and the amplitude's stated
 one-half-to-two-times uncertainty is not propagated, so the column is a
 midpoint with a range rather than a prediction.
 
+Coseismic landslide: the Newmark sliding-block displacement in the
+disposable-parameter form of Jibson (2007) Equation 8,
+`log₁₀ D_N = −2.71 + log₁₀[(1 − a_c/a_max)^2.335 · (a_c/a_max)^−1.478] + 0.424·M`,
+with `D_N` in **centimetres** and both accelerations in `g`. The reported 90th
+percentile is a lognormal one: the regression's standard deviation is 0.454 in
+log10 units, so `D₉₀ = D_N·10^1.2816σ` = 3.82·D_N. Two cases are reported as
+what they are rather than clipped away. Where `a_c ≥ a_max` the block genuinely
+does not move and the displacement is 0.0 with an empty log displacement and a
+note saying so. Where the ratio falls below 0.05 the equation is extrapolating,
+and the value is reported as the equation gives it with a note saying that
+instead. A zero `a_c` is refused rather than substituted, because
+`(a_c/a_max)^−1.478` diverges there: a material with no strength to mobilise is
+not a slope with a displacement, it is a flow, which is the liquefaction
+question rather than this one. The paper is paywalled and was **not** read; the
+coefficients were transcribed from Yiğit (2026), *Pamukkale Üniversitesi
+Mühendislik Bilimleri Dergisi* 32(1), 191-199, which prints Equation 8 beside
+its own refit of the same data (exponent 1.3593 against the published 2.335)
+and reproduces the Arias-intensity form digit-for-digit. The Arias models are
+deliberately not implemented: Jibson Equation 9 —
+`0.561·log₁₀ I_a − 3.8331·log₁₀(a_c/a_max) − 1.474` — and the regression of the
+public-domain USGS Open-File Report 98-113 both carry Arias intensity, which
+**Ground Motion Scenario** does not produce and no other tool in the plugin
+does. Equation 8 is the one published form that takes only the ratio and the
+magnitude.
+
+The critical acceleration comes from one of three routes, and every row records
+which. A field of `a_c` in `g` is a measurement and the best route when it
+exists. The Hazus 6.1 Section 4.2.2.2 chain takes it from a geologic group and
+a groundwater state: Table 4-14 maps `(group, moisture, slope band)` to a
+susceptibility category, Table 4-15 bounds both the slope angle (15, 10, 5
+degrees dry and 10, 5, 3 wet for groups A, B, C) and the critical acceleration
+(0.20, 0.15, 0.10 dry and 0.15, 0.10, 0.05 wet), Table 4-16 maps the category
+to 0.60 g down to 0.05 g, and Table 4-17 gives the fraction of the map unit
+Hazus expects to be susceptible deposit. Below Table 4-15's slope bound no
+susceptible deposit is established at all, and the tool reports an **empty**
+`a_c` rather than a zero — zero is the value Equation 8 diverges on, so a
+zeroed row would be the model's loudest answer arriving disguised as its
+safest. The Table 4-15 acceleration floor is applied to the Table 4-16 value,
+and across all 36 cells of the three-group by two-moisture by six-band table it
+overrides exactly one: group B, wet, above 40 degrees, where the category is X
+at 0.05 g and the bound is 0.10 g; the engine asserts which cell that is rather
+than assuming it. The third route reads a susceptibility category somebody else
+assigned, Roman numerals only, because a numeric column cannot say whether 1
+means the least susceptible, as Hazus counts it, or the most. The groundwater
+state has no default — dry and wet are up to four categories apart at one slope
+and group, a factor of eight in the acceleration — and Table 4-17's area
+fraction is reported as its own column and never multiplied into the
+displacement, which is a property of the sliding block rather than of the map
+unit.
+
+The slope is the D8 steepest-descent gradient, `S = (1/p)·max_k(Δ_k/d_k)` over
+the eight neighbours, sampled at one point per feature. The pixel `p` is left
+in the DEM's own CRS units: a slope is a ratio of a vertical to a horizontal
+difference, and converting one of the two alone would rescale every slope on a
+DEM whose elevations are in feet. A cell with no strictly lower neighbour — a
+pit, a flat or a nodata edge — gets `S = 0`, the same convention the flow and
+wetness passes use, and the run log states the unit assumption rather than
+hiding it. The point sample is a real limit: a parcel whose point-on-surface
+lands on the flat bench above a scarp reads as not susceptible while the scarp
+itself is the hazard.
+
 Every Hazus part is transcribed from a United States federal publication and
 is applied here uncalibrated to Turkish stock; the ground-motion model carries
-no basin and no directivity term, and the liquefaction regression is a United
-States calibration with no Turkish liquefaction inventory behind it — the
-Hazus category of a Turkish map unit is whoever classified it. Every one of
-those limits is stated in the tool's own help text and in the manual, beside
-the numbers it qualifies.
+no basin and no directivity term, the liquefaction regression is a United
+States calibration with no Turkish liquefaction inventory behind it, and the
+landslide displacement is a United States calibration with no Turkish landslide
+inventory behind it — the Hazus category of a Turkish map unit is whoever
+classified it. Every one of those limits is stated in the tool's own help text
+and in the manual, beside the numbers it qualifies.

@@ -112,6 +112,71 @@ manual — *Liquefaction* — transcribed value for value:
   amplitudes carry the manual's own stated uncertainty of one-half to two
   times their value, which this tool does not propagate.
 
+## Jibson (2007) coseismic landslide displacement coefficients
+
+`engine/landslide.py` carries the coefficients of **Equation 8** of Jibson,
+R. W. (2007), *Regression models for estimating coseismic landslide
+displacement*, Engineering Geology 91(2–4), 209–218, DOI
+10.1016/j.enggeo.2007.01.013 — the Newmark sliding-block regression of
+`log₁₀ D_N` on the critical-acceleration ratio and the moment magnitude, with
+its standard deviation of 0.454 in log10 units.
+
+- The paper is **paywalled and was not read for this implementation.** Its
+  coefficients were transcribed from an open-access article that reproduces
+  Equation 8 alongside its own refit of the same data: **Yiğit, M. E. (2026)**,
+  *Pamukkale Üniversitesi Mühendislik Bilimleri Dergisi* 32(1), 191–199, DOI
+  10.5505/pajes.2025.29499, open access. That side-by-side presentation is what
+  makes the source usable as a transcription rather than only as a citation —
+  its own fit prints a different exponent (1.3593 against the published 2.335),
+  and its Equation 9 reproduces the USGS Arias-intensity form digit-for-digit
+  including the 0.616 dispersion.
+- The coefficients are transcribed, never recalled: they are one named constant
+  block in the engine, and the engine test suite asserts them against the values
+  the source prints.
+- Jibson, R. W., Harp, E. L. & Michael, J. A. (1998), *A Method for Producing
+  Digital Probabilistic Seismic Landslide Hazard Maps*, USGS Open-File Report
+  98-113 — public domain as a work of the United States federal government — is
+  deliberately **not** implemented. Its Arias-intensity regression is listed in
+  the manual because it is the model most often misremembered as the one this
+  tool uses. Nothing from it is embedded here.
+- The regression is a United States calibration. No Turkish landslide
+  inventory was used to fit it or to check it, and the tool reports it as
+  screening rather than as a design number.
+
+## Hazus coseismic landslide tables
+
+`engine/landslide.py` embeds the tables of **Section 4.2.2.2** of the Hazus 6.1
+*Earthquake Model Technical Manual* — *Landslides* — transcribed value for
+value:
+
+- Table 4-14 (landslide susceptibility of geologic groups, indexed by slope
+  band, geologic group and groundwater state), Table 4-15 (the lower bounds for
+  slope angles and critical accelerations, per group and moisture state), Table
+  4-16 (critical acceleration by susceptibility category, from 0.60 g down to
+  0.05 g) and Table 4-17 (the estimated area of the susceptible deposit as a
+  fraction of the map unit).
+- The Table 4-15 acceleration bounds are applied as a floor on the Table 4-16
+  values, exactly as the manual directs. Across all 36 cells of the table the
+  floor overrides exactly one — group B, wet, above 40 degrees — and the engine
+  asserts which cell that is rather than assuming it, so a future edit to either
+  transcribed table cannot move it silently.
+- The geologic-group shear strengths the section states alongside these tables
+  (group A c' = 300 psf, Φ' = 35°; group B c' = 0, Φ' = 35°; group C c' = 0,
+  Φ' = 20°) are recorded in the engine as the descriptions of the groups, and
+  are not used in any computation. The section's own statement that no
+  generally accepted relationship for estimating the critical acceleration has
+  been developed, and that its table is conservative, is repeated in the tool's
+  help text and the manual.
+- Public domain as a work of the United States federal government, and
+  transcribed rather than adapted. Copyright in the methodology remains with
+  FEMA.
+- Two limits stated wherever these numbers are reported and not part of any
+  FEMA publication: the categories describe United States regional geology
+  applied to Turkish map units without calibration, so a Turkish unit inherits
+  whatever class somebody assigned it; and the groundwater state has no default
+  because dry and wet are up to four susceptibility categories apart, which is
+  a factor of eight in the acceleration.
+
 ## Zhu et al. (2015) geospatial liquefaction coefficients
 
 `engine/liquefaction.py` carries the coefficients of the global geospatial

@@ -77,6 +77,7 @@ from .algorithms.alg_parking_demand import ParkingDemandAlgorithm
 from .algorithms.alg_parking_balance import ParkingSupplyBalanceAlgorithm
 from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
 from .algorithms.alg_scenario_pipeline import ScenarioPipelineAlgorithm
+from .algorithms.alg_coseismic_landslide import CoseismicLandslideAlgorithm
 from .algorithms.alg_ground_motion import GroundMotionAlgorithm
 from .algorithms.alg_liquefaction import LiquefactionAlgorithm
 from .algorithms.alg_seismic_debris import SeismicDebrisAlgorithm
@@ -194,3 +195,4 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(LiquefactionAlgorithm())
         self.addAlgorithm(SeismicDebrisAlgorithm())
         self.addAlgorithm(SeismicImpactAlgorithm())
+        self.addAlgorithm(CoseismicLandslideAlgorithm())

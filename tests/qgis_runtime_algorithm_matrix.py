@@ -112,7 +112,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 74
+MIN_EXPECTED_CASE_COUNT = 75
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -313,6 +313,101 @@ def _liq_category_attrs(index, _feature, _values):
 #: can drift away from the thing it is checking.
 _LIQ_GROUNDWATER_M = 1.524
 
+#: The three geologic groups of Hazus Table 4-14 and the ten susceptibility
+#: categories of Table 4-16, cycled so that one run reads every row of both
+#: tables rather than one column of them. Spelled exactly as the model accepts
+#: them, which is the point of the fixture: a real geology column carries rock
+#: names, a real susceptibility column may well carry digits, and the tool
+#: refuses both on purpose - see REFUSALS.
+_SEISMIC_GROUP_CYCLE = ("A", "B", "C")
+_SEISMIC_CATEGORY_CYCLE = ("I", "II", "III", "IV", "V", "VI", "VII", "VIII",
+                           "IX", "X")
+
+#: Critical accelerations for the field route, in g. Every one is positive and
+#: every one differs from the Hazus value for the category the same feature
+#: carries, so a run that read the wrong column would report a different
+#: number rather than the same one. The two largest exceed the run's own 0.35 g
+#: PGA, which is deliberate: a sliding block whose strength meets the shaking
+#: has no displacement, and that branch has to be exercised by something.
+_SEISMIC_AC_CYCLE = (0.12, 0.25, 0.45, 0.60)
+
+
+def _seismic_unit_attrs(index, feature, _values):
+    """Group, critical acceleration, category - and where the sample point is.
+
+    ``sample_x`` looks like bookkeeping and is not: the tool reads its slope
+    from the terrain cell under each feature's point-on-surface, and the value
+    check has to know which cell that was. Reading the geometry back would mean
+    reading the written GeoPackage through QGIS, which locks the file on
+    Windows and breaks the extra runs' re-creation of it (see
+    :func:`_read_gpkg`). Recording the abscissa at fixture time is the same
+    number by a route that leaves no handle open, and it is an *input*: the
+    expected slope is still computed from the terrain's own definition in the
+    check, not from a value the fixture supplied.
+    """
+    point = feature.geometry().pointOnSurface().asPoint()
+    return [
+        _SEISMIC_GROUP_CYCLE[index % len(_SEISMIC_GROUP_CYCLE)],
+        _SEISMIC_AC_CYCLE[index % len(_SEISMIC_AC_CYCLE)],
+        _SEISMIC_CATEGORY_CYCLE[index % len(_SEISMIC_CATEGORY_CYCLE)],
+        float(point.x()),
+    ]
+
+
+#: The synthetic terrain the landslide screen samples, defined by
+#: ``z(x) = curve * x^2`` with ``x`` measured from the raster's own western
+#: edge - not from the origin of the CRS. That distinction is the difference
+#: between a hillside and a cliff: Web Mercator puts this city about three
+#: thousand kilometres from its own false easting, and a quadratic in absolute
+#: easting would put every cell at 90 degrees.
+#:
+#: There is no linear term, and that is not decoration either. The D8 pass
+#: takes the steepest of the eight neighbour drops, and the westward drop of
+#: this surface is ``curve * h * (2x - h)``, which is exactly zero in the
+#: first column - so the western edge is a genuine flat in the engine's own
+#: terms, and the closed form below holds there instead of describing a cell
+#: the engine cannot see a downhill neighbour from. Across the demo city's
+#: 750 m the gradient sweeps from 0 to about 1.1, which is 0 to 48 degrees:
+#: every one of Table 4-14's six slope columns is reachable, and the two
+#: steepest bands are reached by the easternmost block rather than by one
+#: stray cell.
+_TERRAIN_CURVE = 0.00075
+
+
+def _terrain_gradient(x_centre: float, pixel: float) -> float:
+    """The D8 steepest-descent gradient of the synthetic surface, exactly.
+
+    The surface is a quadratic, so the drop to the western neighbour over one
+    cell is exact rather than a truncated difference, and the steepest of the
+    eight neighbours is that one: the diagonals cover the same drop over
+    ``sqrt(2)`` cells and the vertical neighbours cover none. Both the fixture
+    and the value check call this, so the terrain is described once.
+    """
+    return _TERRAIN_CURVE * (2.0 * x_centre - pixel)
+
+
+def _terrain_cell(x: float, origin: float, pixel: float) -> float:
+    """Centre abscissa of the cell a point at ``x`` falls in.
+
+    Measured **from the raster's western edge**, which is the coordinate
+    :func:`_terrain_gradient` is written in, and computed with the same
+    ``int((x - origin) / pixel)`` the algorithms' sampler uses. Both are inside
+    the raster here, so truncation and flooring agree.
+    """
+    return (int((x - origin) / pixel) + 0.5) * pixel
+
+
+#: Where the synthetic terrain was written: its western edge and its cell size,
+#: in the raster's own CRS units. Filled in by :func:`build_inputs` and read by
+#: the coseismic-landslide value check, which re-derives every row's slope from
+#: the surface's closed form and so needs the grid the surface was sampled on.
+#:
+#: It has to come from here because nothing in an output row carries it: the
+#: slope angle alone cannot be inverted back to a cell. Left empty, the check
+#: complains rather than passing - a slope check that quietly stops checking is
+#: the failure mode this whole fixture was rebuilt to close.
+_TERRAIN_GRID: dict = {}
+
 
 def _landuse_attrs(index, feature, values):
     use = str(values.get("use") or "other").lower()
@@ -463,6 +558,28 @@ LAYER_OVERRIDES = {
     # the demand layer the parking-demand case produced earlier in the run, so
     # this pair is a real two-step chain rather than two isolated smoke tests.
     ("planx:parkingsupplybalance", "SUPPLY"): "facilities",
+    # coseismiclandslide's TARGET is "any geometry, one sample per feature",
+    # which no role in ROLE_BY_PARAM claims, and the columns its three routes
+    # read are the model's own vocabulary rather than land-use words - so the
+    # fixture it needs is a layer those columns were put on. See the
+    # seismic_units fixture.
+    ("planx:coseismiclandslide", "TARGET"): "seismic_units",
+}
+
+# Field parameters whose global name-hint would bind the wrong column, keyed
+# (algorithm id, parameter name) -> field name. Consulted before
+# FIELD_BY_PARAM, and the field still has to exist on the parent layer.
+FIELD_OVERRIDES = {
+    # coseismiclandslide: GROUP_FIELD and CATEGORY_FIELD both carry a global
+    # hint of "category", and on the parcels fixture that is a *land-use*
+    # category. Binding it would send the geologic-group route a column of
+    # "residential" and "green" and the category route the same - the tool
+    # refuses both, which is the right behaviour and a useless test, since the
+    # refusal would be proved by the fixture rather than by the tool. The
+    # seismic_units fixture carries all three columns in the model's own terms.
+    ("planx:coseismiclandslide", "AC_FIELD"): "hazus_ac_g",
+    ("planx:coseismiclandslide", "GROUP_FIELD"): "hazus_group",
+    ("planx:coseismiclandslide", "CATEGORY_FIELD"): "hazus_category",
 }
 
 # Enum parameters whose declared default is not the option this bundle can
@@ -488,6 +605,24 @@ ENUM_OVERRIDES = {
     # still has to be made here, or the case exercises nothing but the refusal
     # - which is held separately in REFUSALS.
     ("planx:liquefaction", "TECTONIC"): 1,
+    # coseismiclandslide's AC_SOURCE has no default on purpose: index 0 is a
+    # sentinel the tool refuses, because its three routes consume different
+    # inputs and carry different provenance - a geotechnical measurement, a
+    # table lookup off a geological map, and a table lookup off somebody else's
+    # susceptibility map - and an acceleration that did not say which of the
+    # three produced it would be unattributable (rule R3). The primary run
+    # takes the geologic-group route, which is the one that reads the most
+    # tables: the slope band, the group, the groundwater state, the cell's
+    # acceleration and the lower bound that sometimes overrides it.
+    ("planx:coseismiclandslide", "AC_SOURCE"): 2,
+    # ... and the groundwater state has no default either, for a stronger
+    # version of the same reason: it moves a third of Table 4-14's cells, up to
+    # four categories at one slope and group, which is a factor of eight in the
+    # acceleration Equation 8 is given. Wet is the primary run because it fills
+    # more of the table - a group whose cells are mostly "None" would leave the
+    # displacement branch unexercised - and the refusal from index 0 is held
+    # separately in REFUSALS.
+    ("planx:coseismiclandslide", "MOISTURE"): 2,
 }
 
 # Number parameters whose declared default is not a value this bundle can run
@@ -498,6 +633,11 @@ ENUM_OVERRIDES = {
 # it as no hazard.
 NUMBER_OVERRIDES = {
     ("planx:liquefaction", "PGA_G"): 0.35,
+    # coseismiclandslide's PGA_G is a sentinel in the same sense, and with more
+    # force: the displacement is a function of a_c/PGA, so a zero here is not a
+    # low shaking level, it is a division by zero - and the tool refuses it
+    # rather than reading it as "no shaking, nothing moves".
+    ("planx:coseismiclandslide", "PGA_G"): 0.35,
 }
 
 # A `MultipleLayers` parameter takes a list, not a single role.
@@ -581,6 +721,12 @@ RASTER_BY_PARAM = (
     ("URBAN_T1", "urban_t1"),
     ("URBAN_T2", "urban_t2"),
     ("SEED", "seed"),
+    # coseismiclandslide names its raster TERRAIN rather than DEM or DSM, and
+    # this entry is the whole reason it does not fall through to the city DSM.
+    # That fall-through would be the worst kind of wrong answer: a roof-pitch
+    # slope is a plausible number in the right units, so the run would go green
+    # with a landslide legend on a raster of buildings. See the terrain fixture.
+    ("TERRAIN", "terrain"),
     ("DEM", "dem"),
     ("DSM", "dsm"),
 )
@@ -730,6 +876,20 @@ EXTRA_RUNS = {
             "OCCUPANCY_SOURCE": 0,
             "POPULATION_FIELD": "population",
         }),
+    ),
+    # coseismiclandslide's other two routes to the same acceleration. The
+    # primary run reads Hazus's geologic-group table; these read a column of
+    # critical accelerations the user already has, and a susceptibility map
+    # somebody else already classified. The engine behind all three is one
+    # function, and the routes share no input but the terrain - which is
+    # exactly why they need their own cases: `ac_src`, the column that says
+    # which route produced the number on each row, would go untested, and so
+    # would the branch where a category arrives already classified rather than
+    # looked up from a slope.
+    "planx:coseismiclandslide": (
+        ("field", "OUTPUT", {"AC_SOURCE": 1, "AC_FIELD": "hazus_ac_g"}),
+        ("category", "OUTPUT", {"AC_SOURCE": 3,
+                                "CATEGORY_FIELD": "hazus_category"}),
     ),
 }
 
@@ -926,14 +1086,25 @@ def _write_gtfs(demand_layer, crs, out_path, transform_context):
             archive.writestr(file_name, text)
 
 
-def _write_raster(path, array, template):
+def _write_raster(path, array, template, double_precision=False):
+    """Write a one-band GeoTIFF on ``template``'s grid.
+
+    Float32 unless ``double_precision``, which one fixture asks for. These
+    rasters are class masks and elevation surfaces, and 24 bits of mantissa is
+    the same precision the tool's own demo city writes. The synthetic terrain
+    below is the exception and says why at its own definition: a value check
+    that re-derives a slope from a closed form is measuring the storage type
+    when the storage type is the only thing between the two numbers.
+    """
     from osgeo import gdal
 
     _source, geotransform, projection = template
     rows, cols = array.shape
     driver = gdal.GetDriverByName("GTiff")
-    handle = driver.Create(str(path), cols, rows, 1, gdal.GDT_Float32,
-                           options=["COMPRESS=LZW"])
+    handle = driver.Create(
+        str(path), cols, rows, 1,
+        gdal.GDT_Float64 if double_precision else gdal.GDT_Float32,
+        options=["COMPRESS=LZW"])
     handle.SetGeoTransform(geotransform)
     if projection:
         handle.SetProjection(projection)
@@ -1034,6 +1205,18 @@ def build_fixtures(processing, work_dir, transform_context):
         load("OUTPUT_LANDUSE"), "hazus_units", (("liq_category", STRING),),
         _liq_category_attrs, fix_dir, transform_context)
 
+    # The land-use polygons a third time, now carrying the columns the
+    # coseismic landslide screen's three routes read. Kept as its own layer for
+    # the same reason hazus_units is: the tool refuses a column it cannot read
+    # rather than guessing, so a fixture that speaks its vocabulary is the only
+    # way to reach the arithmetic at all - and its `category` column holds
+    # land-use words, which no route here accepts.
+    layers["seismic_units"] = _augment(
+        load("OUTPUT_LANDUSE"), "seismic_units",
+        (("hazus_group", STRING), ("hazus_ac_g", DOUBLE),
+         ("hazus_category", STRING), ("sample_x", DOUBLE)),
+        _seismic_unit_attrs, fix_dir, transform_context)
+
     parcels = QgsVectorLayer(str(layers["landuse"]), "landuse", "ogr")
     study_area = _bounding_layer("study_area", parcels.extent(), parcels.crs(),
                                  fix_dir, transform_context)
@@ -1051,8 +1234,7 @@ def build_fixtures(processing, work_dir, transform_context):
         # A city DSM stands in wherever a tool wants a terrain DEM. That proves
         # the plumbing, not the geomorphology: real hydrology wants real relief.
         "dsm": str(raw["OUTPUT_DSM"]),
-        "dem": str(raw["OUTPUT_DSM"]),
-        "inundation": _write_raster(
+        "dem": str(raw["OUTPUT_DSM"]),        "inundation": _write_raster(
             fix_dir / "inundation.tif",
             _classify(dsm, float(np.percentile(finite, 25.0)), 1.0, 0.0),
             template),
@@ -1096,6 +1278,48 @@ def build_fixtures(processing, work_dir, transform_context):
                                             classes_t1, template)
     rasters["landcover_t2"] = _write_raster(fix_dir / "landcover_t2.tif",
                                             classes_t2, template)
+
+    # A terrain surface built for one tool, and for once not the city DSM.
+    # Every other tool here that wants a DEM wants *elevation*, and the city
+    # DSM is the only elevation-shaped raster in the bundle. The coseismic
+    # landslide screen wants a *slope angle*, and the city DSM is a raster of
+    # roof heights with building footprints in it: its slopes are roof pitches,
+    # and its susceptibility category is read off the slope as much as off the
+    # geologic group, so sampling it would produce a roof-pitch map wearing a
+    # landslide legend. This is the quadratic of :data:`_TERRAIN_CURVE`
+    # instead, masked to the DSM's own finite cells so that a feature which
+    # falls off the city falls off this too, and written on the DSM's own
+    # geotransform so both share one grid.
+    #
+    # What it is: a smooth ramp with a closed-form D8 gradient, which is what
+    # makes the value check able to state the slope every row should carry.
+    # What it is not: a hillside. It has no gullies, no ridge and no
+    # anisotropy, so it exercises the slope chain and the slope-to-band
+    # mapping and says nothing about how a real DEM's roughness propagates.
+    #
+    # The one fixture written in double precision, and not for the elevation's
+    # sake. The check re-derives each row's slope from the curve's closed form
+    # and compares it to what the tool read; at float32 the surface itself
+    # carries a ~1e-7 relative error, which reaches the slope as ~5e-7 of a
+    # degree and makes the comparison a test of the storage type rather than of
+    # the run. Sixty-four bits of ramp put the difference back where it belongs,
+    # in the last few digits of a double.
+    cols = dsm.shape[1]
+    local_x = (np.arange(cols) + 0.5) * geotransform[1]
+    ramp = _TERRAIN_CURVE * local_x ** 2
+    rasters["terrain"] = _write_raster(
+        fix_dir / "terrain.tif",
+        np.where(np.isfinite(dsm), np.broadcast_to(ramp, dsm.shape), -9999.0),
+        template, double_precision=True)
+    # The grid the ramp is a function of, so that the value check can put every
+    # output row back on it. `step` is the real column spacing, which is what
+    # the samplers divide by to find a cell; `pixel` is the same mean of the
+    # geotransform's two steps that the tools themselves compute, and it is
+    # what the D8 pass normalises a drop by. On a square raster the two are one
+    # number, and the check says so rather than assuming it.
+    _TERRAIN_GRID.update(origin=float(geotransform[0]),
+                         step=float(geotransform[1]),
+                         pixel=float(_pixel))
 
     demand_layer = QgsVectorLayer(str(layers["demand"]), "demand", "ogr")
     gtfs_path = fix_dir / "demo_gtfs.zip"
@@ -1161,7 +1385,7 @@ def _load_tables(bundle):
     return tables, rasters
 
 
-def _pick_field(name, parent_layer, parent_role):
+def _pick_field(algorithm_id, name, parent_layer, parent_role):
     """A field that exists on ``parent_layer``.
 
     Raising is the point. A field parameter left unsupplied is reported by QGIS
@@ -1171,6 +1395,14 @@ def _pick_field(name, parent_layer, parent_role):
     """
     available = {field.name().lower(): field.name()
                  for field in parent_layer.fields()}
+
+    override = FIELD_OVERRIDES.get((algorithm_id, name))
+    if override:
+        if override not in available:
+            raise RuntimeError(
+                f"'{name}' is pinned to '{override}' on '{parent_role}', which "
+                f"does not have it (has {sorted(available)})")
+        return available[override], f"override:{override}"
 
     if name in FIELD_LIST_OVERRIDES:
         wanted = FIELD_LIST_OVERRIDES[name]
@@ -1282,7 +1514,7 @@ def build_inputs(algorithm, bundle, tables, rasters, artifacts, out_dir, result)
                     f"'{name}' needs parent "
                     f"'{definition.parentLayerParameterName()}' "
                     f"(resolved to '{parent_role}'), which is not a fixture")
-            field_name, why = _pick_field(name, layer, parent_role)
+            field_name, why = _pick_field(algorithm_id, name, layer, parent_role)
             values[name] = field_name
             result.choices[name] = f"{why}@{parent_role}"
             continue
@@ -1829,6 +2061,290 @@ def _expect_liquefaction_matches_its_hazus_terms(path):
     return None
 
 
+def _expect_coseismic_rows(path, routes, all_groups=False):
+    """Equation 8 and the Hazus chain, re-derived from each row's own terms.
+
+    The tool has three ways of learning a critical acceleration and they are
+    different models of the same ground, so the check has to hold three things
+    at once: that each row's ``ac_src`` names the route it was actually run
+    on, that the number came from *that* route's table or column, and that the
+    displacement is Equation 8 evaluated on the row's own acceleration, PGA and
+    magnitude. A row that took the wrong branch writes a plausible, monotone,
+    fully populated displacement - the only thing standing between them is a
+    re-derivation, and the file carries every term it needs.
+
+    Three of the checks here exist because a plausible layer can be produced
+    without ever reading the terrain:
+
+    - the slope. It is re-derived from the synthetic surface's closed form at
+      the cell each feature's point-on-surface falls in, so a run that sampled
+      the city DSM instead - a raster of roof pitches - fails on the value, not
+      on the row count. It is also the check that would catch the DEM being
+      read in the wrong CRS, because the cell would move.
+    - the refusal to write a number where the model has none. Below Table
+      4-15's slope bound Hazus establishes no susceptibility at all, and the
+      tool has to leave ``ac_g`` empty rather than zero it: zero is the ratio
+      Equation 8 diverges on, so a zeroed row is the *loudest* answer wearing
+      the safest one's clothes. ``ac_g is None`` is asserted, not ``falsy``.
+    - the provenance itself. Hazus's acceleration is an inference from a map
+      unit, a field acceleration is a measurement, and the two must not arrive
+      looking alike - so a row with no ``ac_src`` is a failure, and each route
+      is required to have been the one that produced its own rows.
+
+    ``all_groups`` additionally requires the run to have reached all three
+    geologic groups, which is the fixture's own claim: a check that only ever
+    sees group A is not checking Table 4-14.
+    """
+    import math
+
+    from planx.engine import landslide as ls
+
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    required = {"nw_disp_cm", "nw_disp_p90_cm", "ls_log_disp", "ac_g", "ac_src",
+                "ac_ratio", "ls_category", "ls_area_frac", "pga_g", "mw",
+                "slope_deg", "ls_notes", "sample_x", "hazus_group",
+                "hazus_ac_g", "hazus_category"}
+    missing = required - set(names)
+    if missing:
+        return ("missing coseismic-landslide column(s): "
+                + ", ".join(sorted(missing)))
+    if not _TERRAIN_GRID:
+        return ("the synthetic terrain's grid was never recorded, so no row's "
+                "slope can be re-derived from the surface it was read from")
+    origin = _TERRAIN_GRID["origin"]
+    step = _TERRAIN_GRID["step"]
+    pixel = _TERRAIN_GRID["pixel"]
+    if abs(step - pixel) > 1e-9:
+        return (f"the synthetic terrain has {step:g} by {pixel:g} cells, and "
+                "the closed form below only describes what the D8 pass saw "
+                "when the two are equal")
+
+    routes = tuple(routes)
+    group_letters = {letter for letter, _name, _strength in
+                     ls.HAZUS_LANDSLIDE_GROUPS}
+    seen_routes: set = set()
+    seen_groups: set = set()
+    seen_categories: set = set()
+    slopes: list = []
+
+    for index, row in enumerate(rows, start=1):
+        source = row["ac_src"] or ""
+        fields = source.split(":")
+        route = fields[0]
+        if route not in routes:
+            return (f"row {index}: ac_src is '{source}', which is not one of "
+                    f"the routes this run takes ({', '.join(routes)}) - an "
+                    "acceleration that does not say where it came from is not "
+                    "attributable to anything")
+        seen_routes.add(route)
+
+        # The slope, on the surface's own closed form. The fixture recorded the
+        # abscissa of each feature's point-on-surface at build time and the
+        # terrain is written on the city's own CRS, so nothing is reprojected
+        # between the two numbers. The D8 pass normalises the drop by the cell
+        # size, which is why the drop appears over `pixel` as well.
+        centre = _terrain_cell(float(row["sample_x"]), origin, step)
+        slope = math.degrees(math.atan(
+            _TERRAIN_CURVE * step * (2.0 * centre - step) / pixel))
+        if abs(float(row["slope_deg"]) - slope) > 1e-9:
+            return (f"row {index}: slope_deg is {float(row['slope_deg']):.9f} "
+                    f"where the synthetic surface gives {slope:.9f} at x = "
+                    f"{float(row['sample_x']):.3f} - this run did not read the "
+                    "terrain it was given")
+        slopes.append(slope)
+
+        ac_g = row["ac_g"]
+        category = row["ls_category"]
+        area_fraction = row["ls_area_frac"]
+        pga = float(row["pga_g"])
+        magnitude = float(row["mw"])
+
+        if route == "field":
+            if source != "field:hazus_ac_g":
+                return (f"row {index}: ac_src '{source}' does not name the "
+                        "column the run was told to read")
+            supplied = row["hazus_ac_g"]
+            if supplied is None:
+                return f"row {index}: the acceleration column is empty"
+            if ac_g is None or abs(float(ac_g) - float(supplied)) > 1e-12:
+                return (f"row {index}: ac_g is {ac_g!r} where the row's own "
+                        f"acceleration column holds {float(supplied):g}")
+            if category is not None or area_fraction is not None:
+                return (f"row {index}: the field route wrote ls_category "
+                        f"{category!r} and ls_area_frac {area_fraction!r}; "
+                        "neither is a table row of Hazus and neither exists on "
+                        "a measured acceleration")
+        elif route == "hazus-cat":
+            if len(fields) != 2:
+                return (f"row {index}: ac_src '{source}' does not name one "
+                        "susceptibility category")
+            named = fields[1]
+            supplied = row["hazus_category"]
+            if str(supplied) != named:
+                return (f"row {index}: ac_src names category '{named}' where "
+                        f"the row's own susceptibility column holds {supplied!r}")
+            if named not in ls.HAZUS_LANDSLIDE_AC_G:
+                return (f"row {index}: '{named}' is not one of Table 4-16's "
+                        "categories that carry an acceleration")
+            if category != named:
+                return (f"row {index}: ls_category is {category!r} where the "
+                        f"route read '{named}'")
+            if ac_g is None or abs(float(ac_g)
+                                   - ls.HAZUS_LANDSLIDE_AC_G[named]) > 1e-12:
+                return (f"row {index}: ac_g is {ac_g!r}, not Table 4-16's "
+                        f"{ls.HAZUS_LANDSLIDE_AC_G[named]} g for '{named}'")
+            expected_share = ls.HAZUS_LANDSLIDE_AREA_FRACTION[named]
+            if area_fraction is None \
+                    or abs(float(area_fraction) - expected_share) > 1e-12:
+                return (f"row {index}: ls_area_frac is {area_fraction!r}, not "
+                        f"Table 4-17's {expected_share} for '{named}'")
+            seen_categories.add(named)
+        elif route == "hazus":
+            floored = source.endswith(":floor")
+            parts = fields[1:-1] if floored else fields[1:]
+            if len(parts) != 3:
+                return (f"row {index}: ac_src '{source}' does not read "
+                        "group:moisture:category")
+            group, moisture, named = parts
+            if group not in group_letters:
+                return (f"row {index}: ac_src names geologic group '{group}', "
+                        f"which is not one of {sorted(group_letters)}")
+            if moisture not in ls.HAZUS_LANDSLIDE_MOISTURE:
+                return (f"row {index}: ac_src names groundwater state "
+                        f"'{moisture}', which is not one of "
+                        f"{list(ls.HAZUS_LANDSLIDE_MOISTURE)}")
+            supplied = row["hazus_group"]
+            if ls.normalise_group(supplied) != group:
+                return (f"row {index}: ac_src names group '{group}' where the "
+                        f"row's own geology column holds {supplied!r}")
+            seen_groups.add(group)
+
+            expected = ls.hazus_susceptibility(group, moisture, slope)
+            if floored != expected["floor_applied"]:
+                return (f"row {index}: the ':floor' marker is {floored} where "
+                        f"Table 4-15's bound of {expected['ac_floor_g']:g} g "
+                        f"against '{expected['category']}' does not apply that "
+                        "way")
+            if category != expected["category"]:
+                return (f"row {index}: ls_category is {category!r} where Table "
+                        f"4-14 gives '{expected['category']}' on {slope:.4f} "
+                        f"degrees, group {group} {moisture}")
+            if abs(float(area_fraction or 0.0)
+                   - expected["area_fraction"]) > 1e-12 \
+                    or area_fraction is None:
+                return (f"row {index}: ls_area_frac is {area_fraction!r}, not "
+                        f"Table 4-17's {expected['area_fraction']} for "
+                        f"'{expected['category']}'")
+            if expected["ac_g"] is None:
+                if ac_g is not None:
+                    return (f"row {index}: Hazus assigns no susceptible deposit "
+                            f"here, yet ac_g is {ac_g!r} - a zeroed "
+                            "acceleration is the value Equation 8 diverges on")
+                expected_source = f"hazus:{group}:{moisture}:{expected['category']}"
+                if source != expected_source:
+                    return (f"row {index}: ac_src is '{source}' where the chain "
+                            f"gives '{expected_source}'")
+                if float(row["nw_disp_cm"]) != 0.0 \
+                        or float(row["nw_disp_p90_cm"]) != 0.0:
+                    return (f"row {index}: a map unit Hazus leaves unclassified "
+                            "was given a displacement")
+                if row["ls_log_disp"] is not None:
+                    return (f"row {index}: ls_log_disp is {row['ls_log_disp']!r} "
+                            "on a row with no acceleration to take a logarithm "
+                            "of")
+                if "no landslide-susceptible deposit" not in (row["ls_notes"] or ""):
+                    return (f"row {index}: ls_notes does not say why the row is "
+                            f"empty ({row['ls_notes']!r})")
+                continue
+            if ac_g is None or abs(float(ac_g) - expected["ac_g"]) > 1e-12:
+                return (f"row {index}: ac_g is {ac_g!r}, not Table 4-16's "
+                        f"{expected['ac_g']:g} g for '{expected['category']}' "
+                        f"at {slope:.4f} degrees, group {group} {moisture}")
+            if floored and abs(float(ac_g)
+                               - ls.HAZUS_LANDSLIDE_AC_BOUND_G[
+                                   (group, moisture)]) > 1e-12:
+                return (f"row {index}: the ':floor' marker claims Table 4-15's "
+                        f"bound was applied, but ac_g is not "
+                        f"{ls.HAZUS_LANDSLIDE_AC_BOUND_G[(group, moisture)]:g} g")
+        else:
+            return f"row {index}: '{source}' names no route this tool has"
+
+        # The displacement, on Equation 8, from the row's own terms. ac_ratio
+        # is checked here as well rather than trusted: it is the number a
+        # reader uses to decide whether the row is inside the regression's
+        # range, and a ratio that disagrees with ac_g and pga_g would move that
+        # decision without moving anything a count can see.
+        expected_ratio = float(ac_g) / pga
+        if abs(float(row["ac_ratio"]) - expected_ratio) > 1e-12:
+            return (f"row {index}: ac_ratio is {float(row['ac_ratio']):.12f} "
+                    f"where {float(ac_g):g} g over {pga:g} g is "
+                    f"{expected_ratio:.12f}")
+        expected = ls.jibson_displacement(float(ac_g), pga, magnitude)
+        for column, key in (("nw_disp_cm", "disp_cm"),
+                            ("nw_disp_p90_cm", "p90_cm")):
+            value = expected[key]
+            if abs(float(row[column]) - value) > 1e-9 * max(1.0, abs(value)):
+                return (f"row {index}: {column} is {float(row[column]):.9f} "
+                        f"where Equation 8 gives {value:.9f} on this row's own "
+                        "acceleration, PGA and magnitude")
+        stored_log = row["ls_log_disp"]
+        if expected["log10_disp"] is None:
+            if stored_log is not None:
+                return (f"row {index}: ls_log_disp is {stored_log!r} on a row "
+                        "whose block never moved")
+            if float(row["nw_disp_cm"]) != 0.0:
+                return (f"row {index}: a block whose critical acceleration "
+                        "meets the shaking was given a displacement")
+            if "does not move" not in (row["ls_notes"] or ""):
+                return (f"row {index}: ls_notes does not say the block does not "
+                        f"move ({row['ls_notes']!r})")
+        else:
+            if stored_log is None \
+                    or abs(float(stored_log) - expected["log10_disp"]) > 1e-12:
+                return (f"row {index}: ls_log_disp is {stored_log!r} where "
+                        f"Equation 8's log of the displacement is "
+                        f"{expected['log10_disp']:.12f}")
+        if expected_ratio < 1.0 and float(row["nw_disp_cm"]) <= 0.0:
+            return (f"row {index}: a_c/PGA is {expected_ratio:.6f}, below unity, "
+                    "so the block slides - yet the displacement is zero")
+
+    if not rows:
+        return f"{path} holds no row, so nothing was checked"
+    seen_routes_seen = seen_routes
+    if seen_routes_seen != set(routes):
+        return (f"only the {', '.join(sorted(seen_routes_seen))} route(s) "
+                f"produced a row; {', '.join(sorted(set(routes) - seen_routes_seen))} "
+                "never did")
+    if all_groups and seen_groups != group_letters:
+        return (f"the run only reached {sorted(seen_groups)} of the geologic "
+                f"groups, so Table 4-14 is not being exercised")
+    if seen_categories and len(seen_categories) < len(ls.HAZUS_LANDSLIDE_AC_G):
+        return (f"the run only reached {len(seen_categories)} of Table 4-16's "
+                f"ten categories ({', '.join(sorted(seen_categories))})")
+    relief = max(slopes) - min(slopes)
+    if relief < 15.0:
+        return (f"the terrain the run sampled only spans {relief:.2f} degrees of "
+                "slope, so the slope-to-band table is barely being exercised")
+    return None
+
+
+def _expect_coseismic_group_route(path):
+    """The primary run: group:moisture:category, and every group reached."""
+    return _expect_coseismic_rows(path, ("hazus",), all_groups=True)
+
+
+def _expect_coseismic_field_route(path):
+    """The measured-acceleration route, which writes no Hazus row."""
+    return _expect_coseismic_rows(path, ("field",))
+
+
+def _expect_coseismic_category_route(path):
+    """The susceptibility-map route, which reads Table 4-16 and not the slope."""
+    return _expect_coseismic_rows(path, ("hazus-cat",))
+
+
 #: Value expectations for an extra run, keyed (algorithm id, extra label).
 #: An extra run exists because it takes a branch the primary case never
 #: reaches, and a branch that writes the right number of rows with the wrong
@@ -1837,6 +2353,12 @@ def _expect_liquefaction_matches_its_hazus_terms(path):
 EXTRA_VALUE_EXPECTATIONS = {
     ("planx:liquefaction", "susceptibility"): {
         "OUTPUT": _expect_liquefaction_matches_its_hazus_terms,
+    },
+    ("planx:coseismiclandslide", "field"): {
+        "OUTPUT": _expect_coseismic_field_route,
+    },
+    ("planx:coseismiclandslide", "category"): {
+        "OUTPUT": _expect_coseismic_category_route,
     },
 }
 
@@ -1856,6 +2378,22 @@ REFUSALS = (
     ("planx:liquefaction",
      {"MODE": 1, "CATEGORY_FIELD": ""},
      "Susceptibility mode needs a map-unit layer"),
+    # Rule R3 again, in the tool that has two modelling choices rather than
+    # one. The acceleration's provenance is not recoverable from the result:
+    # the same 0.25 g is a measurement, a table lookup off a geological map, or
+    # a table lookup off somebody else's susceptibility map, and the three say
+    # different things about the ground. Reachable on an otherwise valid layer,
+    # so the run stops on the choice itself.
+    ("planx:coseismiclandslide",
+     {"AC_SOURCE": 0},
+     "Choose where the critical acceleration comes from"),
+    # ... and the second choice, which is the one that moves numbers: dry and
+    # wet are up to four Table 4-14 categories apart at one slope and group,
+    # which is a factor of eight in the acceleration the displacement is
+    # computed from. Two sentinels, two refusals.
+    ("planx:coseismiclandslide",
+     {"AC_SOURCE": 2, "MOISTURE": 0},
+     "Choose the groundwater state"),
 )
 
 
@@ -1879,7 +2417,22 @@ VALUE_EXPECTATIONS = {
     "planx:liquefaction": {
         "OUTPUT": _expect_liquefaction_matches_its_own_terms,
     },
+    "planx:coseismiclandslide": {
+        "OUTPUT": _expect_coseismic_group_route,
+    },
 }
+
+
+def _and_also(first, second):
+    """Both complaints, in the order they were found.
+
+    A case that failed its own value check and then failed an extra run used to
+    report only the second: the extra run's message overwrote the primary's.
+    That hides the more fundamental of the two - on the coseismic-landslide
+    case a wrong slope had already been found before the extra run restated it,
+    and a reader saw only the extra run's line. Both are kept.
+    """
+    return f"{first} / {second}" if first else second
 
 
 def check_values(algorithm_id, produced):
@@ -2083,17 +2636,17 @@ def run_matrix(only=None, verbose=False):
                     if not verify_outputs(algorithm, extra_produced,
                                           extra_result, only={output_name}):
                         result.ok = False
-                        result.error = (
+                        result.error = _and_also(result.error, (
                             f"extra run '{artifact_name}' failed verification: "
-                            f"{extra_result.outputs.get(output_name, '')}")
+                            f"{extra_result.outputs.get(output_name, '')}"))
                     else:
                         complaint = check_extra_values(
                             algorithm_id, artifact_name, extra_produced)
                         if complaint:
                             result.ok = False
-                            result.error = (
+                            result.error = _and_also(result.error, (
                                 f"extra run '{artifact_name}' wrong value: "
-                                f"{complaint}")
+                                f"{complaint}"))
                     result.extra_info[artifact_name] = [
                         f"{output_name}: "
                         f"{extra_result.outputs.get(output_name, 'no output')}"
