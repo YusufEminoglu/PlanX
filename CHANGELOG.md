@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.12.0] - 2026-09-19
+
+Parking demand and supply balance. Two new algorithms, both in the Travel Demand group. Purely additive: no existing algorithm's parameters, ids or default behaviour changed.
+
+### Added
+- **Parking Demand Estimator** (`planx:parkingdemand`) - estimates the parking spaces each zone demands from its land-use category and size, through an editable per-category rate table. Each entry is `category=basis:rate`, where the basis (`unit`, `sqm`, `seat`) states what one rate unit counts against, because parking standards are not written on one common denominator. A zone whose category matches no rate row demands zero and is listed separately in the log, so a gap in the rate table is never reported as a zone that needs no parking. The shipped rates are illustrative values written in the ITE convention, not figures taken from it, and the help text says so.
+- **Parking Supply-Demand Balance** (`planx:parkingsupplybalance`) - compares the demand each zone carries against a counted parking inventory within an access radius, and reports the surplus or deficit. Reach follows the street network when one is supplied and is straight-line otherwise, and the output records which was used. Every zone is classified `counted`, `zero supply found` (a real deficit) or `supply data absent` (a coverage gap in the inventory), and the unsurveyed case gets a NULL balance so the column cannot be summed into a false shortfall.
+
+### Changed
+- The manual documents both new tools to the same depth as the rest, and its counts, version literal and search index are current: 71 algorithms, 19 tool groups, 300 numbered display equations, 386 reference entries.
+- README and Studio dock counts updated to 71. The engine suite stands at 570 checks.
+
+### Notes
+- Mixed-use and shared-parking reduction factors are deliberately not implemented. The demand tool reports the sum of the single-use requirements, which is the quantity any shared-parking argument has to answer.
+
 ## [4.11.2] - 2026-09-19
 
 Quality infrastructure. No algorithm behaviour changed and no algorithm was added.

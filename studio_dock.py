@@ -78,7 +78,7 @@ class PlanXStudioDock(QDockWidget):
         layout.addWidget(hint)
 
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search 69 planning tools…")
+        self.search.setPlaceholderText("Search 71 planning tools…")
         self.search.textChanged.connect(self._filter)
         layout.addWidget(self.search)
 

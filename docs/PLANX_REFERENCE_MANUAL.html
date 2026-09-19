@@ -343,6 +343,8 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <ul class="toc-algs">
 <li><a href="#gravitymodel" data-name="gravitymodel" data-display="gravity distribution"><img src="icons/tool_gravitymodel.png" alt="" class="alg-icon">Gravity Distribution</a></li>
 <li><a href="#modesplit" data-name="modesplit" data-display="mode split"><img src="icons/tool_modesplit.png" alt="" class="alg-icon">Mode Split</a></li>
+<li><a href="#parkingdemand" data-name="parkingdemand" data-display="parking demand estimator"><img src="icons/tool_parkingdemand.png" alt="" class="alg-icon">Parking Demand Estimator</a></li>
+<li><a href="#parkingsupplybalance" data-name="parkingsupplybalance" data-display="parking supply-demand balance"><img src="icons/tool_parkingsupplybalance.png" alt="" class="alg-icon">Parking Supply-Demand Balance</a></li>
 <li><a href="#tripgeneration" data-name="tripgeneration" data-display="trip generation"><img src="icons/tool_tripgeneration.png" alt="" class="alg-icon">Trip Generation</a></li>
 </ul></li>
 <li class="toc-group">
@@ -369,7 +371,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.11.2 &middot; 69 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.12.0 &middot; 71 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -394,14 +396,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.11.2). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.12.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 69 algorithms is documented to an identical eight-section
+<p>Every one of the 71 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -444,7 +446,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 69 algorithms span the
+platform delivered as a QGIS Processing provider. Its 71 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -14147,6 +14149,593 @@ DOI: <a href="https://doi.org/10.1002/9781119993308">10.1002/9781119993308</a>
 
 ===ALGORITHM===
 
+<div class="page-break"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PARKING DEMAND ESTIMATOR                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="parkingdemand">Parking Demand Estimator</h2>
+<p><strong>Processing ID:</strong> <code>planx:parkingdemand</code>
+&middot; <strong>Engine:</strong> <code>engine/parking.py</code>
+&middot; <strong>Group:</strong> Travel Demand (18)</p>
+
+<h3>1. Overview</h3>
+<p>Estimates the <strong>number of parking spaces each zone demands</strong>
+from its land-use category and its size, using a per-category rate table that
+you supply. It is a screening-quality estimator written in the convention of
+the ITE <em>Parking Generation</em> rate schedules, and in PlanX it is the
+demand half of a parking balance: its <code>parking_demand</code> column is the
+input to Parking Supply-Demand Balance.</p>
+
+<p>Each entry in the rate table has the form
+<code>category=basis:rate</code>. The <strong>basis</strong> states what one
+rate unit counts against, because parking standards are not written on a single
+common denominator: residential standards count dwelling units, commercial
+standards count floor area, and assembly standards count seats. A zone takes
+the first rate row whose keyword its category contains, so the matching rule is
+containment and order rather than equality.</p>
+
+<p>The output adds one column to the zone layer and preserves everything else,
+including geometry. A zone that matches no rate row demands zero and is
+reported separately in the log, because a category the table does not cover is
+a gap in the table and not a zone that genuinely needs no parking.</p>
+
+<h3>2. Theoretical Background</h3>
+
+<h4>2.1 From minimum parking requirements to explicit rate tables</h4>
+<p>For most of the twentieth century, parking supply was set by
+<strong>minimum parking requirements</strong>: zoning ordinances that obliged
+each development to provide at least a stated number of spaces per dwelling
+unit, per square metre of floor area, or per seat. The practice spread from
+Columbus, Ohio (1923) and became near-universal in North American and, by
+transposition, in many European and Turkish municipal codes. The rates
+themselves originated largely from the parking studies published by the
+Institute of Transportation Engineers, beginning in 1960, which reported
+observed peak parking accumulation at surveyed sites.</p>
+
+<p>Shoup (1999) documented the consequences that made these requirements
+controversial: the rates were rarely calibrated to local conditions, they
+bundled the cost of parking into rents and prices, and they guaranteed a supply
+that in many districts was never used while still, in dense districts, falling
+short at the peak. The reform that followed — in cities from Portland to
+Mexico City — replaced fixed requirements with <strong>explicit, auditable rate
+tables</strong> that can be adjusted per district, which is precisely the model
+this tool implements. PlanX does not decide a rate for you; it makes the rate
+you choose visible, editable, and testable in its consequences.</p>
+
+<h4>2.2 Why parking standards have no single denominator</h4>
+<p>A rate table cannot be reduced to one number per land use without also
+fixing what that number is a rate <em>of</em>. A dwelling generates parking
+demand as a function of households; an office as a function of floor area; a
+cinema or a stadium as a function of seats, because attendance, not area,
+drives the peak. Treating these as interchangeable — for example applying a
+per-square-metre rate to a dwelling count — produces answers that are wrong by
+orders of magnitude rather than by a correction factor.</p>
+
+<p>This tool therefore carries the basis inside each rate entry. The basis
+determines the arithmetic applied to the size column, so a table is only fully
+coherent when the categories it matches share one basis. A single layer
+mixing dwelling counts, floor areas and seats cannot be correct for all three
+at once: where the bases differ, split the zones into one layer per basis and
+run each with its own table. The tool does not silently rescale one basis into
+another, because no defensible conversion exists.</p>
+
+<h4>2.3 The shipped rates are policy, not measurement</h4>
+<p>The default table is an <strong>illustrative starting point</strong>, not a
+calibrated standard and not a set of figures transcribed from the ITE manual.
+It is deliberately recognisable so that a first run produces plausible orders
+of magnitude on typical data, and deliberately replaceable so that no result
+leaves the tool bearing the authority of a rate nobody in the jurisdiction
+chose.</p>
+
+<p>Because every rate enters as a linear multiplier, the tool's output has a
+property worth stating plainly: <strong>which zones dominate demand is robust
+to the rates, while the absolute counts are only as good as the rates.</strong>
+A planning judgement of the form "this district will carry most of the parking
+requirement" survives almost any plausible table. A statement of the form "the
+district needs 338,130 spaces" does not, and should never be quoted without
+naming the standard it came from.</p>
+
+<h4>2.4 Relationship to shared parking and reduction factors</h4>
+<p>Real parking demand is lower than the sum of single-use peaks, because
+different land uses peak at different hours and because some trips chain
+between destinations. <strong>Shared-parking</strong> and
+<strong>reduction</strong> factors model that overlap, and this tool does not
+implement them: it reports the sum of the single-use requirements. That is a
+conservative bias, and it is deliberate — a reduction factor applied without a
+time-of-day model would be an unsupported discount. Read the per-category
+subtotals in the log as the quantity any shared-parking argument has to
+answer, rather than as a demand figure already net of overlap.</p>
+
+<h4>2.5 Assumptions and limitations</h4>
+<ul>
+<li><strong>Matching is containment and first-hit.</strong> A zone whose
+category reads <code>retail warehouse</code> matches a <code>retail</code> row
+even if a later <code>warehouse</code> row would fit better, because the table
+is scanned in order and the first hit wins. Order the table from most to least
+specific when categories overlap.</li>
+<li><strong>One category per zone.</strong> Mixed-use buildings must be split
+into one zone or one layer per use before running, since a zone carries a
+single category value.</li>
+<li><strong>No occupancy or turnover.</strong> The rates express spaces
+required, not spaces occupied at a given hour; peak-hour behaviour is not
+modelled.</li>
+<li><strong>No cost, no mode choice, no supply.</strong> The tool never asks
+whether the demanded spaces exist. That question belongs to Parking
+Supply-Demand Balance, which is why the two are separate tools.</li>
+</ul>
+
+<h3>3. Mathematical Formulation</h3>
+
+<p><strong>Category matching.</strong> For zone $i$ with category text
+$\text{cat}_i$ and a rate table of rows $k = 1 \ldots K$, each with keyword
+$s_k$, basis $\beta_k$ and rate $r_k$, the matched row is the first whose
+keyword the category contains:</p>
+$$k(i) = \min \{\, k : s_k \subseteq \text{cat}_i \,\} \tag{1}$$
+
+<p>Containment is case-insensitive and the minimum is taken over the table
+order, so the rule is deterministic and independent of dictionary or set
+iteration order.</p>
+
+<p><strong>Per-basis scaling.</strong> The basis states the size of one rate
+unit, so it scales the size column rather than the rate:</p>
+$$d_i = r_{k(i)} \cdot \text{size}_i \cdot \beta_{k(i)}, \qquad
+\beta = \begin{cases} 1 & \text{basis } \texttt{unit} \\ 1 & \text{basis }
+\texttt{seat} \\ 1/1000 & \text{basis } \texttt{sqm} \end{cases} \tag{2}$$
+
+<p>The floor-area basis divides by 1000 because rates in that convention are
+quoted per 1000 m&sup2; of gross floor area. Stating it as a scaling of the
+size column rather than of the rate keeps the arithmetic in one place and makes
+the units of the size field explicit in the output.</p>
+
+<p><strong>Unmatched zones.</strong> A zone with no matching row has an empty
+match set, and the tool defines its demand as zero:</p>
+$$d_i = 0 \quad \text{if } \{\, k : s_k \subseteq \text{cat}_i \,\} =
+\varnothing \tag{3}$$
+
+<p>A zero here is a coverage statement about the table, not a measurement of
+the zone, which is why the tool reports the distinct unmatched categories
+rather than only their count.</p>
+
+<p><strong>Per-category subtotals.</strong> The diagnostic that matters for
+policy is the contribution of each land use:</p>
+$$D_k = \sum_{i \,:\, k(i) = k} d_i \tag{4}$$
+
+<p><strong>Zone total and district total.</strong> The zone figure written to
+the output and the study-area figure reported in the log are:</p>
+$$d_i = r_{k(i)} \cdot \text{size}_i \cdot \beta_{k(i)}, \qquad
+D = \sum_{i=1}^{N} d_i \tag{5}$$
+
+<p>Both are rounded to two decimal places on output. The computation itself is
+in float64 throughout, so rounding is applied once, at the boundary, rather
+than accumulated.</p>
+
+<h3>4. Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Zone layer</td><td>Vector (Polygon or Point)</td><td>Yes</td><td>Traffic analysis zones, parcels, or building footprints. Geometry is preserved in the output.</td></tr>
+<tr><td>Land-use category field</td><td>Text</td><td>Yes</td><td>One category per zone, e.g. <code>residential</code>, <code>office</code>, <code>retail warehouse</code>. Matching is containment and case-insensitive.</td></tr>
+<tr><td>Size field</td><td>Numeric</td><td>Yes</td><td>Read in the basis unit of whichever category the zone matches: dwelling units, seats, or square metres of gross floor area.</td></tr>
+<tr><td>Rate table</td><td>Text</td><td>Yes</td><td>Comma- or semicolon-separated <code>category=basis:rate</code> entries. A default table is pre-filled.</td></tr>
+</table>
+
+<h3>5. Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>ZONES</code></td><td>Vector layer (Polygon/Point)</td><td>&mdash;</td><td>Zone layer carrying the category and size attributes.</td></tr>
+<tr><td><code>CATEGORY_FIELD</code></td><td>Field (Text)</td><td>&mdash;</td><td>Land-use category per zone. An empty or NULL value matches no row and is reported as unmatched.</td></tr>
+<tr><td><code>SIZE_FIELD</code></td><td>Field (Numeric)</td><td>&mdash;</td><td>The quantity the rate multiplies. NULL or non-numeric values are treated as 0.</td></tr>
+<tr><td><code>RATES</code></td><td>String</td><td>See below</td><td>The rate table. Each entry is <code>category=basis:rate</code> with basis one of <code>unit</code>, <code>sqm</code>, <code>seat</code>. Malformed entries are rejected with a message naming the offending token.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector layer (same geometry as input)</td><td>&mdash;</td><td>Zone layer with all original attributes plus <code>parking_demand</code>, in the input's geometry type and CRS.</td></tr>
+</table>
+<p>The pre-filled table is:</p>
+<pre>residential=unit:1.5, office=sqm:2.5, commercial=sqm:3.5,
+retail=sqm:3.0, restaurant=seat:0.2, assembly=seat:0.15,
+industrial=sqm:1.0, education=sqm:1.5, health=sqm:3.0</pre>
+<p>These are illustrative values in the ITE convention, not figures taken from
+the ITE manual and not a substitute for a local standard. Substitute your own
+municipal, campus or survey rates before quoting absolute space counts.</p>
+
+<h3>6. Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>parking_demand</code></td><td>Double</td><td>Parking spaces demanded by the zone, rounded to 2 decimal places. This column is the Demand input for Parking Supply-Demand Balance.</td></tr>
+</table>
+<p>Every original attribute is preserved, and the output keeps the input's
+geometry and CRS, so the result maps directly without a join. The log reports
+the per-category subtotals, the study-area total, and the distinct categories
+that matched no rate row.</p>
+
+<h3>7. Symbolic Representation</h3>
+<p>Style <code>parking_demand</code> as a <strong>choropleth on a sequential
+single-hue ramp</strong> — a light-to-dark blue or orange, with polygon fill
+and a hairline outline. Use quantile or Jenks breaks rather than equal
+intervals, because parking demand is typically dominated by a few large
+sites and an equal-interval map renders almost every zone the palest class.
+For point zones, use proportional circles scaled on the square root of
+<code>parking_demand</code>: area then reads as magnitude, which the eye
+interprets correctly.</p>
+
+<p>Two companion maps carry most of the analytical value. A <strong>map of the
+normalised demand</strong> — <code>parking_demand</code> divided by zone area
+for polygon zones — separates districts that demand many spaces because they
+are large from districts that demand them because they are intense, and the two
+imply different policies. A <strong>map of the dominant category</strong>
+(which rate row produced the largest subtotal in each zone) shows whether the
+requirement is driven by housing, by employment, or by a single destination
+use, which is the map that identifies where a reduction argument would have to
+do its work.</p>
+
+<h3>8. Interpretation Guide</h3>
+
+<h4>8.1 How to read the results</h4>
+<p>Read the log before the map, in this order. First the
+<strong>unmatched categories</strong>: if any category matched no rate row, the
+total is an undercount and the map has holes where demand was set to zero for
+want of a rate. Second the <strong>per-category subtotals</strong>: they say
+whether one land use drives the whole requirement or whether it is distributed,
+and that single fact determines which policy lever is worth pulling. Only then
+the <strong>total</strong>, and only with the rate standard named beside
+it.</p>
+
+<p>On the map, a zone's <code>parking_demand</code> is a requirement under the
+table you supplied. It is not what people will park, not what the market will
+build, and not what the street can hold — it is what the standard you chose
+implies. Zones that stand out are candidates for two different questions: does
+the standard fit this district, or does this district's land-use mix need to
+change? A residential zone with a very high figure under a per-dwelling rate is
+usually a density signal, not a parking problem.</p>
+
+<h4>8.2 Cross-references to other PlanX tools</h4>
+<ul>
+<li><strong>Parking Supply-Demand Balance</strong> takes this output as its
+Zone layer and its Demand field, and compares it against a counted inventory
+within an access radius to produce surplus and deficit per zone. This tool
+answers "how much is required"; that one answers "how much is there".</li>
+<li><strong>Land-Use Balance</strong> and <strong>Multi-Amenity Access
+Score</strong> operate on the same zone layers, so a parking-demand map can be
+read alongside per-capita service provision without re-preparing data.</li>
+<li><strong>Scenario testing</strong> is a matter of editing categories and
+sizes and re-running: a residential-to-mixed-use rezoning, a new campus, or a
+stadium is expressed as a change to the category and size columns, and the
+difference in <code>parking_demand</code> between the two runs is the parking
+consequence of the scenario.</li>
+<li><strong>Population Projection</strong> and <strong>Allocate Population
+Growth</strong> supply the dwelling counts for a future year, so the same
+pipeline can estimate growth in parking demand alongside growth in travel
+demand.</li>
+</ul>
+
+<h4>8.3 Pitfalls</h4>
+<ul>
+<li><strong>Mixing bases on one layer.</strong> The most common error. If a
+layer holds dwellings for some zones and floor areas for others, a single table
+cannot be right for both, and the tool cannot detect the mistake because the
+size column is just a number. Split by basis and run each layer separately.</li>
+<li><strong>Trusting the absolute total.</strong> The rates are linear
+multipliers, so the total inherits every error in the table and in the size
+column and in nothing else. Report the standard alongside the number, or report
+a ratio instead.</li>
+<li><strong>Reading an unmatched zero as no demand.</strong> A zone whose
+category is absent from the table is not a zone with no parking demand. Check
+the log's unmatched list before summing anything, and add a row for any
+category that appears in the data but not in the table.</li>
+<li><strong>Overlapping keywords in the wrong order.</strong> Entries are
+matched first-hit, so <code>retail</code> placed before <code>retail
+warehouse</code> captures the more specific category too. Order the table from
+most to least specific.</li>
+<li><strong>Treating the result as a shared-parking or reduction figure.</strong>
+It is the sum of single-use requirements. Real demand is lower where uses peak
+at different times; that discount has to be argued and applied outside this
+tool.</li>
+</ul>
+
+<h3>9. Academic References</h3>
+<p class="ref">Shoup, D.C. (1999). "The trouble with minimum parking requirements."
+<em>Transportation Research Part A: Policy and Practice</em>, 33(7&ndash;8), 549&ndash;574.
+DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(99)00007-5</a>
+</p>
+<p class="ref">Marsden, G. (2006). "The evidence base for parking policies&mdash;a review."
+<em>Transport Policy</em>, 13(6), 447&ndash;457.
+DOI: <a href="https://doi.org/10.1016/j.tranpol.2006.05.009">10.1016/j.tranpol.2006.05.009</a>
+</p>
+<p class="ref">Institute of Transportation Engineers (2019). <em>Parking Generation,</em>
+5th edition. ITE, Washington, DC.
+<span class="no-doi">industry manual, no DOI]</span></p>
+<p class="ref">Shoup, D.C. (2005). <em>The High Cost of Free Parking.</em> APA Planners
+Press, Chicago.
+<span class="no-doi">book, no DOI]</span></p>
+<p class="ref">Litman, T. "Parking Management: Strategies, Evaluation and Planning."
+Victoria Transport Policy Institute.
+Available at: <a href="https://www.vtpi.org/park_man.pdf">vtpi.org/park_man.pdf</a>
+</p>
+
+===ALGORITHM===
+
+<div class="page-break"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PARKING SUPPLY-DEMAND BALANCE                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 id="parkingsupplybalance">Parking Supply-Demand Balance</h2>
+<p><strong>Processing ID:</strong> <code>planx:parkingsupplybalance</code>
+&middot; <strong>Engine:</strong> <code>engine/parking.py</code>
+&middot; <strong>Group:</strong> Travel Demand (18)</p>
+
+<h3>1. Overview</h3>
+<p>Compares the parking each zone <strong>demands</strong> with the parking it
+actually <strong>has within reach</strong>, and reports the surplus or deficit.
+Demand comes from the Parking Demand Estimator; supply is counted from a real
+parking inventory — a point or polygon layer of facilities with a field holding
+the number of spaces each provides. The tool invents no supply figures of its
+own: with no inventory there is nothing to balance against.</p>
+
+<p>Reach is measured by an access radius you set. Supply a street network and
+reach follows the streets; leave it out and reach is straight-line distance.
+The <code>radius_method</code> column records which was used, so a figure can
+always be traced back to the assumption behind it. The tool reports a
+three-state <code>supply_status</code> per zone, and the distinction between
+two of those states — an inventory that reaches the zone and holds nothing
+nearby, versus an inventory that does not reach the zone at all — is the
+finding that most often changes what a map of deficits means.</p>
+
+<h3>2. Theoretical Background</h3>
+
+<h4>2.1 Parking as a supply-demand balance rather than a standard</h4>
+<p>The minimum-parking-requirement tradition treated supply as a quantity to be
+mandated per development. The management tradition that replaced it treats
+parking as a <strong>balance to be measured</strong>: supply in a district
+against demand in that district, with the difference as the object of policy.
+Shoup (1999) and Marsden (2006) both argued that the balance view is what makes
+parking policy evaluable at all, because it turns an ordinance into a
+measurement with an answer that can be wrong.</p>
+
+<p>Measuring the balance requires three quantities that are often conflated.
+<strong>Demand</strong> is what the land uses require. <strong>Supply</strong>
+is what exists, counted. <strong>Accessibility</strong> is how much of the
+supply is usable from a given place — a district with abundant parking on the
+far side of a barrier is, for practical purposes, short of parking. This tool
+separates all three: demand comes from the companion estimator, supply from
+your inventory, and accessibility from the radius and the optional network.</p>
+
+<h4>2.2 Why "no supply" and "not surveyed" are different answers</h4>
+<p>A zone with nothing in range can be in either of two states, and a single
+count cannot tell them apart. Either the inventory covers this ground and
+genuinely records no facilities nearby — a real deficit — or the inventory does
+not extend here at all, in which case nothing is known and the zero is an
+artefact of data coverage.</p>
+
+<p>These two states support opposite conclusions. The first is evidence of a
+parking problem; the second is evidence of a data problem. Reporting them as
+one number would present unsurveyed ground as a shortfall, and any total built
+on that number would overstate the deficit by exactly the unsurveyed area. This
+tool therefore classifies every zone into one of three states and writes a
+<strong>NULL</strong> balance for the unsurveyed one, so the column cannot be
+summed into a false total.</p>
+
+<h4>2.3 Straight-line and network reach</h4>
+<p>Reach is a behavioural assumption, not a geometric fact. The distance a
+driver or pedestrian will accept for parking depends on the route, its
+crossings and its quality, and a straight-line radius overstates accessibility
+wherever a barrier intervenes — a river, a rail corridor, a motorway, a
+fenced campus. Supplying a street network replaces the straight line with the
+shortest path through the network, which is the more defensible measure
+wherever a network is available.</p>
+
+<p>The network mode carries one approximation that must be stated rather than
+buried: a zone and a facility are each attached to their <strong>nearest
+network node</strong>, and the measured distance is that between nodes. On a
+coarse network this overstates distance by up to about one node spacing, and it
+can misorder two facilities that are nearly equidistant. Densify the network
+before running when the ranking of the closest facilities matters.</p>
+
+<h4>2.4 Assumptions and limitations</h4>
+<ul>
+<li><strong>Coverage is inferred from the inventory's extent.</strong> A zone
+is treated as surveyed when it falls inside the bounding box of the inventory
+features. This is a proxy. Where the inventory has a genuine footprint — a
+municipal boundary, a surveyed district — clip the inventory to it first, or
+the proxy will mark zones surveyed that were never visited.</li>
+<li><strong>Capacity is taken as given.</strong> The spaces field is counted,
+not verified; the tool cannot detect an inventory that double-counts a shared
+garage or omits on-street bays.</li>
+<li><strong>No competition for supply.</strong> Two adjacent zones may both
+count the same facility as being in range, and it is reported in full for each.
+The balance is a per-zone comparison, not an assignment of facilities to
+zones.</li>
+<li><strong>Demand is not recomputed here.</strong> The tool balances against
+whatever demand column it is given, so it inherits every assumption in that
+column and in the rate table behind it.</li>
+<li><strong>Cost is one full shortest-path search per zone.</strong> The
+search is deliberately uncut, because the nearest-facility column promises the
+distance however far away the facility is; on large inventories this makes the
+network mode the most expensive step in the tool.</li>
+</ul>
+
+<h3>3. Mathematical Formulation</h3>
+
+<p><strong>Access cost.</strong> Let $j = 1 \ldots M$ index the inventory
+features, $i = 1 \ldots N$ the zones, and $t_{ij}$ the access cost from zone
+$i$ to facility $j$. In straight-line mode it is the Euclidean distance:</p>
+$$t_{ij} = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2} \tag{1}$$
+
+<p>In network mode it is the shortest path through the graph, plus each
+endpoint's own attachment to the network:</p>
+$$t_{ij} = \delta_i + \mathrm{dist}_G\big(n(i),\, n(j)\big) + \delta_j
+\tag{2}$$
+
+<p>where $n(\cdot)$ is the nearest network node and $\delta$ is the distance
+from the point to that node. Both are computed in the projected CRS of the
+network, so the radius is read in metres whenever a projected CRS is used.</p>
+
+<p><strong>Supply in range.</strong> The spaces counted for zone $i$ are those
+of every facility within the radius, an inclusive comparison so that a facility
+exactly at the radius counts:</p>
+$$S_i = \sum_{j \,:\, t_{ij} \le R} s_j \tag{3}$$
+
+<p><strong>Nearest facility.</strong> Reported separately from the in-range
+sum, and deliberately uncut by the radius:</p>
+$$n_i = \min_{j} \; t_{ij} \tag{4}$$
+
+<p><strong>Balance.</strong> The signed difference between supply and demand,
+written only where the zone is surveyed:</p>
+$$b_i = S_i - d_i \tag{5}$$
+
+<p>so that $b_i &lt; 0$ is a deficit and $b_i &gt; 0$ a surplus. A negative
+number is the deficit, never a positive deficit.</p>
+
+<p><strong>Status classification.</strong> Each zone takes exactly one of
+three states, with a facility found in range taking precedence over the
+coverage proxy:</p>
+$$\text{status}_i = \begin{cases} \texttt{counted} & f_i &gt; 0 \\[2pt]
+\texttt{zero supply found} & f_i = 0 \;\wedge\; i \text{ surveyed} \\[2pt]
+\texttt{supply data absent} & f_i = 0 \;\wedge\; i \text{ not surveyed}
+\end{cases} \tag{6}$$
+
+<p>where $f_i$ is the number of inventory features in range. The precedence
+matters: a zone outside the inventory's extent that nonetheless has a facility
+in range is genuinely counted, and must not be reported as unsurveyed.</p>
+
+<h3>4. Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Zone layer</td><td>Vector (Polygon or Point)</td><td>Yes</td><td>Carries the demand field. Use the output of the Parking Demand Estimator, or any layer with a spaces-demanded column.</td></tr>
+<tr><td>Parking demand field</td><td>Numeric</td><td>Yes</td><td>Spaces demanded per zone. Defaults to <code>parking_demand</code>.</td></tr>
+<tr><td>Parking inventory</td><td>Vector (Point or Polygon)</td><td>Yes</td><td>Counted facilities — surface lots, garages, on-street bays. An empty inventory is a valid input and reports every zone as unsurveyed.</td></tr>
+<tr><td>Spaces per facility</td><td>Numeric</td><td>Yes</td><td>Capacity of each facility. NULL or non-numeric values count as 0.</td></tr>
+<tr><td>Street network</td><td>Vector (Line)</td><td>No</td><td>When supplied, reach follows the network instead of a straight line. Should be projected, and densified where accuracy matters.</td></tr>
+</table>
+
+<h3>5. Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>ZONES</code></td><td>Vector layer (Polygon/Point)</td><td>&mdash;</td><td>Zone layer with the demand field.</td></tr>
+<tr><td><code>DEMAND_FIELD</code></td><td>Field (Numeric)</td><td><code>parking_demand</code></td><td>Spaces demanded per zone. NULL values are treated as 0.</td></tr>
+<tr><td><code>SUPPLY</code></td><td>Vector layer (Point/Polygon)</td><td>&mdash;</td><td>Parking inventory. An empty layer reports every zone as unsurveyed rather than as a city-wide deficit.</td></tr>
+<tr><td><code>SUPPLY_FIELD</code></td><td>Field (Numeric)</td><td>&mdash;</td><td>Spaces provided by each facility.</td></tr>
+<tr><td><code>RADIUS</code></td><td>Double</td><td>300.0</td><td>Access radius in map units; approximately a four-minute walk at 300 m. Use a projected CRS to read this as metres. Must be 0 or greater; the comparison is inclusive.</td></tr>
+<tr><td><code>NETWORK</code></td><td>Vector layer (Line)</td><td>None</td><td>Optional street network. Supplying it switches reach from straight-line to network shortest path.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Table (FeatureSink, no geometry)</td><td>&mdash;</td><td>Balance table, one row per zone. Join back to the zone layer on the zone id for mapping.</td></tr>
+</table>
+
+<h3>6. Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>demand_spaces</code></td><td>Double</td><td>Spaces demanded by the zone, carried through from the demand field, rounded to 2 decimals.</td></tr>
+<tr><td><code>supply_spaces</code></td><td>Double</td><td>Spaces counted in range of the zone within the radius, rounded to 2 decimals.</td></tr>
+<tr><td><code>balance_spaces</code></td><td>Double</td><td>Supply minus demand. Negative is a deficit, positive a surplus. <strong>NULL</strong> where the zone is not surveyed.</td></tr>
+<tr><td><code>supply_status</code></td><td>String</td><td>One of <code>counted</code>, <code>zero supply found</code>, <code>supply data absent</code>.</td></tr>
+<tr><td><code>nearest_supply_dist</code></td><td>Double</td><td>Distance to the closest inventory feature, however far away it is. NULL only when the inventory is empty.</td></tr>
+<tr><td><code>radius_method</code></td><td>String</td><td><code>network</code> or <code>straight_line</code> — which reach method produced these figures.</td></tr>
+</table>
+<p>All original zone attributes are preserved. The output has no geometry: the
+balance is a per-zone attribute table, and the tool reports the study-area
+summary in the log rather than as a row.</p>
+
+<h3>7. Symbolic Representation</h3>
+<p>Style <code>balance_spaces</code> with a <strong>diverging ramp centred on
+zero</strong> — RdBu or PuOr reversed, with a value of 0 at the neutral middle,
+deficits in red and surpluses in blue. Cap the ramp at a symmetric range so
+that the neutral colour sits exactly at zero; an asymmetric range puts the
+midpoint colour somewhere other than the balance point and makes a balanced
+zone read as a deficit. Zones with a NULL balance must be rendered in a
+<strong>neutral grey excluded from the ramp</strong>, never as the ramp's
+midpoint, or unsurveyed ground will read as balanced.</p>
+
+<p>A second map of <code>supply_status</code> as three flat categories is the
+one to publish beside it: surveyed-and-counted, surveyed-and-empty, and not
+surveyed. The third category is a data-quality footprint, and putting it on the
+map is what stops a coverage gap from being read as a parking shortage.</p>
+
+<h3>8. Interpretation Guide</h3>
+
+<h4>8.1 How to read the results</h4>
+<p>Read the two counts before the totals. The log prints how many zones were
+counted, how many found zero supply, and — when any exist — how many fall
+outside the inventory. A large <code>supply data absent</code> share means the
+inventory covers only part of the study area and that the surplus or deficit is
+computed over the surveyed zones alone; the total is then a figure about the
+surveyed area and must be reported as one.</p>
+
+<p>For the surveyed zones, <code>balance_spaces</code> reads directly: negative
+is a deficit, positive a surplus. Then use
+<code>nearest_supply_dist</code> to separate the two ways a zone can have
+nothing in range. A zone with zero supply but a nearest facility 50 m beyond a
+300 m radius is short by a stone's throw — the result is sensitive to the
+radius, and comparing two radii is the honest way to report it. A zone with a
+nearest facility 3 km away is short under any plausible radius, and the finding
+is robust.</p>
+
+<h4>8.2 Cross-references to other PlanX tools</h4>
+<ul>
+<li><strong>Parking Demand Estimator</strong> is the upstream tool: it produces
+the demand field this tool consumes, and its per-category subtotals explain
+which land use is driving any deficit found here.</li>
+<li><strong>Service Areas (Isochrones)</strong> and <strong>Nearest Facility
+Allocation</strong> answer related accessibility questions on the same network,
+and the boundary between them and this tool is worth stating: they measure
+reach to services, not the balance of a supply against a demand.</li>
+<li><strong>Multi-Amenity Access Score</strong> can consume a parking inventory
+as one of its amenity categories, giving a picture of parking as one component
+of local accessibility rather than on its own.</li>
+<li><strong>Scenario comparison</strong> is the intended workflow: re-run the
+demand estimator on a proposed land-use scenario, then re-run this tool, and the
+change in the deficit map is the parking consequence of the scenario. Run the
+same scenario with a proposed inventory to test whether adding supply resolves
+it.</li>
+</ul>
+
+<h4>8.3 Pitfalls</h4>
+<ul>
+<li><strong>Summing <code>balance_spaces</code> without reading the statuses.</strong>
+The NULLs are excluded from a sum automatically, so the total silently becomes
+a surveyed-area figure. That is the correct behaviour, but only if the reported
+total says so.</li>
+<li><strong>Reading <code>zero supply found</code> as a shortage everywhere.</strong>
+It is a real deficit under the radius and standard you set. Change the radius
+and the classification changes with it; report the radius beside the finding, or
+report the two extremes.</li>
+<li><strong>Using an extent proxy as a survey boundary.</strong> A few
+scattered inventory points can mark a large area surveyed. Clip the inventory
+to the area actually surveyed before running.</li>
+<li><strong>A radius in the wrong units.</strong> The radius is in map units,
+so a layer in degrees with a 300-unit radius is a hemisphere, not a walk.
+Reproject to a metric CRS, or the figures will be meaningless rather than
+merely approximate.</li>
+<li><strong>Reading the network figures as exact.</strong> In network mode the
+distance is measured between network nodes, so a coarse network overstates
+distance. Densify before comparing facilities that are nearly equidistant, and
+do not read a difference smaller than the node spacing as a real difference.</li>
+<li><strong>Comparing the balance against a demand it did not come from.</strong>
+The balance is meaningful only against the demand column supplied, and that
+column carries its own rate assumptions. Change the rates and the balance
+changes; the supply side has not moved.</li>
+</ul>
+
+<h3>9. Academic References</h3>
+<p class="ref">Davis, A.Y., Pijanowski, B.C., Robinson, K. &amp; Engel, B. (2010). "The
+environmental and economic costs of sprawling parking lots in the United
+States." <em>Land Use Policy</em>, 27(2), 255&ndash;261.
+DOI: <a href="https://doi.org/10.1016/j.landusepol.2009.03.002">10.1016/j.landusepol.2009.03.002</a>
+</p>
+<p class="ref">van Ommeren, J., Wentink, D. &amp; Rietveld, P. (2012). "Empirical evidence
+on cruising for parking." <em>Transportation Research Part A: Policy and
+Practice</em>, 46(1), 123&ndash;130.
+DOI: <a href="https://doi.org/10.1016/j.tra.2011.09.011">10.1016/j.tra.2011.09.011</a>
+</p>
+<p class="ref">Chester, M., Horvath, A. &amp; Madanat, S. (2010). "Parking infrastructure:
+energy, emissions, and automobile life-cycle environmental accounting."
+<em>Environmental Research Letters</em>, 5(3), 034001.
+DOI: <a href="https://doi.org/10.1088/1748-9326/5/3/034001">10.1088/1748-9326/5/3/034001</a>
+</p>
+<p class="ref">Shoup, D.C. (1999). "The trouble with minimum parking requirements."
+<em>Transportation Research Part A: Policy and Practice</em>, 33(7&ndash;8), 549&ndash;574.
+DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(99)00007-5</a>
+</p>
+
+
+===ALGORITHM===
+
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- GROUP 19: SEISMIC RISK                                              -->
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -14700,7 +15289,7 @@ DOI: <a href="https://doi.org/10.1080/15732479.2016.1170780">10.1080/15732479.20
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.11.2 &middot; 69 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.12.0 &middot; 71 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
 </p>
 
 
