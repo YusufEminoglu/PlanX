@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.11.2] - 2026-09-19
+
+Quality infrastructure. No algorithm behaviour changed and no algorithm was added.
+
+### Fixed
+- The Help button was dead for all 69 algorithms. `DOC_BASE_URL` still named the retired GitHub Pages host, so every Help link and both Studio dock documentation actions opened a 404 while `metadata.txt` advertised the live host. The URL is now defined once and imported by the dock.
+- `tests/test_engine.py` (528 checks, no QGIS imports) was filed under `tests_qgis` with `tests_pure = []`, so no CI-reachable runner executed it. It is now filed as a pure suite.
+- The manual advertised a stale version and eight stale Processing IDs (`planx:buildingformmetrics`, `planx:morphologicaltessellation`, `planx:spacematrixdensity`, `planx:streetnetworkmorphology`, `planx:multiamentiyaccess`, `planx:frontalareaindex`, `planx:noisescreening`, `planx:airscreening`), so documented IDs did not match the registry.
+- The README claimed counts nothing checked: it said 285 display equations against the manual's 289, and an undefined "~600 citations". Both are now counted and true.
+
+### Added
+- `tests/smoke_provider_catalog.py`: 15 pure catalog gates tying the algorithm registry to the manual (anchors one-to-one in both directions, the 19 groups as an exact set, stable ids, one icon per algorithm, version literals, help host versus `metadata.txt` homepage).
+- `tests/qgis_runtime_algorithm_matrix.py`: builds a fixture city, auto-wires each algorithm's declared parameters, executes all 69 on QGIS 3.44 LTR and 4.2, and verifies that every declared output is actually populated. Reports the wiring chosen and the algorithm's own log per case.
+
 ## [4.11.1] - 2026-09-17
 
 - Upgraded official plugin icon to high-end tactile 3D brand identity (isometric 45°, slim teal pedestal, full bleed transparent canvas).

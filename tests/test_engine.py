@@ -2324,8 +2324,34 @@ check("weather: monthly measured-sky factors",
           {"monthly_ghi": [50.0, 200.0]}, [100.0, 100.0]) == [0.5, 2.0])
 
 # --------------------------------------------------------------------------- #
-fails = [label for label, ok in CHECKS if not ok]
-print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
-if fails:
-    print("FAILED:", *fails, sep="\n  - ")
-sys.exit(1 if fails else 0)
+def _failures():
+    return [label for label, ok in CHECKS if not ok]
+
+
+def _report():
+    fails = _failures()
+    print(f"\n{len(CHECKS) - len(fails)}/{len(CHECKS)} checks passed")
+    if fails:
+        print("FAILED:", *fails, sep="\n  - ")
+    return 1 if fails else 0
+
+
+def test_engine_checks():
+    """Pytest entry point for the checks that ran at import time above.
+
+    Every check in this module executes at module level, so by the time pytest
+    calls this function the whole suite has already run and CHECKS is full -
+    this assertion is only the verdict. It is what makes the 528 checks
+    enforced by the monorepo's pure-test gate.
+
+    Without it the module is invisible to pytest: it used to end in a bare
+    sys.exit(), and sys.exit() during collection is an INTERNALERROR, not a
+    test result. Filed under tests_pure in plugins.toml, the gate therefore
+    could not run this suite at all - it exited 3 having asserted nothing.
+    """
+    fails = _failures()
+    assert not fails, f"{len(fails)} engine check(s) failed: {fails}"
+
+
+if __name__ == "__main__":
+    sys.exit(_report())

@@ -13,8 +13,9 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.core import QgsApplication
 
+from .algorithms.base import DOC_BASE_URL
+
 PLUGIN_DIR = os.path.dirname(__file__)
-DOC_BASE_URL = "https://yusufeminoglu.github.io/PlanX/PLANX_REFERENCE_MANUAL.html"
 
 TOOL_PRESETS = {
     "planx:preparenetwork": {"CREATE_INDEX": True, "MIN_LENGTH": 0.05},

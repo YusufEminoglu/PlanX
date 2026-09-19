@@ -26,7 +26,13 @@ from ..engine.provenance import build_manifest
 from ..engine import graphs
 
 PLUGIN_DIR = os.path.dirname(os.path.dirname(__file__))
-DOC_BASE_URL = "https://yusufeminoglu.github.io/PlanX/PLANX_REFERENCE_MANUAL.html"
+#: Single definition of the published manual URL. Every Help button
+#: (helpUrl() below) and both Studio dock documentation actions resolve
+#: through this constant, so it must name the host that is actually live:
+#: it moved off yusufeminoglu.github.io and only metadata.txt was updated,
+#: which left all 69 deep links returning 404. studio_dock.py imports this
+#: rather than repeating the literal.
+DOC_BASE_URL = "https://geophilo.com/planx/PLANX_REFERENCE_MANUAL.html"
 
 GROUP_NETWORK = ("Network Analysis", "network")
 GROUP_CENTRALITY = ("Centrality and Space Syntax", "centrality")
