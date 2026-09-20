@@ -7,17 +7,21 @@ one algorithm to five, as four releases.
 quality programme for the 71-algorithm plugin. It lists a candidate `v4.13.0` for traffic
 assignment; that number is now taken by the seismic debris rebuild. This document owns the
 seismic thread and takes `v4.14.0` upward. It does not supersede the other file.
-**Status (2026-09-19, updated after the unit fix):** Faz 1 is **committed** at v4.14.0,
-`102cab2`, annotated tag `v4.14.0`; Faz 2 is **committed** at v4.15.0, `589dbb6`,
-annotated tag `v4.15.0` (`planx:seismicimpact`: engine `engine/impact.py`, algorithm,
-provider registration, icon, runtime-matrix chaining case, manual card,
-README/METHODS/CHANGELOG and the Hazus Sections 12–13 notice). Both are **not pushed and
-not uploaded**. A **unit fix, v4.15.1**, is built on top of Faz 2 and is its own release,
-because it changes reported values in three tools: see "The unit fix" below. Faz 3 and
-Faz 4 are unstarted. The plan text below is left as written, with each phase's deviations
-from it recorded under "as built" in its own section - the plan is the contract, so where
-the implementation departed from it the departure is stated rather than the plan quietly
-edited to match. **Both phases are held only by commit, tag and upload.**
+**Status (2026-09-20, updated after Faz 4 shipped and the tags were pushed):** **all four
+phases are shipped.** Faz 1 at v4.14.0, `102cab2`, annotated tag `v4.14.0`; Faz 2 at
+v4.15.0, `589dbb6`, annotated tag `v4.15.0` (`planx:seismicimpact`: engine
+`engine/impact.py`, algorithm, provider registration, icon, runtime-matrix chaining case,
+manual card, README/METHODS/CHANGELOG and the Hazus Sections 12–13 notice); a **unit fix,
+v4.15.1**, on top of Faz 2, its own release because it changes reported values in three
+tools: see "The unit fix" below; Faz 3 at v4.16.0, `0788f48`, annotated tag `v4.16.0`
+(`planx:liquefaction`); Faz 4 at v4.17.0, `5e3bfeb`, annotated tag `v4.17.0`
+(`planx:coseismiclandslide`). **Tags `v4.14.0`–`v4.18.0` are pushed to both remotes, and
+GitHub Releases exist for v4.13.0–v4.18.0.** The plugin is at v4.18.0. The plan text below
+is left as written, with each phase's deviations from it recorded under "as built" in its
+own section - the plan is the contract, so where the implementation departed from it the
+departure is stated rather than the plan quietly edited to match. What remains open is the
+§4 deferred work (Hazus repair cost and downtime, a PFDHA proximity screen) and the
+Turkey-calibration gap, neither of which is a phase of this plan.
 
 **The unit fix (v4.15.1, after Faz 2, before Faz 3).** 4.15.0's changelog recorded an open
 defect: `planx:seismicdebris` fed `QgsGeometry.area()` — the layer's own area unit — into

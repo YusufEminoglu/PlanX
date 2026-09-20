@@ -66,8 +66,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the seventy-four tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 670 engine unit checks against hand-computed values + 448 end-to-end assertions on real QGIS 3 LTR and QGIS 4. Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the seventy-five tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 731 engine unit checks against hand-computed values, plus a runtime matrix that executes every one of the 75 algorithms on real QGIS 3.44 LTR and on real QGIS 4.2 (78 cases, 0 failures on either). Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio toolbar panel** — click the single PlanX toolbar icon to browse and launch the whole toolset, every tool with its own icon.
 
 ## 🚀 Installation

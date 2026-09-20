@@ -364,11 +364,21 @@ planx/
   **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility and walkability.
   387 unit + 317 e2e + 24 dashboard checks on QGIS 3.44 LTR and QGIS 4.0.2.
 
-### The v4 series (in progress)
+### The v4 series — release log
 
-Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-F have shipped: 50 -> 63 algorithms across 18 groups. Follow-on releases added Scenario Ranking, Seismic Risk and the Network Routing & Walking Comfort battery.
+Every phase of `docs/ENHANCEMENT_PLAN_v4.md` is executed phase-by-phase. Phases A-F have shipped: 50 -> 63 algorithms across 18 groups. Follow-on releases added Scenario Ranking, the Network Routing & Walking Comfort battery, parking, the Seismic Risk programme and the ground-units pass. The series is now at **v4.18.0, 75 algorithms across 19 groups**; what comes next is owned by `docs/ENHANCEMENT_PLAN_v5.md` (R2-R7 still unbuilt) and `docs/ENHANCEMENT_PLAN_v5_seismic.md` (all four phases shipped).
 
 - **v4.10 — Link Criticality:** a Network Analysis tool that ranks the street segments whose loss most raises network-wide travel cost or severs demand over a supplied origin-destination set (Network Robustness Index; Scott et al. 2006 / Jenelius et al. 2006). New pure-NumPy `engine/robustness.py` reusing the embedded predecessor-tracking Dijkstra; edge removal is a CSR mask. 69 algorithms across 19 groups.
+- **v4.7 — Isochrones and interpretation:** Service Areas rebuilt as exact isochrones with pedshed analysis; every tool's help now ends with a "How to read the results" section.
+- **v4.8 — Scenario Ranking** (`planx:scenariorank`): weighted composite scenario ranking, the ranking algorithm, an HTML ranking board and a dashboard rank button.
+- **v4.9 — Network routing UX and walking comfort** (`planx:odroutes`, `planx:walkingslope`, `planx:streetcomfort`): OD routes, walking slope, street comfort, plus `preparenetwork` / `nearestfacility` extensions.
+- **v4.11.2 — Quality infrastructure:** no algorithm behaviour changed and none was added. It shipped the three missing gates — `tests/smoke_provider_catalog.py`, `tests/qgis_runtime_algorithm_matrix.py` and the pure-suite re-filing — and resolved defects D1-D8 of `docs/ENHANCEMENT_PLAN_v5.md` §1.
+- **v4.12.0 — Parking demand and supply balance** (`planx:parkingdemand`, `planx:parkingsupplybalance`): two new Travel Demand algorithms, purely additive.
+- **v4.13.0 — Seismic debris rebuilt on Hazus fragility curves:** one algorithm changed, none added. The collapse probability no longer saturates, debris now comes from the sampled damage state rather than collapse alone, and `VOID_RATIO`, `DEBRIS_DENSITY`, `MIN_CLEAR_WIDTH`, `OUT_NAVIGABLE`, `PGA_FIELD` and `BUILDING_TYPE` were added.
+- **v4.14.0 — v4.17.0 — the Seismic Risk programme:** `planx:groundmotion` (v4.14.0), `planx:seismicimpact` (v4.15.0), `planx:liquefaction` (v4.16.0) and `planx:coseismiclandslide` (v4.17.0), each with its own annotated tag and GitHub release. v4.15.1 is a separate unit fix on top of Faz 2. Design and deviations: `docs/ENHANCEMENT_PLAN_v5_seismic.md`.
+- **v4.18.0 — Ground units:** thirteen algorithms and `engine/noise.py` moved onto `GroundUnits`, so every tool that publishes an area, a length, a density or a rate measures it on the ground rather than in the layer's own coordinates. No tool added, removed or renamed, and no input or output schema changed.
+
+Current gate figures, measured: `tests/test_engine.py` 731 checks; `tests/smoke_provider_catalog.py` 15/15; `tests/qgis_runtime_algorithm_matrix.py` 78/78 on each of QGIS 3.44 LTR and QGIS 4.2.
 
 ## Quality gates (every release)
 
