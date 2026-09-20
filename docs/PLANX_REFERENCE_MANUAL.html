@@ -2636,7 +2636,9 @@ between the shortest path and the pleasantest one.</p>
 <p>The walkability index traces its lineage to urban planning's <strong>D-variables</strong> framework (Ewing &amp; Cervero, 2010): Density, Diversity (land-use mix), Design (street connectivity), Destination accessibility, and Distance to transit. Frank et al. (2010) operationalised four of these for the Neighborhood Quality of Life Study. PlanX adapts this to the <strong>street-segment</strong> level — walkability is fundamentally a <strong>network property</strong>: a street is walkable not in isolation but by virtue of what it connects to. Breakpoints default to a comfortably walkable European urban fabric: 120 junctions/km², 80 m block length, 25 POIs, and 0% slope all score 100.</p>
 <h3>Mathematical Formulation</h3>
 <p><strong>Intersection density.</strong> Junctions (degree ≥ 3) counted within radius $r$ of each segment midpoint:</p>
-$$int\_km2(s) = \frac{|\{j : \|p_j - m_s\| \leq r\}|}{\pi r^2 / 10^6} \qquad s\_inters(s) = 100 \cdot \min(1, int\_km2(s) / 120) \tag{2}$$
+$$int\_km2(s) = \frac{|\{j : \|p_j - m_s\| \leq r\}|}{\pi (r/\rho)^2 / 10^6} \qquad s\_inters(s) = 100 \cdot \min(1, int\_km2(s) / 120) \tag{2}$$
+
+<p>where $r$ is the audit radius in the layer's own coordinates &mdash; what its label says, and what gates the junction and destination counts &mdash; and $\rho$ is how many of those coordinates make one metre of ground on the layer's CRS and ellipsoid. The census is taken in map units and the denominator is that same circle measured on the ground, so $int\_km2$ is junctions per <em>ground</em> square kilometre: at 41&deg;N on EPSG:3857 the circle covers 1.76&times; the ground the raw $r$ implies.</p>
 <p><strong>Land-use mix.</strong> Normalised Shannon entropy of buffer land-use areas:</p>
 $$mix(s) = \frac{-\sum_c p_c \ln p_c}{\ln N_{cat}} \in [0,1] \qquad s\_mix(s) = 100 \cdot mix(s) \tag{1}$$
 <p><strong>Destinations.</strong> POI count within radius: $s\_dest(s) = 100 \cdot \min(1, n\_pois(s) / 25)$.</p>
@@ -3650,7 +3652,7 @@ orientation entropy, meshedness indices, and junction typology).</p>
 
 <h3>2. Mathematical Formulation</h3>
 
-<p>Let $R = \{(x_1, y_1), \ldots, (x_n, y_n)\}$ denote the exterior ring of a building footprint, with $x_{n+1} = x_1$ and $y_{n+1} = y_1$ for closure. Let interior rings (courtyards) be denoted $I_1, \ldots, I_m$. All metrics are computed in projected map units (metres).</p>
+<p>Let $R = \{(x_1, y_1), \ldots, (x_n, y_n)\}$ denote the exterior ring of a building footprint, with $x_{n+1} = x_1$ and $y_{n+1} = y_1$ for closure. Let interior rings (courtyards) be denoted $I_1, \ldots, I_m$. Areas and lengths are measured <em>on the ground</em>, through the layer's CRS and its ellipsoid, so a column named <code>area_m2</code> is square metres of ground on any projected CRS &mdash; a foot-based state-plane layer included, where the raw ring coordinates overstate the area 10.76&times;. The dimensionless metrics (<code>compact</code>, <code>convexity</code>, <code>rectangularity</code>) are ratios of two such quantities, so the conversion cancels in them.</p>
 
 <div class="eq">
 $$
@@ -3735,7 +3737,7 @@ $$
 
 <h4>5.4 Common Pitfalls</h4>
 <ul>
-<li><strong>Geographic CRS:</strong> using lat/lon produces area and perimeter values in decimal-degree units, which are meaningless. The tool emits a warning but does not block execution.</li>
+<li><strong>Geographic CRS:</strong> using lat/lon would produce area and perimeter values in decimal-degree units, which are meaningless, so the tool <em>refuses to run</em> on a geographic layer and says which CRS it found. Reproject to the local projected CRS first.</li>
 <li><strong>Over-digitised data:</strong> hundreds of corners on a simple rectangular house indicate a CAD import that preserved every curve vertex. Filter using <code>corners &lt; 6 AND rectangularity &gt; 0.95</code>: buildings passing this test should have 4 corners; any with &gt; 20 corners are over-digitised.</li>
 <li><strong>Multi-polygon buildings:</strong> only the largest part is measured. Detached garages and outbuildings are ignored. If these are critical, split the building into separate features first.</li>
 <li><strong>Shared-wall false positives:</strong> walls separated by &lt; 1 mm due to digitising tolerance will register as shared. Check anomalously high sharedwall on detached villas by inspecting the source data.</li>
@@ -3898,7 +3900,7 @@ $$
 <li><strong>Intersection splitting:</strong> buildings that cross block boundaries are split proportionally by area. This is correct for area-based metrics (GSI, FSI) but introduces slight error in distributed building counts.</li>
 <li><strong>Single floor count:</strong> each building has one floor count value. Mixed-use buildings with different floor counts per part should be split before processing.</li>
 <li><strong>Block geometry:</strong> the tool assumes blocks are non-overlapping polygons. Overlapping or nested blocks produce double-counted area.</li>
-<li><strong>CRS requirement:</strong> all area computations use the CRS of the blocks layer, which must be projected with metric units.</li>
+<li><strong>CRS requirement:</strong> the blocks layer must be projected. Its areas are measured on the ground through its CRS and ellipsoid, so <code>fp_m2</code> and <code>gfa_m2</code> are square metres of ground rather than raw block coordinates; <code>gsi</code>, <code>fsi</code>, <code>osr</code> and <code>levels</code> are shares built from those areas, so the conversion cancels in each of them.</li>
 </ul>
 
 <h3>2. Mathematical Formulation</h3>
@@ -6001,9 +6003,9 @@ $$v_{i, c_x, c_y} = v_i \cdot \mathbf{1}[p_i \in R] \tag{2}$$
 
 $$\text{value}_{c_x, c_y} = \sum_{i=1}^m v_{i, c_x, c_y} \tag{3}$$
 
-$$\text{dens\_ha}_{c_x, c_y} = \frac{\text{value}_{c_x, c_y}}{h^2 / 10{,}000} \tag{4}$$
+$$\text{dens\_ha}_{c_x, c_y} = \frac{\text{value}_{c_x, c_y}}{A_{\text{cell}} / 10{,}000} \tag{4}$$
 
-<p>where <em>h</em><sup>2</sup> / 10,000 converts square map units to hectares.
+<p>where $A_{\text{cell}}$ is the cell's area <em>on the ground</em> &mdash; the map-unit square of side <em>h</em> measured through the layer's CRS and its ellipsoid, probed once at the extent centre. The cell stays a map-unit square, because it is what decides which features fall in it; only the hectare denominator is converted, so <code>dens_ha</code> is features per ground hectare. On EPSG:3857 at 41&deg;N the raw <em>h</em><sup>2</sup> overstates the ground area 1.76&times;.
 Only cells with at least one contributing feature are written; empty cells are
 skipped, keeping the output compact and free of sea-of-zero artefacts.</p>
 
@@ -10333,7 +10335,7 @@ use 0.80 for suburban apartment blocks, 0.90 for terrace/semi-detached.</p>
 
 <h3>3. Mathematical Formulation</h3>
 
-<p>Let parcel $i$ have area $A_i$ (in square map units, typically m$^2$) and
+<p>Let parcel $i$ have area $A_i$ in square metres <em>of ground</em> (measured through the layer's CRS and its ellipsoid, not read off the raw polygon coordinates) and
 zoning floor-area ratio $\text{FAR}_i$. The <strong>potential floorspace</strong> is:</p>
 
 $$F_i^{\text{pot}} = A_i \cdot \max(0, \text{FAR}_i) \tag{1}$$
@@ -10733,7 +10735,9 @@ expose exactly that discrepancy.</p>
 <h3>3. Mathematical Formulation</h3>
 
 <p>Let the hierarchy define $K$ classes, each a pair $(s_k, d_k)$ where $s_k$
-is the minimum area (ha) and $d_k$ is the maximum network distance (metres).
+is the minimum area in ground hectares (a published planning standard, so the
+patch is measured through the layer's CRS and ellipsoid before it is compared
+with it) and $d_k$ is the maximum network distance (metres).
 Let $\mathcal{G}$ be the set of $M$ green spaces with areas $A_j$ and
 representative points (centroids or entrance points). A green space qualifies
 for class $k$ if:</p>
@@ -10950,7 +10954,8 @@ it is the keystone of the green network.</p>
 
 <h3>3. Mathematical Formulation</h3>
 
-<p>Let there be $n$ patches with areas $a_i > 0$ (in m$^2$). Let
+<p>Let there be $n$ patches with areas $a_i > 0$ in square metres of ground
+(measured through the layer's CRS and its ellipsoid). Let
 $\mathcal{E} = \{(i, j) : \text{dist}(i, j) \leq d_{\max}, i < j\}$ be the
 set of edges linking patches whose edge-to-edge distance is at most the
 maximum gap $d_{\max}$.</p>
