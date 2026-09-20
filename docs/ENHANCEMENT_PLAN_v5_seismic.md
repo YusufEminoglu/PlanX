@@ -588,8 +588,8 @@ catch.
 **Why last.** It is the least defensible of the four, and it is last because of that rather
 than in spite of it. It is also last because the others are the ones a planner reaches for.
 
-**Model: Jibson (2007)**, *Bulletin of the Seismological Society of America* 97(4),
-1206–1219 — the Newmark-displacement regression:
+**Model: Jibson (2007)**, *Engineering Geology* 91(2–4), 209–218 — the
+Newmark-displacement regression:
 
 ```
 Eq. 6:  log D_N = a + b·log(1 − a_c/PGA) + c·log(a_c/PGA)

@@ -114,22 +114,32 @@ manual — *Liquefaction* — transcribed value for value:
 
 ## Jibson (2007) coseismic landslide displacement coefficients
 
-`engine/landslide.py` carries the coefficients of **Equation 8** of Jibson,
+`engine/landslide.py` carries the coefficients of **Equation 7** of Jibson,
 R. W. (2007), *Regression models for estimating coseismic landslide
 displacement*, Engineering Geology 91(2–4), 209–218, DOI
 10.1016/j.enggeo.2007.01.013 — the Newmark sliding-block regression of
 `log₁₀ D_N` on the critical-acceleration ratio and the moment magnitude, with
-its standard deviation of 0.454 in log10 units.
+its standard deviation of 0.454 in log10 units and a stated applicability range
+of 5.3 ≤ M ≤ 7.6.
 
 - The paper is **paywalled and was not read for this implementation.** Its
-  coefficients were transcribed from an open-access article that reproduces
-  Equation 8 alongside its own refit of the same data: **Yiğit, M. E. (2026)**,
-  *Pamukkale Üniversitesi Mühendislik Bilimleri Dergisi* 32(1), 191–199, DOI
-  10.5505/pajes.2025.29499, open access. That side-by-side presentation is what
-  makes the source usable as a transcription rather than only as a citation —
-  its own fit prints a different exponent (1.3593 against the published 2.335),
-  and its Equation 9 reproduces the USGS Arias-intensity form digit-for-digit
-  including the 0.616 dispersion.
+  coefficients were transcribed from an open-access article that prints the
+  equation as **its own** Equation 8 alongside its own refit of the same data:
+  **Yiğit, M. E. (2026)**, *Pamukkale Üniversitesi Mühendislik Bilimleri
+  Dergisi* 32(1), 191–199, DOI 10.5505/pajes.2025.29499, open access. That
+  side-by-side presentation is what makes the source usable as a transcription
+  rather than only as a citation — its own fit prints a different exponent
+  (1.3593 against the published 2.335).
+- The **equation number is not taken from that transcription**, because Yiğit
+  numbers the paper's equations by its own scheme. It is taken from an
+  independent implementation that cites Jibson's own numbering: the USGS
+  `groundfailure` package documents its `J_PGA_M` model as *"PGA and M-based
+  model, equation 7 from Jibson (2007)"* and carries the same four constants
+  (−2.71, 2.335, −1.478, 0.424) with `logDnstd = 0.454`. Earlier releases of
+  this plugin printed "Equation 8" here, which is wrong — Equation 8 of that
+  paper is the symbolic template `log D_N = A log I_a + B log a_c + C ± σ`, not
+  a fitted regression. The paper lists its four regressions as Eqs. (6), (7),
+  (9) and (10).
 - The coefficients are transcribed, never recalled: they are one named constant
   block in the engine, and the engine test suite asserts them against the values
   the source prints.

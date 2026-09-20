@@ -3327,7 +3327,7 @@ check("Hazus: an unrecognised category returns None rather than a guess",
 
 # --------------------------------------------------------------------------- #
 # Coseismic landslide screening
-# Jibson (2007) Equation 8, on a critical acceleration from Hazus 6.1 4.2.2.2
+# Jibson (2007) Equation 7, on a critical acceleration from Hazus 6.1 4.2.2.2
 # --------------------------------------------------------------------------- #
 # The two halves of this model are published separately and were transcribed
 # separately, so the checks below are mostly *cross*-checks: the tables say the
@@ -3406,7 +3406,7 @@ check("Hazus: a cell the floor does not reach is left at its Table 4-16 value",
 
 # "None" is the word the manual prints in Table 4-16's value row, not a value,
 # so it is absent from the table rather than mapped to zero - and it has to stay
-# absent, because a zero reaching Equation 8 is an infinity, which would turn
+# absent, because a zero reaching Equation 7 is an infinity, which would turn
 # the model's safest answer into its loudest one.
 _hi = lsl.hazus_susceptibility("B", "wet", 3.0)
 check("Hazus: below the bound the answer is 'None' with no acceleration, not zero",
@@ -3475,7 +3475,7 @@ check("Hazus: moisture is dry or wet and nothing else",
 _log10_hand = (-2.71 + 2.335 * math.log10(0.5) - 1.478 * math.log10(0.5)
                + 0.424 * 7.5)
 _hand = lsl.jibson_displacement(0.5, 1.0, 7.5)
-check("Jibson: Equation 8 reproduces the hand-computed median displacement",
+check("Jibson: Equation 7 reproduces the hand-computed median displacement",
       _hand["moving"] and close(_hand["ratio"], 0.5, 1e-15)
       and close(_hand["log10_disp"], _log10_hand, 1e-12)
       and close(_hand["disp_cm"], 10.0 ** _log10_hand, 1e-12)

@@ -653,7 +653,7 @@ ENUM_OVERRIDES = {
     # ... and the groundwater state has no default either, for a stronger
     # version of the same reason: it moves a third of Table 4-14's cells, up to
     # four categories at one slope and group, which is a factor of eight in the
-    # acceleration Equation 8 is given. Wet is the primary run because it fills
+    # acceleration Equation 7 is given. Wet is the primary run because it fills
     # more of the table - a group whose cells are mostly "None" would leave the
     # displacement branch unexercised - and the refusal from index 0 is held
     # separately in REFUSALS.
@@ -2954,13 +2954,13 @@ def _expect_liquefaction_matches_its_hazus_terms(path):
 
 
 def _expect_coseismic_rows(path, routes, all_groups=False):
-    """Equation 8 and the Hazus chain, re-derived from each row's own terms.
+    """Equation 7 and the Hazus chain, re-derived from each row's own terms.
 
     The tool has three ways of learning a critical acceleration and they are
     different models of the same ground, so the check has to hold three things
     at once: that each row's ``ac_src`` names the route it was actually run
     on, that the number came from *that* route's table or column, and that the
-    displacement is Equation 8 evaluated on the row's own acceleration, PGA and
+    displacement is Equation 7 evaluated on the row's own acceleration, PGA and
     magnitude. A row that took the wrong branch writes a plausible, monotone,
     fully populated displacement - the only thing standing between them is a
     re-derivation, and the file carries every term it needs.
@@ -2976,7 +2976,7 @@ def _expect_coseismic_rows(path, routes, all_groups=False):
     - the refusal to write a number where the model has none. Below Table
       4-15's slope bound Hazus establishes no susceptibility at all, and the
       tool has to leave ``ac_g`` empty rather than zero it: zero is the ratio
-      Equation 8 diverges on, so a zeroed row is the *loudest* answer wearing
+      Equation 7 diverges on, so a zeroed row is the *loudest* answer wearing
       the safest one's clothes. ``ac_g is None`` is asserted, not ``falsy``.
     - the provenance itself. Hazus's acceleration is an inference from a map
       unit, a field acceleration is a measurement, and the two must not arrive
@@ -3133,7 +3133,7 @@ def _expect_coseismic_rows(path, routes, all_groups=False):
                 if ac_g is not None:
                     return (f"row {index}: Hazus assigns no susceptible deposit "
                             f"here, yet ac_g is {ac_g!r} - a zeroed "
-                            "acceleration is the value Equation 8 diverges on")
+                            "acceleration is the value Equation 7 diverges on")
                 expected_source = f"hazus:{group}:{moisture}:{expected['category']}"
                 if source != expected_source:
                     return (f"row {index}: ac_src is '{source}' where the chain "
@@ -3163,7 +3163,7 @@ def _expect_coseismic_rows(path, routes, all_groups=False):
         else:
             return f"row {index}: '{source}' names no route this tool has"
 
-        # The displacement, on Equation 8, from the row's own terms. ac_ratio
+        # The displacement, on Equation 7, from the row's own terms. ac_ratio
         # is checked here as well rather than trusted: it is the number a
         # reader uses to decide whether the row is inside the regression's
         # range, and a ratio that disagrees with ac_g and pga_g would move that
@@ -3179,7 +3179,7 @@ def _expect_coseismic_rows(path, routes, all_groups=False):
             value = expected[key]
             if abs(float(row[column]) - value) > 1e-9 * max(1.0, abs(value)):
                 return (f"row {index}: {column} is {float(row[column]):.9f} "
-                        f"where Equation 8 gives {value:.9f} on this row's own "
+                        f"where Equation 7 gives {value:.9f} on this row's own "
                         "acceleration, PGA and magnitude")
         stored_log = row["ls_log_disp"]
         if expected["log10_disp"] is None:
@@ -3196,7 +3196,7 @@ def _expect_coseismic_rows(path, routes, all_groups=False):
             if stored_log is None \
                     or abs(float(stored_log) - expected["log10_disp"]) > 1e-12:
                 return (f"row {index}: ls_log_disp is {stored_log!r} where "
-                        f"Equation 8's log of the displacement is "
+                        f"Equation 7's log of the displacement is "
                         f"{expected['log10_disp']:.12f}")
         if expected_ratio < 1.0 and float(row["nw_disp_cm"]) <= 0.0:
             return (f"row {index}: a_c/PGA is {expected_ratio:.6f}, below unity, "

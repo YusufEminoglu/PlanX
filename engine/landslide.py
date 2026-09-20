@@ -3,14 +3,14 @@
 
 Two halves that compose, and the composition is the whole tool:
 
-* **Jibson (2007) Equation 8** turns a critical acceleration, a peak ground
+* **Jibson (2007) Equation 7** turns a critical acceleration, a peak ground
   acceleration and a magnitude into a Newmark displacement - the distance a
   slope is expected to slide. It takes exactly the two quantities the seismic
   chain already produces (PGA and Mw) and nothing else, which is why it is the
   displacement model here.
 * **Hazus 6.1 Section 4.2.2.2** turns a geological group, a groundwater state
   and a slope angle into a critical acceleration - which is the number
-  Equation 8 needs and that almost nobody has as a layer.
+  Equation 7 needs and that almost nobody has as a layer.
 
 Every number below is transcribed from a named table in a named document and
 the table number is in the comment above it (rule R1: a coefficient written
@@ -37,39 +37,49 @@ from __future__ import annotations
 import math
 
 # ---------------------------------------------------------------------- #
-# Jibson (2007) Equation 8 - Newmark displacement
+# Jibson (2007) Equation 7 - Newmark displacement
 # ---------------------------------------------------------------------- #
 
 #: Coefficients of the Newmark-displacement regression of Jibson (2007),
 #: *Engineering Geology* 91(2-4), 209-218, DOI 10.1016/j.enggeo.2007.01.013,
 #: "Regression models for estimating coseismic landslide displacement", its
-#: Equation 8 - the form that carries a magnitude term::
+#: **Equation 7** - the form that carries a magnitude term::
 #:
 #:     log D_N = -2.71 + log[(1 - a_c/a_max)^2.335 * (a_c/a_max)^-1.478] + 0.424 M
 #:
 #: with ``D_N`` in **centimetres**, ``a_c`` and ``a_max`` both in g, ``M`` the
-#: moment magnitude, and the log base 10.
+#: moment magnitude, the log base 10, and the paper's stated applicability
+#: range 5.3 <= M <= 7.6.
 #:
 #: The paper is paywalled and the USGS publication page offers no free full
 #: text, so these five numbers were **not** read off it. They were read from an
-#: open-access, peer-reviewed article that prints the equation and cites it as
-#: its reference [26] - Yiğit, *Pamukkale Üniversitesi Mühendislik Bilimleri
-#: Dergisi* 32(1), 191-199, 2026, DOI 10.5505/pajes.2025.29499, its Equation 8.
-#: Two things argue against a garbled transcription there: that article's own
-#: refit of the same functional form on Turkish records prints visibly
-#: *different* exponents (1.3593), so the two are not one number copied twice;
-#: and the same article prints the sibling form of the same paper, Equation 9,
-#: as ``0.561 log I_a - 3.8331 log(a_c/a_max) - 1.474``, which matches the CRAN
-#: ``newmark`` package's implementation of it digit for digit, including its
-#: ``sdLog10D = 0.616``. Its reference [26] gives the same journal, volume and
-#: page range Crossref returns for the paper.
+#: open-access, peer-reviewed article that prints the equation and lists Jibson
+#: (2007) as its reference [26] - Yiğit, *Pamukkale Üniversitesi Mühendislik
+#: Bilimleri Dergisi* 32(1), 191-199, 2026, DOI 10.5505/pajes.2025.29499, as
+#: its own Equation 8 - Yiğit's numbering, which differs from the paper's. Two
+#: things argue against a garbled transcription there: that
+#: article's own refit of the same functional form on Turkish records prints
+#: visibly *different* exponents (1.3593), so the two are not one number copied
+#: twice; and its reference [26] gives the same journal, volume and page range
+#: Crossref returns for the paper.
+#:
+#: The equation *number* is confirmed against Jibson's own numbering by an
+#: independent implementation rather than by the transcription: the USGS
+#: ``groundfailure`` package documents its ``J_PGA_M`` model as "PGA and
+#: M-based model, equation 7 from Jibson (2007)", carries the same four
+#: constants (-2.71, 2.335, -1.478, 0.424) and returns
+#: ``logDnstd = 0.454``. This number was previously written as Equation 8 in
+#: this codebase, which is wrong: Equation 8 of that paper is not a regression
+#: at all but the symbolic template ``log D_N = A log I_a + B log a_c + C +/- s``
+#: from which the Arias-intensity fits were generated. The paper's own closing
+#: sentence lists its four regressions as Eqs. (6), (7), (9) and (10).
 #:
 #: The magnitude term is the reason this form was chosen over the Arias-
-#: intensity forms. Jibson's own Equation 9 and the public-domain USGS
-#: Open-File Report 98-113 regression (Jibson, Harp & Michael 1998, its
-#: Equation 3) both need Arias intensity, which this plugin's ground-motion
-#: tool does not produce - deriving one would mean a GMPE, which is a different
-#: release and a different set of coefficients to transcribe.
+#: intensity forms. Jibson's Equation 10 and the public-domain USGS Open-File
+#: Report 98-113 regression (Jibson, Harp & Michael 1998) both need Arias
+#: intensity, which this plugin's ground-motion tool does not produce -
+#: deriving one would mean a GMPE, which is a different release and a different
+#: set of coefficients to transcribe.
 JIBSON_2007 = {
     "intercept": -2.71,
     "one_minus_ratio_exponent": 2.335,
@@ -77,12 +87,16 @@ JIBSON_2007 = {
     "magnitude": 0.424,
 }
 
-#: Dispersion of Equation 8, in log10 units: ``0.454``, from Table 1 of the
+#: Dispersion of Equation 7, in log10 units: ``0.454``, from Table 1 of the
 #: same article (which lists ``Jibson2007/1  0.87  0.454`` - R-squared and
 #: model sigma - alongside the same figures for every other regression it
-#: reviews). This is what makes the displacement a *distribution* rather than
-#: a number, and the tool reports the 90th percentile alongside the median so
-#: that the spread is visible rather than implied.
+#: reviews; that table's column header reads ``s (cm)``, which mislabels a
+#: log10 dispersion as a length, so it is read as the log10 figure the paper
+#: itself prints). The USGS ``groundfailure`` implementation of the same
+#: equation returns the same ``0.454``. This is what makes the displacement a
+#: *distribution* rather than a number, and the tool reports the 90th
+#: percentile alongside the median so that the spread is visible rather than
+#: implied.
 JIBSON_2007_SIGMA = 0.454
 
 #: The 90th percentile of a standard normal. A mathematical constant, not a
@@ -91,7 +105,7 @@ JIBSON_2007_SIGMA = 0.454
 NORMAL_P90_FACTOR = 1.2815515655446004
 
 #: A *reporting* threshold, not a published limit. The second term of Equation
-#: 8, ``(a_c/a_max)^-1.478``, grows without bound as the ratio falls, so the
+#: 7, ``(a_c/a_max)^-1.478``, grows without bound as the ratio falls, so the
 #: regression returns larger and larger displacements as the material loses
 #: strength, without limit. Every row below this ratio is counted and named in
 #: the run log rather than passed off as an ordinary prediction.
@@ -105,7 +119,7 @@ JIBSON_LOW_RATIO = 0.05
 
 
 def jibson_displacement(ac_g: float, pga_g: float, magnitude: float) -> dict:
-    """Newmark displacement from Equation 8, in centimetres.
+    """Newmark displacement from Equation 7, in centimetres.
 
     Returns a dict: ``disp_cm`` (the median, because the regression predicts
     the mean of ``log D_N`` and the log is taken base 10), ``p90_cm`` (the 90th
@@ -129,7 +143,7 @@ def jibson_displacement(ac_g: float, pga_g: float, magnitude: float) -> dict:
     if ac_g == 0.0:
         raise ValueError(
             "a critical acceleration of zero has no finite answer: the "
-            "(a_c/a_max)^-1.478 term of Equation 8 diverges. A material with "
+            "(a_c/a_max)^-1.478 term of Equation 7 diverges. A material with "
             "no strength to mobilise is not a slope with a displacement, it is "
             "a flow - that is the liquefaction question, not this one")
 
@@ -280,7 +294,7 @@ HAZUS_LANDSLIDE_AC_BOUND_G = {
 #: ``None 0.60 0.50 0.40 0.35 0.30 0.25 0.20 0.15 0.10 0.05``. The leading
 #: "None" is the word the manual prints in the value row, not a value, so
 #: category None is absent from this dict rather than mapped to zero - a
-#: critical acceleration of zero would send Equation 8 to infinity, and that is
+#: critical acceleration of zero would send Equation 7 to infinity, and that is
 #: the one thing a missing entry must never be allowed to become.
 HAZUS_LANDSLIDE_AC_G = {
     "I": 0.60,

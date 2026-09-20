@@ -348,7 +348,7 @@ one-half-to-two-times uncertainty is not propagated, so the column is a
 midpoint with a range rather than a prediction.
 
 Coseismic landslide: the Newmark sliding-block displacement in the
-disposable-parameter form of Jibson (2007) Equation 8,
+disposable-parameter form of Jibson (2007) Equation 7,
 `log₁₀ D_N = −2.71 + log₁₀[(1 − a_c/a_max)^2.335 · (a_c/a_max)^−1.478] + 0.424·M`,
 with `D_N` in **centimetres** and both accelerations in `g`. The reported 90th
 percentile is a lognormal one: the regression's standard deviation is 0.454 in
@@ -362,15 +362,17 @@ instead. A zero `a_c` is refused rather than substituted, because
 not a slope with a displacement, it is a flow, which is the liquefaction
 question rather than this one. The paper is paywalled and was **not** read; the
 coefficients were transcribed from Yiğit (2026), *Pamukkale Üniversitesi
-Mühendislik Bilimleri Dergisi* 32(1), 191-199, which prints Equation 8 beside
-its own refit of the same data (exponent 1.3593 against the published 2.335)
-and reproduces the Arias-intensity form digit-for-digit. The Arias models are
-deliberately not implemented: Jibson Equation 9 —
-`0.561·log₁₀ I_a − 3.8331·log₁₀(a_c/a_max) − 1.474` — and the regression of the
-public-domain USGS Open-File Report 98-113 both carry Arias intensity, which
-**Ground Motion Scenario** does not produce and no other tool in the plugin
-does. Equation 8 is the one published form that takes only the ratio and the
-magnitude.
+Mühendislik Bilimleri Dergisi* 32(1), 191-199, which prints the equation as its
+own Equation 8 beside its own refit of the same data (exponent 1.3593 against
+the published 2.335). The equation *number* is taken from the paper's own
+numbering, not from that transcription: the USGS `groundfailure` package
+documents the same four constants as "equation 7 from Jibson (2007)". The
+Arias models are deliberately not implemented: Jibson Equation 10 —
+`0.561·log₁₀ I_a − 3.833·log₁₀(a_c/a_max) − 1.474`, coefficient 3.833 as the
+paper prints it — and the regression of the public-domain USGS Open-File
+Report 98-113 both carry Arias intensity, which **Ground Motion Scenario** does
+not produce and no other tool in the plugin does. Equation 7 is the one
+published form that takes only the ratio and the magnitude.
 
 The critical acceleration comes from one of three routes, and every row records
 which. A field of `a_c` in `g` is a measurement and the best route when it
@@ -382,7 +384,7 @@ degrees dry and 10, 5, 3 wet for groups A, B, C) and the critical acceleration
 to 0.60 g down to 0.05 g, and Table 4-17 gives the fraction of the map unit
 Hazus expects to be susceptible deposit. Below Table 4-15's slope bound no
 susceptible deposit is established at all, and the tool reports an **empty**
-`a_c` rather than a zero — zero is the value Equation 8 diverges on, so a
+`a_c` rather than a zero — zero is the value Equation 7 diverges on, so a
 zeroed row would be the model's loudest answer arriving disguised as its
 safest. The Table 4-15 acceleration floor is applied to the Table 4-16 value,
 and across all 36 cells of the three-group by two-moisture by six-band table it

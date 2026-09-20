@@ -3,7 +3,7 @@
 
 One model, one chain, three ways to get the number it starts from:
 
-* **Jibson (2007) Equation 8** - the Newmark-displacement regression. Given a
+* **Jibson (2007) Equation 7** - the Newmark-displacement regression. Given a
   critical acceleration, the peak ground acceleration and the magnitude, it
   returns the distance a slope is expected to move.
 * **Hazus 6.1 Section 4.2.2.2** - three routes to the critical acceleration
@@ -105,7 +105,7 @@ class CoseismicLandslideAlgorithm(PlanXAlgorithm):
             "will it move? A Newmark sliding-block calculation, driven by the "
             "shaking you already have from the seismic chain.\n\n"
             "THE DISPLACEMENT - Jibson (2007), Engineering Geology 91(2-4), "
-            "209-218, Equation 8: "
+            "209-218, Equation 7: "
             "log D = -2.71 + log[(1 - a_c/PGA)^2.335 (a_c/PGA)^-1.478] + 0.424 M "
             "with D in centimetres, a_c and PGA in g and M the moment "
             "magnitude. This is the form of the paper that carries a magnitude "
@@ -710,7 +710,7 @@ class CoseismicLandslideAlgorithm(PlanXAlgorithm):
                 extrapolated, magnitude):
         spread = 10.0 ** (ls.NORMAL_P90_FACTOR * ls.JIBSON_2007_SIGMA)
         feedback.pushInfo(
-            "Model: Jibson (2007) Equation 8, Engineering Geology 91(2-4), "
+            "Model: Jibson (2007) Equation 7, Engineering Geology 91(2-4), "
             "209-218 (log D = -2.71 + log[(1 - a_c/PGA)^2.335 "
             "(a_c/PGA)^-1.478] + 0.424 M, D in cm). Sigma is "
             f"{ls.JIBSON_2007_SIGMA} in log10 units, so the 90th percentile is "
