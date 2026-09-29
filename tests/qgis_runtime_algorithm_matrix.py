@@ -989,6 +989,21 @@ class MatrixFeedback(QgsProcessingFeedback):
         self.warnings.append(str(message))
 
 
+
+#: Algorithms re-run the way the Processing GUI runs them (runAndLoadResults)
+#: with their outputs written to GeoPackage. postProcessAlgorithm used to
+#: decorate only layers already in the temporary store or the project, so a
+#: file output - the normal case - arrived with no renderer, no field aliases
+#: and no provenance, while the sweep (which never loads its results) stayed
+#: green. Value: the output whose loaded layer must carry a graduated renderer
+#: (None: only aliases and provenance are asserted).
+FILE_OUTPUT_STYLE_CASES = {
+    "planx:walkability": "OUT_SEGMENTS", # preference-token renderer
+    "planx:seismicimpact": "OUT",        # RENDER_FIELD renderer
+    "planx:facilityadequacy": None,      # two layer outputs
+    "planx:densitygrid": None,           # aliases and provenance only
+}
+
 class CaseResult:
     """One algorithm's verdict, plus the wiring that produced it."""
 
@@ -3625,6 +3640,57 @@ def run_matrix(only=None, verbose=False, keep_work_dir=False):
                 mark = "ok  " if result.ok else "FAIL"
                 print(f"  {mark} {algorithm_id} refusal "
                       f"{result.seconds:7.2f}s {result.error}", flush=True)
+        # Styling must reach layers QGIS loads from a file (see
+        # FILE_OUTPUT_STYLE_CASES).
+        if not only:
+            from qgis.core import QgsGraduatedSymbolRenderer, QgsVectorLayer
+
+            for algorithm_id, graduated_output in FILE_OUTPUT_STYLE_CASES.items():
+                algorithm = algorithms.get(algorithm_id)
+                base = inputs_by_id.get(algorithm_id)
+                result = CaseResult(algorithm_id, "styled when loaded from a GeoPackage")
+                if algorithm is None or base is None:
+                    result.error = "the algorithm did not run in the sweep, so there are no inputs"
+                    results.append(result)
+                    continue
+                style_dir = Path(work_dir) / "style_check" / algorithm_id.split(":")[-1]
+                style_dir.mkdir(parents=True, exist_ok=True)
+                values = dict(base)
+                for definition in algorithm.destinationParameterDefinitions():
+                    values[definition.name()] = _destination_path(
+                        definition.name(), style_dir, algorithm_id)
+                begin = time.time()
+                try:
+                    before = set(QgsProject.instance().mapLayers())
+                    produced = processing.runAndLoadResults(algorithm_id, values)
+                    loaded = [QgsProject.instance().mapLayer(i)
+                              for i in set(QgsProject.instance().mapLayers()) - before]
+                    vectors = [layer for layer in loaded if isinstance(layer, QgsVectorLayer)]
+                    problems = []
+                    if not vectors:
+                        problems.append("no vector output was loaded")
+                    for layer in vectors:
+                        if not layer.customProperty("planx/algorithm_id"):
+                            problems.append(f"{layer.name()}: no provenance")
+                        if not any(field.alias() for field in layer.fields()):
+                            problems.append(f"{layer.name()}: no field aliases")
+                    if graduated_output:
+                        target = str(produced.get(graduated_output, ""))
+                        match = [layer for layer in vectors
+                                 if Path(layer.source().split("|")[0]) == Path(target)]
+                        if not match or not isinstance(match[0].renderer(), QgsGraduatedSymbolRenderer):
+                            problems.append(f"{graduated_output}: loaded layer is not graduated")
+                    QgsProject.instance().removeMapLayers([layer.id() for layer in loaded])
+                    result.ok = not problems
+                    result.error = "; ".join(problems)
+                except Exception as exc:  # noqa: BLE001 - the verdict is the report
+                    result.error = f"{type(exc).__name__}: {exc}"
+                result.seconds = time.time() - begin
+                results.append(result)
+                if verbose:
+                    mark = "ok  " if result.ok else "FAIL"
+                    print(f"  {mark} {algorithm_id} GeoPackage styling "
+                          f"{result.seconds:7.2f}s {result.error}", flush=True)
     finally:
         # --keep leaves the fixtures and the outputs in place, because the
         # report names their paths: a failing case is diagnosed by measuring the

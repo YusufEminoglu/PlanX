@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **File outputs arrived without renderer, field aliases or provenance.** The
+  shared `postProcessAlgorithm` decorated only layers already in the temporary
+  store or the project; a GeoPackage or Shapefile output - the normal case - is
+  opened from disk after it returns, so on 61 of the 72 algorithms that write
+  a vector layer the loaded result had a plain single symbol, raw field names
+  and no `planx/provenance_json`. Outputs QGIS is about to load now get a
+  kept-alive layer post-processor that runs the same decoration on the loaded
+  layer, from a snapshot of the algorithm id, provenance record and render
+  field (the algorithm object may be deleted before the load, and `id()` on it
+  then raises). Measured on QGIS 3.44 and 4.2: temporary and GeoPackage
+  outputs now match on renderer and provenance for every algorithm. The
+  runtime matrix re-runs four algorithms through `runAndLoadResults` with
+  GeoPackage outputs and asserts all three.
+
 ## [4.18.0] - 2026-09-20
 
 Every tool that publishes an area, a length, a density or a rate now measures it on the ground rather than in the layer's own coordinates. Thirteen algorithms and one engine module changed. No tool was added, removed or renamed, and no input or output schema moved.

@@ -16,6 +16,7 @@ from qgis.core import (
     QgsGeometry,
     QgsProcessingAlgorithm,
     QgsProcessingException,
+    QgsProcessingLayerPostProcessorInterface,
     QgsProject,
     QgsGraduatedSymbolRenderer,
     QgsRendererRange,
@@ -23,6 +24,35 @@ from qgis.core import (
 )
 
 from ..engine.provenance import build_manifest
+
+#: Post-processors that decorate file outputs when QGIS loads them. QGIS keeps
+#: only a raw pointer to a Python post-processor, so each one is kept alive
+#: here (never rotated: batch runs load every result at the end).
+_DEFERRED_DECORATIONS: list = []
+
+
+class _DeferredDecoration(QgsProcessingLayerPostProcessorInterface):
+    """Runs the result decoration on the layer QGIS loads.
+
+    Holds plain values, not the algorithm: QGIS may delete the algorithm's
+    C++ object before the result is loaded, and ``id()`` on a deleted
+    algorithm raises, which silently skipped the whole decoration.
+    """
+
+    def __init__(self, algorithm_id, audit, render_field):
+        super().__init__()
+        self._algorithm_id = algorithm_id
+        self._audit = audit
+        self._render_field = render_field
+
+    def postProcessLayer(self, layer, context, feedback):
+        if layer is None:
+            return
+        try:
+            decorate_result_layer(layer, self._algorithm_id, self._audit, self._render_field)
+        except Exception as exc:  # noqa: BLE001 - styling must never fail a finished run
+            if feedback is not None:
+                feedback.reportError(f"Could not style the loaded output: {exc}", False)
 from ..engine import graphs
 
 PLUGIN_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -53,6 +83,22 @@ GROUP_CYCLE = ("Cycling", "cycling")
 GROUP_HAZARD = ("Hazard Screening", "hazard")
 GROUP_DEMAND = ("Travel Demand", "demand")
 GROUP_SEISMIC = ("Seismic Risk", "seismic")
+
+
+def decorate_result_layer(layer, algorithm_id, audit, render_field=None):
+    """Provenance properties, readable field aliases and the default renderer."""
+    if audit:
+        layer.setCustomProperty("planx/algorithm_id", algorithm_id)
+        layer.setCustomProperty("planx/analysis_fingerprint", audit["analysis_fingerprint"])
+        layer.setCustomProperty("planx/provenance_json", json.dumps(audit, ensure_ascii=False, sort_keys=True))
+    fields = layer.fields() if hasattr(layer, "fields") else []
+    for index, field in enumerate(fields):
+        label = field.name().replace("_", " ").strip().title()
+        try:
+            layer.setFieldAlias(index, label)
+        except (AttributeError, TypeError):
+            pass
+    PlanXAlgorithm._apply_default_renderer(layer, fields, render_field)
 
 
 class PlanXAlgorithm(QgsProcessingAlgorithm):
@@ -133,13 +179,27 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
         return True
 
     def postProcessAlgorithm(self, context, feedback):
+        store = context.temporaryLayerStore()
         candidates = {}
-        candidates.update(context.temporaryLayerStore().mapLayers())
+        candidates.update(store.mapLayers())
         candidates.update(QgsProject.instance().mapLayers())
         for layer_id, layer in candidates.items():
             if layer_id in self._planx_existing_layers or layer is None:
                 continue
             self._decorate_layer(layer)
+        # A GeoPackage or Shapefile output is in neither store yet: QGIS opens
+        # it from disk after this method returns, so the renderer, aliases and
+        # provenance set above never reached it. Decorate it on load instead.
+        for layer_ref in context.layersToLoadOnCompletion():
+            if store.mapLayer(layer_ref) is not None or QgsProject.instance().mapLayer(layer_ref) is not None:
+                continue
+            details = context.layerToLoadOnCompletionDetails(layer_ref)
+            if details.postProcessor() is not None:
+                continue
+            processor = _DeferredDecoration(self.id(), self._planx_audit,
+                                            getattr(self, "RENDER_FIELD", None))
+            _DEFERRED_DECORATIONS.append(processor)
+            details.setPostProcessor(processor)
         return {}
 
     @staticmethod
@@ -162,18 +222,7 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
         return ""
 
     def _decorate_layer(self, layer):
-        if self._planx_audit:
-            layer.setCustomProperty("planx/algorithm_id", self.id())
-            layer.setCustomProperty("planx/analysis_fingerprint", self._planx_audit["analysis_fingerprint"])
-            layer.setCustomProperty("planx/provenance_json", json.dumps(self._planx_audit, ensure_ascii=False, sort_keys=True))
-        fields = layer.fields() if hasattr(layer, "fields") else []
-        for index, field in enumerate(fields):
-            label = field.name().replace("_", " ").strip().title()
-            try:
-                layer.setFieldAlias(index, label)
-            except (AttributeError, TypeError):
-                pass
-        self._apply_default_renderer(layer, fields, getattr(self, "RENDER_FIELD", None))
+        decorate_result_layer(layer, self.id(), self._planx_audit, getattr(self, "RENDER_FIELD", None))
 
     @staticmethod
     def _apply_default_renderer(layer, fields, preferred_field=None):
