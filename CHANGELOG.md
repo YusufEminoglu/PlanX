@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.18.1] - 2026-09-29
+
 ### Fixed
 - **File outputs arrived without renderer, field aliases or provenance.** The
   shared `postProcessAlgorithm` decorated only layers already in the temporary
@@ -16,6 +18,9 @@
   outputs now match on renderer and provenance for every algorithm. The
   runtime matrix re-runs four algorithms through `runAndLoadResults` with
   GeoPackage outputs and asserts all three.
+
+### Changed
+- Updated the plugin icon.
 
 ## [4.18.0] - 2026-09-20
 
