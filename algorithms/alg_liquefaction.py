@@ -447,6 +447,9 @@ class LiquefactionAlgorithm(PlanXAlgorithm):
             "from one D8 pass; flat and undrained cells have no downhill "
             f"neighbour and come back as +inf, which the model's own ceiling of "
             f"{liq.ZHU_CTI_CLIP[1]:g} then clips.")
+        scale_note = liq.cti_resolution_warning(pixel_metres)
+        if scale_note:
+            feedback.pushWarning(scale_note)
         cti_grid, gradient = hydro.cti(dem, pixel_metres)
 
         dem_crs = dem_layer.crs()

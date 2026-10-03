@@ -69,6 +69,12 @@ HAZUS_DAMAGE_STATES = ("slight", "moderate", "extensive", "complete")
 #: shape (manual p. 5-66).
 HAZUS_PGA_BETA = 0.64
 
+#: The two components named above, kept separately so a simulation can tell
+#: the building-specific part (threshold) from the part shared by neighbours
+#: through the shaking (demand). Same source as HAZUS_PGA_BETA.
+HAZUS_PGA_BETA_THRESHOLD = 0.4
+HAZUS_PGA_BETA_DEMAND = 0.5
+
 #: Lowest PGA substituted into the log term, so a zero or null ground motion
 #: yields P(no damage) = 1 instead of a domain error.
 _PGA_FLOOR = 1e-9
@@ -523,6 +529,79 @@ def sample_damage_state(seed: int, probabilities: dict) -> np.ndarray:
         cumulative = cumulative + np.asarray(probabilities[state], dtype=np.float64)
         index = np.where(draws >= cumulative, position + 1, index)
     return np.clip(index, 0, len(DAMAGE_STATES) - 1)
+
+
+#: Ground-motion correlation modes for :func:`sample_damage_states_correlated`.
+#: ``independent`` reproduces :func:`sample_damage_state`; the other two bracket
+#: the real within-event correlation, which decays with distance over a range
+#: this module does not carry a sourced value for.
+CORRELATION_MODES = ("independent", "between_event", "fully_correlated")
+
+
+def _states_from_uniform(u: np.ndarray, probabilities: dict) -> np.ndarray:
+    """Damage-state index for each building from one uniform number each."""
+    index = np.zeros(u.shape, dtype=np.int64)
+    cumulative = np.zeros(u.shape, dtype=np.float64)
+    for position, state in enumerate(DAMAGE_STATES[:-1]):
+        cumulative = cumulative + np.asarray(probabilities[state], dtype=np.float64)
+        index = np.where(u >= cumulative, position + 1, index)
+    return np.clip(index, 0, len(DAMAGE_STATES) - 1)
+
+
+def sample_damage_states_correlated(rng: np.random.Generator, probabilities: dict,
+                                    sigma_between: float, sigma_within: float,
+                                    mode: str = "between_event") -> np.ndarray:
+    """One earthquake realization of damage states, correlated through the shaking.
+
+    :func:`sample_damage_state` draws every building independently. That gets
+    each building's own distribution right, but in a real event neighbouring
+    buildings are shaken together: the ground-motion residual is shared across
+    the whole event (the between-event term) and correlated between nearby
+    sites (the within-event term). Independent draws average out over a city,
+    so a Monte Carlo band on city totals built from them is far too narrow.
+
+    This is a Gaussian copula on the fragility's own latent variable. Hazus
+    splits the curve dispersion into a building-specific threshold part
+    (HAZUS_PGA_BETA_THRESHOLD) and a ground-motion demand part
+    (HAZUS_PGA_BETA_DEMAND); only the demand part is shared between buildings::
+
+        g_i = (sigma_between * eta + sigma_within * eps_i) / sigma_total
+        z_i = sqrt(w) * g_i + sqrt(1 - w) * c_i,   w = beta_D^2 / (beta_M^2 + beta_D^2)
+
+    with ``eta`` one draw per realization, ``eps_i`` the within-event draw and
+    ``c_i`` independent per building. ``u_i = Phi(z_i)`` picks the state by
+    inverse transform on the building's own Hazus distribution, most damaged
+    at the top, so every building's marginal is *exactly* the Hazus one and
+    only the dependence between buildings is added. The sigmas are the GMPE's
+    (e.g. ASB2014 PGA) and carry its sources; no number is added here.
+
+    ``mode``:
+
+    * ``independent`` - every building on its own (legacy behaviour).
+    * ``between_event`` - eta shared, eps independent: the lower bound of the
+      real correlation (no within-event correlation at all).
+    * ``fully_correlated`` - eta and eps both shared: the upper bound (every
+      site's shaking perfectly correlated; thresholds still independent).
+
+    The truth lies between the last two; a distance-decay model needs a range
+    parameter taken from its paper, not supplied here.
+    """
+    if mode not in CORRELATION_MODES:
+        raise ValueError(f"Unknown correlation mode {mode!r}; expected one of {', '.join(CORRELATION_MODES)}.")
+    tau, phi = float(sigma_between), float(sigma_within)
+    if tau < 0.0 or phi < 0.0 or tau + phi <= 0.0:
+        raise ValueError("sigma_between and sigma_within must be non-negative and not both zero.")
+    shape = np.asarray(probabilities["complete"], dtype=np.float64).shape
+    if mode == "independent":
+        return _states_from_uniform(rng.random(shape), probabilities)
+    total = math.hypot(tau, phi)
+    eta = rng.standard_normal()
+    eps = rng.standard_normal() if mode == "fully_correlated" else rng.standard_normal(shape)
+    shaking = (tau * eta + phi * eps) / total
+    demand_share = HAZUS_PGA_BETA_DEMAND ** 2 / (HAZUS_PGA_BETA_THRESHOLD ** 2 + HAZUS_PGA_BETA_DEMAND ** 2)
+    latent = (math.sqrt(demand_share) * shaking
+              + math.sqrt(1.0 - demand_share) * rng.standard_normal(shape))
+    return _states_from_uniform(normal_cdf(latent), probabilities)
 
 
 def material_factor(state_index) -> np.ndarray:

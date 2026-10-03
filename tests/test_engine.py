@@ -2015,6 +2015,55 @@ check("seismic: sampled damage states are valid ladder indices",
       _states.min() >= 0 and _states.max() < len(seismic.DAMAGE_STATES))
 check("seismic: same seed reproduces the identical damage draw",
       seismic.sample_damage_state(42, _probs).tolist() == _states.tolist())
+
+# Correlated damage sampling. Independent draws average out over a city; the
+# copula keeps each building's Hazus marginal and adds only the dependence the
+# shared shaking creates. ASB2014 PGA sigmas (RJB table) are the inputs.
+_mc_n = 4000
+_mc_probs = {"none": np.full(_mc_n, 0.2), "slight": np.full(_mc_n, 0.2), "moderate": np.full(_mc_n, 0.2),
+             "extensive": np.full(_mc_n, 0.2), "complete": np.full(_mc_n, 0.2)}
+_mc_tau, _mc_phi = 0.3501, 0.6201
+check("seismic: Hazus beta components reproduce the tabulated 0.64",
+      close(math.hypot(seismic.HAZUS_PGA_BETA_THRESHOLD, seismic.HAZUS_PGA_BETA_DEMAND),
+            seismic.HAZUS_PGA_BETA, tol=0.005))
+
+
+def _mc_totals(mode, runs=300, seed=7):
+    rng = np.random.default_rng(seed)
+    totals = []
+    for _ in range(runs):
+        states = seismic.sample_damage_states_correlated(rng, _mc_probs, _mc_tau, _mc_phi, mode)
+        totals.append(float((states == 4).mean()))
+    return np.asarray(totals)
+
+
+_mc_ind, _mc_between, _mc_full = (_mc_totals(m) for m in seismic.CORRELATION_MODES)
+# The tolerance is three standard errors of each mode's own run mean: under
+# full correlation one run's city share swings by ~0.2, so a fixed 0.02 would
+# be testing the dice rather than the copula.
+check("seismic: every correlation mode keeps the Hazus marginal (P(complete) = 0.2)",
+      all(abs(t.mean() - 0.2) < 3.0 * t.std() / math.sqrt(len(t)) + 0.005
+          for t in (_mc_ind, _mc_between, _mc_full)))
+check("seismic: correlation widens the city-total band - independent < between-event < fully correlated",
+      _mc_ind.std() < _mc_between.std() < _mc_full.std())
+check("seismic: independent draws give a binomial-width band on the city share",
+      abs(_mc_ind.std() - math.sqrt(0.2 * 0.8 / _mc_n)) < 0.003)
+_mc_rng_a, _mc_rng_b = np.random.default_rng(11), np.random.default_rng(11)
+check("seismic: the correlated sampler is reproducible for a seeded generator",
+      seismic.sample_damage_states_correlated(_mc_rng_a, _probs, _mc_tau, _mc_phi).tolist()
+      == seismic.sample_damage_states_correlated(_mc_rng_b, _probs, _mc_tau, _mc_phi).tolist())
+try:
+    seismic.sample_damage_states_correlated(np.random.default_rng(1), _probs, _mc_tau, _mc_phi, "spatial")
+    _mc_bad_mode = False
+except ValueError:
+    _mc_bad_mode = True
+check("seismic: an unknown correlation mode is refused, not read as independent", _mc_bad_mode)
+try:
+    seismic.sample_damage_states_correlated(np.random.default_rng(1), _probs, 0.0, 0.0)
+    _mc_zero = False
+except ValueError:
+    _mc_zero = True
+check("seismic: zero ground-motion sigmas are refused", _mc_zero)
 check("seismic: material factor is monotone up the damage ladder",
       [seismic.material_factor(np.array([i]))[0] for i in range(5)]
       == sorted(seismic.material_factor(np.array([i]))[0] for i in range(5)))
@@ -3099,6 +3148,26 @@ check("Zhu: X rises with PGA and with CTI, and falls with Vs30",
       all(a < b for a, b in zip(_zhu_pga_sweep, _zhu_pga_sweep[1:]))
       and all(a < b for a, b in zip(_zhu_cti_sweep, _zhu_cti_sweep[1:]))
       and all(a > b for a, b in zip(_zhu_vs30_sweep, _zhu_vs30_sweep[1:])))
+
+# The Zhu inputs are ~1 km (USGS Ground Failure). A 5 m DEM - the resolution a
+# city actually has - gives a CTI the coefficients were never fitted to, and
+# the run used to say nothing about it.
+check("Zhu: a DEM near the model's ~1 km scale raises no CTI-scale warning",
+      liq.cti_resolution_warning(1000.0) is None
+      and liq.cti_resolution_warning(600.0) is None
+      and liq.cti_resolution_warning(1900.0) is None)
+_zhu_fine = liq.cti_resolution_warning(5.0)
+check("Zhu: a 5 m DEM is flagged, and the warning names the scale and the fix",
+      _zhu_fine is not None and "5 m" in _zhu_fine and "1000 m" in _zhu_fine
+      and "Resample" in _zhu_fine)
+check("Zhu: a very coarse DEM is flagged too",
+      liq.cti_resolution_warning(5000.0) is not None)
+try:
+    liq.cti_resolution_warning(0.0)
+    _zhu_zero_refused = False
+except ValueError:
+    _zhu_zero_refused = True
+check("Zhu: a zero pixel size is refused, not read as fine", _zhu_zero_refused)
 
 # The published logistic is written against a ShakeMap %g layer, so the USGS
 # implementation divides by 100 before taking the logarithm. Our field is in g.

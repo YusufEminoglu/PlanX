@@ -83,6 +83,37 @@ ZHU_PGA_CLIP_G = (0.0, 2.7)
 #: error in whichever one the reader had in mind.
 ZHU_COVERAGE_FACTOR = 0.81
 
+#: The scale the Zhu inputs were built at. USGS's Ground Failure product
+#: (earthquake.usgs.gov/data/ground-failure/background.php) lists the Zhu
+#: et al. (2015) model at "~1 km" and takes its CTI from the HYDRO1k database.
+#: CTI is not scale-free: both the specific catchment area and tan(beta)
+#: change with the cell size, so a CTI computed on a 5 m DEM is a different
+#: quantity from the one the 0.355 coefficient was fitted to.
+ZHU_INPUT_RESOLUTION_M = 1000.0
+
+#: How far from that scale a DEM may be before the run says so. A tool policy,
+#: NOT a published tolerance: a factor of two either way.
+ZHU_RESOLUTION_TOLERANCE = 2.0
+
+
+def cti_resolution_warning(pixel_m: float) -> str | None:
+    """A warning when the DEM cell is far from the ~1 km the Zhu model used.
+
+    Returns ``None`` inside the tolerance. The model still runs outside it -
+    the caller decides - but the run must not look like a calibrated answer.
+    """
+    if not pixel_m > 0.0:
+        raise ValueError("DEM pixel size must be positive, in metres.")
+    ratio = pixel_m / ZHU_INPUT_RESOLUTION_M
+    if 1.0 / ZHU_RESOLUTION_TOLERANCE <= ratio <= ZHU_RESOLUTION_TOLERANCE:
+        return None
+    return (
+        f"CTI scale: the DEM pixel is {pixel_m:g} m, but Zhu et al. (2015) was "
+        f"fitted on ~{ZHU_INPUT_RESOLUTION_M:g} m inputs (CTI from HYDRO1k, per "
+        "USGS Ground Failure). CTI changes with cell size, so these probabilities "
+        "are outside the model's calibration. Resample the DEM to about "
+        f"{ZHU_INPUT_RESOLUTION_M:g} m (block average) before running.")
+
 
 def logistic(value: float) -> float:
     """1 / (1 + e^-x), written so that large |x| cannot overflow.

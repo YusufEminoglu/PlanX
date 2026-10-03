@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Seismic Debris simulation runs drew every building independently.** Each
+  building's own Hazus distribution was right, but a real earthquake shakes
+  neighbours together, so independent draws average out and the city-wide
+  band (blocked street area, collapse counts) came out far too narrow - the
+  engine checks measure a binomial-width band against one ~17x wider once the
+  event-wide term is shared. `seismic.sample_damage_states_correlated` is a
+  Gaussian copula on the fragility's latent variable: Hazus's own split of
+  beta_SPGA = 0.64 into threshold 0.4 and demand 0.5 (now named constants)
+  decides that only the demand part is shared, and ASB2014's PGA sigmas decide
+  how (between-event 0.350, within-event 0.620). Every building keeps its exact
+  Hazus marginal. Three modes: `independent` (legacy), `between_event` (lower
+  bound, the new default of the tool's new "how buildings share the shaking"
+  parameter) and `fully_correlated` (upper bound); a distance-decay model is
+  left out until its range is taken from its paper. Seven engine checks. The
+  QGIS parameter wiring was exercised on QGIS 3.44.12 (runtime matrix,
+  `--only planx:seismicdebris`, simulated case: between_event, 8 seeds).
+- **Liquefaction Screening fed any DEM's CTI to a ~1 km model without a word.**
+  Zhu et al. (2015) was fitted on ~1 km inputs (USGS Ground Failure lists the
+  model at "~1 km", CTI from HYDRO1k), and CTI is not scale-free: specific
+  catchment area and tan(beta) both change with cell size. A 5 m city DEM
+  therefore gave probabilities outside the model's calibration while the run
+  log read like a calibrated answer. `liquefaction.cti_resolution_warning`
+  now names the DEM scale, the model scale and the fix (block-average to about
+  1 km) whenever the pixel is more than a factor of two away, and the tool
+  pushes it as a warning before computing CTI. The factor of two is a tool
+  policy, marked as such, not a published tolerance. Four engine checks; the
+  warning fired on the QGIS 3.44.12 runtime matrix (2 m DEM).
+
 ## [4.18.1] - 2026-09-29
 
 ### Fixed

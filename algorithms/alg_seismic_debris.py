@@ -22,6 +22,7 @@ from qgis.core import (
 
 from .base import DOUBLE, GROUP_SEISMIC, INT, STRING, PlanXAlgorithm
 from . import _units
+from ..engine import gmpe
 from ..engine import seismic
 from ..engine import uncertainty
 
@@ -61,6 +62,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
     MIN_CLEAR_WIDTH = "MIN_CLEAR_WIDTH"
     SIMULATIONS = "SIMULATIONS"
     SEED = "SEED"
+    CORRELATION = "CORRELATION"
 
     OUT_BUILDINGS = "OUT_BUILDINGS"
     OUT_ENVELOPE = "OUT_ENVELOPE"
@@ -188,6 +190,15 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
             "runs a building collapsed in) plus summary statistics in the "
             "log. That is what the corridor-survival advice below means in "
             "practice; leave it at 0 for a fast single realization.\n"
+            "- How the runs share the shaking matters. In a real earthquake "
+            "neighbouring buildings are shaken together, so their damage is "
+            "correlated; independent draws per building average out and "
+            "report a city-wide band that is far too narrow. The default "
+            "shares the event-wide (between-event) ground-motion term of "
+            "ASB2014 and is the LOWER bound of the true spread; 'fully "
+            "correlated' is the UPPER bound. Every building keeps its own "
+            "Hazus damage probabilities in all three modes - only the "
+            "dependence between buildings changes.\n"
             "- The CORRIDORS output is the planning product: streets "
             "that remain passable once debris falls. Narrow streets "
             "with tall, old frontages vanish first - the corridors "
@@ -293,6 +304,14 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.SEED, self.tr("Random seed (Monte Carlo reproducibility)"),
             type=QgsProcessingParameterNumber.Type.Integer, minValue=0, defaultValue=42))
+        self.addParameter(QgsProcessingParameterEnum(
+            self.CORRELATION,
+            self.tr("Simulation runs: how buildings share the shaking (see help)"),
+            options=[
+                self.tr("Independent draws per building (legacy - city band far too narrow)"),
+                self.tr("Shared shaking, lower bound - ASB2014 between-event term"),
+                self.tr("Shared shaking, upper bound - every site fully correlated"),
+            ], defaultValue=1))
 
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUT_BUILDINGS, self.tr("Annotated buildings (damage risk and debris)")))
@@ -533,6 +552,7 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         clear_width = self.parameterAsDouble(parameters, self.MIN_CLEAR_WIDTH, context)
         runs = self.parameterAsInt(parameters, self.SIMULATIONS, context)
         seed = self.parameterAsInt(parameters, self.SEED, context)
+        correlation = seismic.CORRELATION_MODES[self.parameterAsEnum(parameters, self.CORRELATION, context)]
         mode = self.parameterAsEnum(parameters, self.NETWORK_MODE, context)
         default_width = self.parameterAsDouble(parameters, self.DEFAULT_WIDTH, context)
         target_crs = buildings.sourceCrs()
@@ -605,10 +625,20 @@ class SeismicDebrisAlgorithm(PlanXAlgorithm):
         if runs > 0:
             frequency = np.zeros(n, dtype=np.float64)
             blocked_samples = []
+            # ASB2014's own PGA sigmas (RJB table) set how much of the shaking
+            # is shared; the copula keeps every building's Hazus marginal.
+            pga_table = gmpe.table("RJB")
+            tau = float(pga_table["sd_between"][gmpe.INDEX_PGA])
+            phi = float(pga_table["sd_within"][gmpe.INDEX_PGA])
+            rng = np.random.default_rng(seed)
+            feedback.pushInfo(
+                f"Simulation runs: correlation '{correlation}' (ASB2014 PGA sigma between {tau:.3f}, "
+                f"within {phi:.3f}; Hazus threshold/demand split {seismic.HAZUS_PGA_BETA_THRESHOLD}/"
+                f"{seismic.HAZUS_PGA_BETA_DEMAND}).")
             for run in range(runs):
                 if feedback.isCanceled():
                     break
-                run_states = seismic.sample_damage_state(seed + run, probabilities)
+                run_states = seismic.sample_damage_states_correlated(rng, probabilities, tau, phi, correlation)
                 frequency += (run_states == len(seismic.DAMAGE_STATES) - 1).astype(np.float64)
                 run_debris = self._debris_geometry(
                     geoms, seismic.debris_extent(
