@@ -1,6 +1,48 @@
 # Changelog
 
-## [Unreleased]
+## [4.19.0] - 2026-10-14
+
+### Added
+- **Dead-End Analysis (`planx:deadends`) - a cul-de-sac measured as a street,
+  not as a node.** A dead end in a street network is a *chain*: the whole
+  roadway from the junction out to the turning head, which is the length a
+  resident has to drive twice before reaching a through route. Counting
+  degree-1 nodes sees the tip and misses the street - on the tool's own
+  fixture, a 100 m cul-de-sac drawn as two 50 m segments is one node and two
+  segments. The tool walks the branch back from every degree-1 node to the
+  first junction and tags the *segments*: `branch_id`, `depth` (how many
+  segments you drive before reaching a junction), `branch_length_m`,
+  `branch_segments` and `anchor_node`, on the whole network, so a cul-de-sac
+  can be styled, ranked and measured as one object.
+- The summary answers "how much of this network is dead end" twice, because
+  the two answers differ: `deadend_node_ratio` counts junctions that are dead
+  ends, and `deadend_length_ratio` measures the share of the network's length
+  that is dead-end branch. The length ratio usually exceeds the node ratio -
+  a cul-de-sac street is longer than the junction it ends at - so a network
+  that is 30 percent dead end by node count is often 40 percent or more by
+  length. Seventeen rows in all, including `longest/mean/median_branch_m`,
+  `mean_branch_segments`, `components` and `deadends_per_km2`.
+- `MIN_BRANCH` flags branches below a threshold as `is_stub` without removing
+  them from the result. Sub-metre "cul-de-sacs" are almost always digitising
+  gaps from under-snapping rather than streets, so they are read as a
+  data-quality signal - and the summary repeats both ratios with the stubs
+  excluded (`deadend_node_ratio_excl_stubs`, `deadend_length_ratio_excl_stubs`)
+  rather than letting them silently inflate the headline. A disconnected
+  network is warned about for the same reason: the endpoints created by the
+  breaks invent dead ends that are not in the street pattern.
+- Every length is ground metres, through the same `GroundUnits` helper as the
+  rest of the toolset - a state-plane layer in survey feet, or EPSG:3857 away
+  from the equator, would otherwise publish a wrong number under a metre's
+  name. A degree-1 node that the walk fails to place on a branch raises rather
+  than being reported as "not a dead end", because the alternative to a
+  cul-de-sac is not silence. `graphs.weak_component_count` is new and shared:
+  Street Network Morphology's private `_component_count` is gone, so the two
+  tools cannot drift on what "one component" means.
+- Verified: `smoke_provider_catalog` 15/15 (algorithm count floor raised to
+  76), and the runtime matrix passes 83/83 cases on QGIS 3.44.12 LTR and 83/83
+  on QGIS 4.2, the dead-end fixture asserted row by row against hand-worked
+  values (1 dead end in 6 nodes, 1 branch of 2 segments, 100 of 500 ground m
+  -> 0.1667 and 0.20). New engine checks in `tests/test_engine.py` section 37.
 
 ### Fixed
 - **Seismic Debris simulation runs drew every building independently.** Each

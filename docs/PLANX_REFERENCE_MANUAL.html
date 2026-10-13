@@ -375,7 +375,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.18.1 &middot; 75 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.19.0 &middot; 76 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -400,14 +400,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.18.1). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.19.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 75 algorithms is documented to an identical eight-section
+<p>Every one of the 76 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -450,7 +450,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 75 algorithms span the
+platform delivered as a QGIS Processing provider. Its 76 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -2603,6 +2603,346 @@ DOI: <a href="https://doi.org/10.1016/j.tra.2005.11.003">10.1016/j.tra.2005.11.0
 Resilience of Transport Systems — A Discussion of Recent Research."
 <em>Transportation Research Part A</em>, 81, 16–34.
 DOI: <a href="https://doi.org/10.1016/j.tra.2015.06.002">10.1016/j.tra.2015.06.002</a>
+</p>
+
+<h2 id="deadends">Dead-End Analysis</h2>
+<p><strong>Processing ID:</strong> <code>planx:deadends</code></p>
+
+<h3>Overview</h3>
+<p>Finds the dead ends in a street network and measures each one as a
+<strong>street</strong> rather than as a point. Every segment is tagged with
+the dead-end branch it belongs to, so a cul-de-sac is the whole chain from the
+junction it leaves out to its turning head — with its length in ground metres,
+its depth in segments, and the junction it hangs off. The network is then
+summarised with a dead-end ratio by node count <em>and</em> by length: the
+share of carriageway that only ever serves local traffic. Branches shorter than
+a threshold you set are flagged as stubs, so digitising gaps can be seen and
+set aside instead of silently believed.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>A dead end is the oldest argument in urban morphology. Alexander (1965)
+drew the line between a <em>tree</em>, in which any two parts of a settlement
+are joined by exactly one path, and a <em>lattice</em>, in which many paths
+exist; the post-war residential estate is the purest tree ever built at city
+scale, and the cul-de-sac is its atom. Jacobs (1961) took the same distinction
+from the street side and defended the through route and the short block
+against it. Southworth and Ben-Joseph (2003) traced how the two positions
+hardened into competing design practice across the twentieth century, and
+Marshall (2004) formalised the resulting typologies — cul-de-sac, crescent,
+loop, grid — as distinguishable graph structures rather than as drawings.</p>
+<p>Measurement arrived with the transport-network indices of Kansky (1963),
+was carried into urban street analysis by Porta, Crucitti and Latora (2006),
+and was scaled to the planet by Barrington-Leigh and Millard-Ball (2020),
+whose street-network disconnectedness index is built from precisely the two
+quantities this tool reports: the frequency of dead-end nodes and the share of
+network length that is not a through route. Ewing and Cervero (2010) close the
+loop from the travel end, finding street-network design among the few
+built-environment variables with a measurable, independent effect on vehicle
+distance travelled — a link for which the dead-end share is a standard
+operationalisation.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>A dead end is a branch, not a node.</strong> The degree-1 endpoint
+is only the tip. The street a resident actually drives — from the junction out
+to the turning head and back again — is the whole chain of segments behind
+that tip. The tool walks that chain: from each degree-1 node it steps through
+degree-2 nodes until it reaches a junction (degree 3 or more) or the far tip of
+a lone segment, and labels every segment and node it passed with one shared
+<code>branch_id</code>.</li>
+<li><strong>Segment <code>depth</code> is the distance in segments back from
+the tip</strong>, so 0 is the segment carrying the turning head. Each branch is
+anchored on the junction it leaves from (<code>anchor_node</code>); a branch
+with no anchor is a segment connected to nothing at all — an island, or a
+layer whose digitising gaps were never closed.</li>
+<li><strong>Dead-endedness is reported by length as well as by count.</strong>
+The two ratios answer different questions and diverge systematically: a
+cul-de-sac street is longer than the single junction at its mouth, so the
+length ratio generally exceeds the node ratio, and it is the length ratio that
+speaks to carriageway maintenance, to winter service, and to how much of the
+network exists to serve local traffic alone.</li>
+<li><strong>Topology is assumed, not created.</strong> Every polyline is one
+edge and every shared endpoint is one node, exactly as
+<strong>Prepare Network</strong> produces them. Unclosed crossings, duplicate
+digitising and under-snapping all invent dead ends that do not exist on the
+ground.</li>
+<li><strong>Self-loops are removed before degrees are counted</strong>, so a
+closed loop contributes no branch. Branches shorter than
+<code>MIN_BRANCH</code> are flagged as stubs, never dropped: a 0.3 m
+"cul-de-sac" is a digitising gap rather than a street, and the honest treatment
+is to expose it as a data-quality signal instead of silently trimming the
+distribution.</li>
+<li><strong>Barriers and access rights are invisible.</strong> A gated estate
+and a public cul-de-sac are the same graph. The measurement is an input to that
+judgement, not a substitute for it.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> when the dead-end street itself is the unit of
+interest: ranking cul-de-sacs for turning-head upgrades or winter service,
+listing the reversing manoeuvres a refuse round has to make, or flagging the
+long single-access branches that fail first under a closure.</li>
+<li><strong>Use it</strong> as a plan audit: the dead-end length ratio before
+and after a scheme is a direct, quotable measure of connectivity gain, and
+<code>deadend_length_ratio_excl_stubs</code> keeps that comparison from being
+decided by slivers.</li>
+<li><strong>Use <em>Street Network Morphology</em> instead</strong> when what
+you want is the network's overall morphological signature — bearing entropy,
+meshedness ($\alpha$, $\beta$, $\gamma$), orientation order — with the
+cul-de-sac ratio as one row among fifteen. That tool counts degree-1 nodes and
+classifies them; this one describes the branches behind those nodes, segment
+by segment, with lengths. Run both when you want the profile and the
+diagnosis.</li>
+<li><strong>Do not use it</strong> as a proxy for privacy, safety or social
+cohesion, and do not read a low dead-end ratio as good urbanism: the
+measurement describes the graph, not the quality of the place.</li>
+<li><strong>Do not run it on raw OSM or CAD data</strong> without
+<strong>Prepare Network</strong> first. Crossings that were never closed and
+duplicate digitising both invent dead ends; a <code>components</code> value
+above 1 in the summary is the warning that this has not been done.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>Let $G = (V, E)$ be the undirected street graph with $n = |V|$ nodes,
+$e = |E|$ edges, edge lengths $\ell_e$ in ground metres, and node degree
+$\deg(v)$ counting distinct incident edges with self-loops removed.</p>
+
+<div class="eq">
+$$
+\deg(v) = \left|\{e \in E : v \in e,\; e\ \text{not a self-loop}\}\right|, \qquad
+\mathcal{T} = \{v \in V : \deg(v) = 1\} \tag{1}
+$$
+</div>
+
+<p>A branch $b$ is the maximal chain that starts at a tip and runs while the
+degree is exactly two — a cul-de-sac street from its mouth out to the turning
+head:</p>
+
+<div class="eq">
+$$
+b = (v_0, e_1, v_1, \ldots, e_k, v_k), \qquad
+\deg(v_0) = 1, \quad \deg(v_i) = 2 \;\; (1 \le i < k), \quad \deg(v_k) \neq 2 \tag{2}
+$$
+</div>
+
+<p>with $\deg(v_k) \ge 3$ when the branch ends at a junction and
+$\deg(v_k) = 1$ when it is a lone segment touching nothing else. Writing $B$
+for the set of branches, $A_{hull}$ for the area of the convex hull of $V$,
+and $\tau$ for the stub threshold:</p>
+
+<div class="eq">
+$$
+L_b = \sum_{e \in b} \ell_e, \qquad
+L_{net} = \sum_{e \in E} \ell_e, \qquad
+\text{depth}(e_i) = i - 1 \tag{3}
+$$
+</div>
+
+<div class="eq">
+$$
+R_{node} = \frac{|\mathcal{T}|}{n}, \qquad
+R_{len} = \frac{\sum_{b \in B} L_b}{L_{net}}, \qquad
+\rho = \frac{|B|}{A_{hull}} \tag{4}
+$$
+</div>
+
+<div class="eq">
+$$
+\text{stub}(b) = \begin{cases} 1 & L_b < \tau \\ 0 & \text{otherwise} \end{cases},
+\qquad
+R^{ex}_{node} = \frac{|\{b : \text{stub}(b) = 0\}|}{n}, \qquad
+R^{ex}_{len} = \frac{\sum_{b\,:\,\text{stub}(b) = 0} L_b}{L_{net}} \tag{5}
+$$
+</div>
+
+<p>Branches are edge-disjoint — every edge belongs to at most one of them — so
+$\sum_{b} L_b \le L_{net}$ and $R_{len} \le 1$ by construction. The two ratios
+are not rescalings of each other. Dividing (4) gives the exact identity</p>
+
+<div class="eq">
+$$
+\frac{R_{len}}{R_{node}} = \frac{\overline{L_b}}{L_{net} / n} \tag{6}
+$$
+</div>
+
+<p>so the length ratio exceeds the node ratio exactly when the average branch
+is longer than the network's average length per node. Since
+$L_{net}/n = (e/n)\,\bar{\ell}$ and mean degree is below two for every street
+network that is not a pure grid, this happens as soon as the average branch
+holds more than about one segment — which is to say, whenever the "dead ends"
+are genuinely streets. A network that is 30% dead end by node count is
+routinely above 40% by length.</p>
+<p>A branch ends when the walk meets a node whose degree is not two. The walk
+itself guarantees that every degree-1 node carries a branch id, and the tool
+raises rather than reports a violation of that invariant: an unlabelled tip is
+a broken analysis, and returning it as "not a dead end" would quietly hide a
+cul-de-sac.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Street network</td><td>Vector lines</td><td>Yes</td><td>Prepared network (run Prepare Network first). Projected CRS. Polyline endpoints become graph nodes; segment lengths are read from the geometries, so no cost field is needed.</td></tr>
+<tr><td>Branch threshold</td><td>Double (map units)</td><td>No</td><td>Stubs shorter than this are flagged. Deliberately excluded from the ground-metre conversion: it conditions the flag only and never enters a published length.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>NETWORK</code></td><td>Vector (Line)</td><td>—</td><td>Street network line layer. Projected CRS. Topologically connected — run Prepare Network first.</td></tr>
+<tr><td><code>MIN_BRANCH</code></td><td>Double</td><td>0.0 (flag none)</td><td>Flag branches shorter than this as stubs. Flagging never removes a branch from the counts; it only marks it and drives the two stub-excluded ratio rows.</td></tr>
+<tr><td><code>SEGMENTS</code></td><td>Vector (Line)</td><td>—</td><td>Output: the whole network, every segment tagged with its dead-end attribution.</td></tr>
+<tr><td><code>DEAD_ENDS</code></td><td>Vector (Point)</td><td>—</td><td>Output: one point per degree-1 node, carrying its branch.</td></tr>
+<tr><td><code>SUMMARY</code></td><td>Vector (Table)</td><td>—</td><td>Output: attribute-less table with 17 network-wide indicators as (metric, value) rows.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+
+<h4>Segment layer (SEGMENTS)</h4>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>seg_id</code></td><td>Integer</td><td>Zero-based graph edge index</td></tr>
+<tr><td><code>length_m</code></td><td>Double</td><td>Segment length in ground metres</td></tr>
+<tr><td><code>node_from</code></td><td>Integer</td><td>Node id at the segment's start</td></tr>
+<tr><td><code>node_to</code></td><td>Integer</td><td>Node id at the segment's end</td></tr>
+<tr><td><code>deg_from</code></td><td>Integer</td><td>Degree at the start node</td></tr>
+<tr><td><code>deg_to</code></td><td>Integer</td><td>Degree at the end node</td></tr>
+<tr><td><code>is_dead_end</code></td><td>Integer</td><td>1 if the segment lies on a dead-end branch, else 0</td></tr>
+<tr><td><code>is_stub</code></td><td>Integer</td><td>1 if its branch is shorter than MIN_BRANCH, else 0</td></tr>
+<tr><td><code>branch_id</code></td><td>Integer</td><td>Zero-based branch index; −1 outside any branch</td></tr>
+<tr><td><code>depth</code></td><td>Integer</td><td>Segments between this one and the tip; 0 carries the turning head; −1 outside any branch</td></tr>
+<tr><td><code>branch_length_m</code></td><td>Double</td><td>Whole-branch length in ground metres, repeated on every segment of the branch</td></tr>
+<tr><td><code>branch_segments</code></td><td>Integer</td><td>Number of segments in the branch</td></tr>
+<tr><td><code>anchor_node</code></td><td>Integer</td><td>The junction the branch leaves from; −1 for a branch anchored on nothing</td></tr>
+</table>
+
+<h4>Dead-end point layer (DEAD_ENDS)</h4>
+<p>One point per degree-1 node — the turning head, not the junction.</p>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>node_id</code></td><td>Integer</td><td>Graph node id of the tip</td></tr>
+<tr><td><code>degree</code></td><td>Integer</td><td>Degree at the tip — always 1</td></tr>
+<tr><td><code>branch_id</code></td><td>Integer</td><td>The branch hanging behind this tip</td></tr>
+<tr><td><code>branch_length_m</code></td><td>Double</td><td>Branch length in ground metres</td></tr>
+<tr><td><code>branch_segments</code></td><td>Integer</td><td>Segments in the branch</td></tr>
+<tr><td><code>anchor_node</code></td><td>Integer</td><td>Junction the branch leaves from; −1 if none</td></tr>
+<tr><td><code>anchor_degree</code></td><td>Integer</td><td>Degree of that junction; 0 when there is no anchor</td></tr>
+<tr><td><code>is_stub</code></td><td>Integer</td><td>1 if the branch is shorter than MIN_BRANCH</td></tr>
+</table>
+
+<h4>Summary table (SUMMARY)</h4>
+<table class="field-table">
+<tr><th>Metric</th><th>Description</th><th>Example Value</th></tr>
+<tr><td><code>nodes</code></td><td>Distinct graph nodes (junctions, continuations and endpoints)</td><td>1247</td></tr>
+<tr><td><code>edges</code></td><td>Street segments (edges in the graph)</td><td>1893</td></tr>
+<tr><td><code>components</code></td><td>Disconnected sub-graphs. 1 = fully connected network</td><td>1</td></tr>
+<tr><td><code>total_length_km</code></td><td>Network length in kilometres</td><td>142.6</td></tr>
+<tr><td><code>deadend_nodes</code></td><td>Degree-1 nodes, i.e. distinct dead ends</td><td>287</td></tr>
+<tr><td><code>deadend_branches</code></td><td>Dead-end branches (chains) — one per tip unless two tips share a chain</td><td>287</td></tr>
+<tr><td><code>deadend_length_m</code></td><td>Total length of all dead-end branches in ground metres</td><td>26480.5</td></tr>
+<tr><td><code>deadend_node_ratio</code></td><td>Share of graph nodes that are dead ends</td><td>0.2302</td></tr>
+<tr><td><code>deadend_length_ratio</code></td><td>Share of network length that is dead-end branch</td><td>0.1857</td></tr>
+<tr><td><code>stub_branches</code></td><td>Branches shorter than MIN_BRANCH</td><td>0</td></tr>
+<tr><td><code>deadend_node_ratio_excl_stubs</code></td><td>Node ratio recomputed without stub tips</td><td>0.2302</td></tr>
+<tr><td><code>deadend_length_ratio_excl_stubs</code></td><td>Length ratio recomputed without stub branches</td><td>0.1857</td></tr>
+<tr><td><code>longest_branch_m</code></td><td>Longest single branch in ground metres</td><td>612.4</td></tr>
+<tr><td><code>mean_branch_m</code></td><td>Mean branch length in ground metres</td><td>92.3</td></tr>
+<tr><td><code>median_branch_m</code></td><td>Median branch length in ground metres</td><td>74.1</td></tr>
+<tr><td><code>mean_branch_segments</code></td><td>Mean segments per branch. Near 1 = digitised breaks, not streets</td><td>2.14</td></tr>
+<tr><td><code>deadends_per_km2</code></td><td>Branches per km² of convex hull area</td><td>9.71</td></tr>
+</table>
+
+<h3>Symbolic Representation</h3>
+<p>A categorised renderer on <code>branch_id</code> (or a random-colour ramp)
+draws each dead-end street as one object instead of as its segments; place a
+grey layer drawn from <code>is_dead_end = 0</code> underneath so the through
+network recedes. A graduated renderer on <code>depth</code> with a sequential
+single-hue ramp and line width 0.2–1.0 mm shows how far back the reversing
+manoeuvre sits, and a graduated renderer on <code>branch_length_m</code> (or a
+marker sized by <code>branch_segments</code>) on the point layer makes the
+turning heads carry the weight of their street rather than all looking alike.
+Label the longest decile with <code>branch_length_m</code>. In the layout,
+place the summary table with the node and length ratios side by side, and quote
+the stub-excluded pair wherever the network has not been cleaned.</p>
+
+<h3>Interpretation Guide</h3>
+<p>The node ratio is the same quantity as the cul-de-sac ratio of
+<strong>Street Network Morphology</strong> and carries the same benchmarks —
+roughly 0.02–0.10 for a 19th-century grid, 0.02–0.08 for a dense downtown
+grid, 0.05–0.15 for organic medieval fabric, 0.10–0.25 for modernist
+superblocks, and 0.30–0.60 for planned suburban "loops and lollipops". The
+length ratio has no benchmark table; it is read from identity (6) against the
+network in front of you, and it is the one that describes the road reserve you
+are paying to maintain. Report both, and never compare a node ratio from one
+study area against a length ratio from another.</p>
+<ul>
+<li><strong><code>deadend_length_ratio</code> is the headline number</strong>
+for maintenance and for emergency planning: it is the share of carriageway
+that carries nothing but local traffic, and it usually exceeds the node ratio
+because a cul-de-sac street is longer than the junction it ends at.</li>
+<li><strong><code>mean_branch_m</code> against
+<code>longest_branch_m</code>:</strong> a mean of 60–90 m is a conventional
+cul-de-sac. A single branch of 500 m or more is a dendritic estate where a
+whole neighbourhood has one way in and out — the pattern that fails first in an
+evacuation or a utility cut. Rank branches by <code>branch_length_m</code> and
+review the top of the list, not the average.</li>
+<li><strong><code>mean_branch_segments</code> near 1 with many branches</strong>
+means the network is digitised with a break at nearly every segment, so most
+"dead ends" are single segments hanging off a junction rather than streets.
+Prepare Network closes those breaks; raising <code>MIN_BRANCH</code> flags
+them in the meantime.</li>
+<li><strong><code>stub_branches</code> is a data-quality signal, not a street
+form.</strong> At a 0.3 m threshold the network will report dozens of dead ends
+that are artefacts of under-snapping. Raise <code>MIN_BRANCH</code> and read
+the stub-excluded rows, or fix the topology — do not report them as cul-de-sacs.</li>
+<li><strong><code>components</code> above 1 means the ratios describe a broken
+file, not a street pattern.</strong> A disconnected piece carries an unnatural
+number of degree-1 nodes. Run Prepare Network before reading anything else in
+the table.</li>
+<li><strong>Depth and anchor.</strong> A branch of depth 4 or more is a long
+chain back from its tip; a cluster of branches sharing one
+<code>anchor_node</code> is usually a courtyard or a parking court feeding
+several stubs, rather than several streets. A branch whose
+<code>anchor_node</code> is −1 touches nothing else at all.</li>
+<li><strong>By district.</strong> Intersect the segment layer with your
+neighbourhood polygons and aggregate <code>branch_length_m</code> against total
+length inside each, so the ratio is comparable between areas of different size.
+<code>deadends_per_km2</code> is the branch-side counterpart to intersection
+density for a single whole-area comparison.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Alexander, C. (1965). "A City is Not a Tree." <em>Architectural
+Forum</em>, 122(1), 58–62.
+</p>
+<p class="ref">Barrington-Leigh, C. &amp; Millard-Ball, A. (2020). "Global trends
+toward urban street-network sprawl." <em>Proceedings of the National Academy of
+Sciences</em>, 117(4), 1941–1950.
+DOI: <a href="https://doi.org/10.1073/pnas.1905232116">10.1073/pnas.1905232116</a>
+</p>
+<p class="ref">Ewing, R. &amp; Cervero, R. (2010). "Travel and the Built
+Environment: A Meta-Analysis." <em>Journal of the American Planning
+Association</em>, 76(3), 265–294.
+DOI: <a href="https://doi.org/10.1080/01944361003766766">10.1080/01944361003766766</a>
+</p>
+<p class="ref">Jacobs, J. (1961). <em>The Death and Life of Great American
+Cities</em>. Random House, New York.
+</p>
+<p class="ref">Kansky, K.J. (1963). "Structure of transportation networks."
+<em>University of Chicago, Department of Geography, Research Paper</em> No. 84.
+</p>
+<p class="ref">Marshall, S. (2004). <em>Streets and Patterns</em>. Routledge.
+DOI: <a href="https://doi.org/10.4324/9780203589397">10.4324/9780203589397</a>
+</p>
+<p class="ref">Porta, S., Crucitti, P., &amp; Latora, V. (2006). "The Network
+Analysis of Urban Streets: A Primal Approach." <em>Environment and Planning
+B</em>, 33(5), 705–725.
+DOI: <a href="https://doi.org/10.1068/b32045">10.1068/b32045</a>
+</p>
+<p class="ref">Southworth, M. &amp; Ben-Joseph, E. (2003). <em>Streets and the
+Shaping of Towns and Cities</em>. Island Press. ISBN: 978-1559639163.
 </p>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -17170,7 +17510,7 @@ Available at: <a href="https://pubs.usgs.gov/of/1998/ofr-98-113/">pubs.usgs.gov/
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.18.1 &middot; 75 Algorithms &middot; 19 Tool Groups &middot; September 2026</em>
+  Covering PlanX v4.19.0 &middot; 76 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
 </p>
 
 

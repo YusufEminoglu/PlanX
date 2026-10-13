@@ -102,6 +102,7 @@ from qgis.core import (  # noqa: E402
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterString,
     QgsProcessingParameterVectorLayer,
+    QgsPointXY,
     QgsProject,
     QgsRasterLayer,
     QgsVectorFileWriter,
@@ -114,7 +115,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 75
+MIN_EXPECTED_CASE_COUNT = 76
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -965,6 +966,12 @@ VALUE_OVERRIDES = {
     # right scale - entirely untested, and the tool would be exercised only on
     # the certainty fallback.
     ("planx:seismicimpact", "BUILDINGS"): "art:planx:seismicdebris/OUT_BUILDINGS",
+    # The one network source in the bundle that has a dead end in it. The city
+    # is fully meshed, so pointing this at the city would run the tool over a
+    # network whose answer is "none" and verify an empty point layer - see
+    # _deadend_network for why the tool gets its own fixture rather than an
+    # entry in CONDITIONAL_OUTPUTS.
+    ("planx:deadends", "NETWORK"): "fixture:network_deadend",
 }
 
 # Timestamps the sun tools can actually compute a position for: a solstice noon.
@@ -1225,6 +1232,73 @@ def _north_shift(layer, name, out_dir, transform_context):
     return shifted
 
 
+#: The dead-end fixture, as two-point segments in the fixture's own coordinate
+#: units, offset from the template layer's lower-left corner. A closed 100-unit
+#: square whose corners are all degree-2, plus a two-segment stem leaving the
+#: square's right-hand corner: six nodes, six segments, exactly one degree-1
+#: node, and one branch of 100 units whose turning head is depth 0 and whose
+#: entry to the junction is depth 1.
+_DEADEND_SHAPE = (
+    ((0.0, 0.0), (100.0, 0.0)),        # A-B, the square's south side
+    ((100.0, 0.0), (100.0, 100.0)),    # B-C, east
+    ((100.0, 100.0), (0.0, 100.0)),    # C-D, north
+    ((0.0, 100.0), (0.0, 0.0)),        # D-A, west
+    ((100.0, 0.0), (100.0, -50.0)),    # B-E, the stem's first segment (depth 1)
+    ((100.0, -50.0), (100.0, -100.0)),  # E-F, the stem's last segment (depth 0)
+)
+#: Side of the square above, and the length of the branch hanging off it, both
+#: in the fixture's coordinate units. Ground metres are these times
+#: :data:`GROUND_PER_UNIT_NORTH`, which is what the value checks compare.
+_DEADEND_SIDE = 100.0
+_DEADEND_BRANCH = 100.0
+_DEADEND_NODES = 6
+
+
+def _deadend_network(template, name, out_dir, transform_context):
+    """A network that really has a dead end in it, laid on ``template``.
+
+    The fixture city is a fully meshed grid: every one of its nodes is a
+    junction or a continuation, so it has no degree-1 node at all and a
+    dead-end tool finds nothing on it - an empty point layer and a summary of
+    zeros. A case like that goes green having exercised none of the walk, the
+    branch attribution or the ratios, which is the "test that cannot fail"
+    TRAPS 5.1 warns about. So the tool whose whole subject is the cul-de-sac
+    gets a network that has one, rather than having its output declared
+    optional: the escape hatch is for an output a tool may legitimately decline
+    to write, and here the tool is not declining - the fixture was wrong for it.
+
+    The shape is :data:`_DEADEND_SHAPE`. Its answer is known by hand, which is
+    what makes the value checks in this file falsifiable rather than
+    self-referential.
+
+    Placed relative to the template's lower-left corner rather than at fixed
+    coordinates, so that the north bundle's copy travels with the city. The
+    translation comparison runs every registered tool on both bundles, and a
+    fixture that stayed put would make that comparison a comparison of two
+    different networks.
+    """
+    corner = template.extent()
+    left, bottom = corner.xMinimum(), corner.yMinimum()
+    fields = QgsFields()
+    # One field and no more. A fixture column named like something a tool reads
+    # (a `cost`, a `length`) would silently become that tool's input, and a
+    # fixture column named like one a tool *writes* is renamed out of the way by
+    # make_fields and makes the value check read the fixture instead of the
+    # tool. Neither risk is worth the convenience of carrying the demo city's
+    # street schema here.
+    fields.append(QgsField("id", INT))
+    rows = []
+    for index, (start, end) in enumerate(_DEADEND_SHAPE, start=1):
+        rows.append((
+            QgsGeometry.fromPolylineXY([
+                QgsPointXY(left + start[0], bottom + start[1]),
+                QgsPointXY(left + end[0], bottom + end[1])]),
+            [index]))
+    path = Path(out_dir) / f"{name}.gpkg"
+    return Path(_write_layer(path, name, fields, QgsWkbTypes.Type.LineString,
+                             template.crs(), rows, transform_context))
+
+
 def build_fixtures(processing, work_dir, transform_context):
     """Run ``planx:democity`` and widen its outputs into the fixture bundle."""
     import numpy as np
@@ -1348,6 +1422,14 @@ def build_fixtures(processing, work_dir, transform_context):
             (("hazus_group", STRING), ("hazus_ac_g", DOUBLE),
              ("hazus_category", STRING), ("sample_x", DOUBLE)),
             _seismic_unit_attrs, out_dir, transform_context)
+
+        # A network of the tool's own, rather than the city's, for the one tool
+        # whose subject the city cannot show it. The grid has no degree-1 node,
+        # so the dead-end analysis reads it correctly and writes an empty point
+        # layer - see _deadend_network.
+        made["network_deadend"] = _deadend_network(
+            base("OUTPUT_STREETS"), "network_deadend", out_dir,
+            transform_context)
 
         parcels = QgsVectorLayer(str(made["landuse"]), "landuse", "ogr")
         if not parcels.isValid():
@@ -2654,6 +2736,16 @@ METRIC_COLUMNS = {
             "dpc": "same",     # a distance over the patch's own size
         },
     },
+    # The dead-end family's lengths, on the fixture that carries a branch: the
+    # whole point of the tool is the distance a resident drives twice before
+    # reaching a through route, and a length in the layer's own coordinates
+    # would be 1.325x too long here with nothing in the table to say so. It is
+    # checked against a moved network rather than against the geometry's own
+    # length because branch_length_m is a *sum* over segments the tool chose -
+    # no single feature's geometry holds it.
+    "planx:deadends": {
+        "SEGMENTS": {"length_m": "length", "branch_length_m": "length"},
+    },
 }
 
 #: algorithm id -> outputs whose *raster* has to move between the runs, checked
@@ -3252,6 +3344,271 @@ def _expect_coseismic_category_route(path):
     return _expect_coseismic_rows(path, ("hazus-cat",))
 
 
+def _deadend_ground(units_in_layer):
+    """Layer units -> ground metres, from the fixture's own latitude.
+
+    Deliberately *not* ``planx.algorithms._units``: a check that measures with
+    the same mechanism as the code under test agrees with it whatever it does,
+    including being wrong in the same way twice. The fixture sits at 29 E 41 N
+    on EPSG:3857, where one unit is cos(41) of a ground metre, so that is the
+    number every length in this tool's output has to be built on.
+    """
+    return units_in_layer * GROUND_PER_UNIT_NORTH
+
+
+def _deadend_ground_area(units_squared):
+    """The same, for an area: the length factor twice over."""
+    return units_squared * GROUND_PER_UNIT_NORTH ** 2
+
+
+def _expect_deadend_segments(path):
+    """Every segment's dead-end attribution, on a network worked out by hand.
+
+    :data:`_DEADEND_SHAPE` is a square with a stem. Its graph is known exactly:
+    six segments, one degree-1 node, one branch of two segments hanging off the
+    square's right-hand corner. So the claims below are arithmetic on the
+    fixture rather than on the tool, and each of them fails for a different
+    mistake:
+
+    * the two stem rows and no others carry a branch id - a walk that started
+      from a junction, or that followed the square, would tag four or six;
+    * their depths are 0 and 1, and the deeper one is the one that touches a
+      degree-3 node - depth counted from the junction instead of the turning
+      head would swap the pair, which is a whole-street-versus-stub reading;
+    * branch_length_m is the branch's own two segments and not the network's
+      length, nor the tip segment's;
+    * the four through segments are branch id -1 rather than 0, because 0 is a
+      real branch id and a tool that defaulted to it would put the square in
+      the same branch as the cul-de-sac.
+    """
+    crs, rows, complaint = _read_gpkg_geometries(path)
+    if complaint:
+        return complaint
+    if crs != QgsCoordinateReferenceSystem(CITY_CRS):
+        return (f"the segments are in {crs.authid() or 'an unnamed CRS'}, not "
+                f"the fixture's {CITY_CRS}")
+    if len(rows) != len(_DEADEND_SHAPE):
+        return (f"the fixture network has {len(_DEADEND_SHAPE)} segments and the "
+                f"output has {len(rows)}")
+
+    branch_rows = []
+    through = 0
+    for index, row in enumerate(rows):
+        for column in ("seg_id", "node_from", "node_to", "deg_from", "deg_to",
+                       "is_dead_end", "is_stub", "branch_id", "depth",
+                       "branch_length_m", "branch_segments", "anchor_node"):
+            if row.get(column) is None:
+                return f"row {index}: {column} is NULL"
+        geometry = row.get("geometry")
+        if geometry is None or geometry.isEmpty():
+            return f"row {index}: no geometry to measure"
+        # The fixture's own geometry first: a segment that is not the length it
+        # was drawn at would make every claim below agree with itself. A
+        # tolerance rather than an equality because the shape is offset from the
+        # city's lower-left corner, in doubles seven digits wide, so a 100-unit
+        # side comes back carrying the last bit of that addition.
+        drawn = geometry.length()
+        if min(abs(drawn - 100.0), abs(drawn - 50.0)) > 1e-6:
+            return (f"row {index}: the fixture segment measures {drawn:g} units, "
+                    f"where the shape it was drawn from is 100 or 50")
+        measured = float(row["length_m"])
+        if abs(measured - _deadend_ground(drawn)) > 0.02 * _deadend_ground(drawn):
+            return (f"row {index}: length_m is {measured:.3f} on a segment of "
+                    f"{drawn:g} units, which is {_deadend_ground(drawn):.3f} m of "
+                    f"ground - the column is the layer's own units, not metres")
+        if int(row["is_dead_end"]):
+            branch_rows.append(row)
+        elif int(row["branch_id"]) != -1 or int(row["depth"]) != -1 \
+                or float(row["branch_length_m"]) != 0.0 \
+                or int(row["branch_segments"]) != 0 or int(row["anchor_node"]) != -1:
+            return (f"row {index}: a segment off every dead-end branch still "
+                    f"carries branch_id {row['branch_id']}, depth {row['depth']}, "
+                    f"branch_length_m {row['branch_length_m']} and anchor_node "
+                    f"{row['anchor_node']} - an untagged segment has to read as "
+                    f"untagged (-1, -1, 0, -1), not as branch 0")
+        else:
+            through += 1
+
+    if len(branch_rows) != 2:
+        return (f"{len(branch_rows)} segment(s) carry a dead-end branch id, where "
+                f"the fixture's cul-de-sac is two segments and its square is none")
+    if through != 4:
+        return f"{through} through segments, where the fixture's square is four"
+
+    branches = {int(row["branch_id"]) for row in branch_rows}
+    if len(branches) != 1:
+        return (f"the two segments of one cul-de-sac are in branches {sorted(branches)}, "
+                f"so the street is not a single object")
+    depths = sorted(int(row["depth"]) for row in branch_rows)
+    if depths != [0, 1]:
+        return (f"the branch's depths are {depths}, where the turning head is 0 "
+                f"and the segment reaching the junction is 1")
+    for row in branch_rows:
+        if int(row["branch_segments"]) != 2:
+            return (f"branch_segments is {row['branch_segments']} where the "
+                    f"fixture's branch is two segments")
+        branch_length = float(row["branch_length_m"])
+        expected = _deadend_ground(_DEADEND_BRANCH)
+        if abs(branch_length - expected) > 0.02 * expected:
+            return (f"branch_length_m is {branch_length:.3f} where the branch's "
+                    f"two segments are {expected:.3f} m of ground")
+        if abs(float(row["length_m"]) - _deadend_ground(50.0)) > 0.02 * 50.0:
+            return (f"a branch segment is {float(row['length_m']):.3f} m long, "
+                    f"where both halves of the stem are 50 units")
+
+    tip = next(row for row in branch_rows if int(row["depth"]) == 0)
+    junction = next(row for row in branch_rows if int(row["depth"]) == 1)
+    if {int(tip["deg_from"]), int(tip["deg_to"])} != {1, 2}:
+        return (f"the depth-0 segment runs between degrees "
+                f"{tip['deg_from']} and {tip['deg_to']}, so it is not the one "
+                f"ending at the turning head")
+    if {int(junction["deg_from"]), int(junction["deg_to"])} != {2, 3}:
+        return (f"the depth-1 segment runs between degrees "
+                f"{junction['deg_from']} and {junction['deg_to']}, where the "
+                f"branch has to reach the square's degree-3 corner")
+    ends = {int(junction["node_from"]), int(junction["node_to"])}
+    if int(junction["anchor_node"]) not in ends:
+        return (f"the branch is anchored on node {junction['anchor_node']}, which "
+                f"is not an end of the segment that reaches the junction "
+                f"({sorted(ends)})")
+    return None
+
+
+def _expect_deadend_points(path):
+    """The point layer holds the turning head, with the branch's own figures.
+
+    One degree-1 node exists in this fixture, so a count is weak evidence; the
+    assertions are on the numbers attached to it, and on *where* it is. The
+    last check reads the sibling segment layer - :func:`_destination_path` names
+    the two outputs after the same algorithm, so they sit beside each other -
+    and requires the point to be the end of the depth-0 segment and of nothing
+    else. A tool that placed the point at the junction instead of the tip, or
+    that placed one point per branch segment, would pass every count above.
+    """
+    crs, rows, complaint = _read_gpkg_geometries(path)
+    if complaint:
+        return complaint
+    if len(rows) != 1:
+        return (f"the fixture has one degree-1 node and the point layer has "
+                f"{len(rows)}")
+    point = rows[0]
+    for column in ("node_id", "degree", "branch_id", "branch_length_m",
+                   "branch_segments", "anchor_node", "anchor_degree", "is_stub"):
+        if point.get(column) is None:
+            return f"{column} is NULL on the only dead end"
+    if int(point["degree"]) != 1:
+        return f"the dead end is a degree-{point['degree']} node"
+    if int(point["branch_segments"]) != 2:
+        return (f"branch_segments is {point['branch_segments']} where the "
+                f"fixture's cul-de-sac is two segments long")
+    if int(point["anchor_degree"]) != 3:
+        return (f"anchor_degree is {point['anchor_degree']}, where the branch "
+                f"ends at the square's degree-3 corner")
+    if int(point["is_stub"]):
+        return ("the branch is flagged as a stub, and the run leaves the "
+                "threshold at 0, where nothing is a stub")
+    branch_length = float(point["branch_length_m"])
+    expected = _deadend_ground(_DEADEND_BRANCH)
+    if abs(branch_length - expected) > 0.02 * expected:
+        return (f"branch_length_m is {branch_length:.3f} where the branch is "
+                f"{expected:.3f} m of ground")
+
+    stem = Path(path).with_name(Path(path).name.replace("DEAD_ENDS", "SEGMENTS"))
+    if not stem.exists():
+        return (f"the segment layer {stem.name} is not beside the point layer, "
+                f"so the dead end cannot be placed on its own branch")
+    _crs, segments, complaint = _read_gpkg_geometries(stem)
+    if complaint:
+        return complaint
+    tip = point.get("geometry")
+    if tip is None or tip.isEmpty():
+        return "the dead-end point has no geometry"
+    touching = []
+    for segment in segments:
+        geometry = segment.get("geometry")
+        if geometry is None or geometry.isEmpty():
+            continue
+        vertices = [QgsPointXY(vertex.x(), vertex.y())
+                    for vertex in geometry.asPolyline()]
+        if any(vertex.distance(tip.asPoint()) < 1e-6 for vertex in vertices):
+            touching.append(segment)
+    if len(touching) != 1:
+        return (f"the dead end is a vertex of {len(touching)} segment(s), where "
+                f"the turning head ends exactly one")
+    if int(touching[0]["depth"]) != 0 or not int(touching[0]["is_dead_end"]):
+        return (f"the dead end sits on a segment of depth {touching[0]['depth']} "
+                f"that is not flagged as dead end - it is not the turning head")
+    return None
+
+
+def _expect_deadend_summary(path):
+    """All seventeen summary rows, against the fixture's hand-worked network.
+
+    Read as a table rather than by name so that a row the tool stopped writing
+    is a failure: a check that looks up the two or three rows it cares about
+    cannot see a missing one. The expected values are the shape's own
+    arithmetic, and the two ratios are the tool's central claim - one cul-de-sac
+    tip in six nodes, but 100 of the network's 500 units of length, which is the
+    difference between counting dead ends and measuring them.
+    """
+    names, rows, complaint = _read_gpkg(path, aspatial=True)
+    if complaint:
+        return complaint
+    if "metric" not in names or "value" not in names:
+        return f"the summary has no metric/value pair to read: {names}"
+    measured = {}
+    for row in rows:
+        if row["metric"] is None:
+            return "a summary row has no metric name"
+        if row["value"] is None:
+            return f"the '{row['metric']}' row has no value"
+        measured[str(row["metric"])] = float(row["value"])
+
+    side, branch = _DEADEND_SIDE, _DEADEND_BRANCH
+    # Four sides of the square plus the stem: 500 units of network, of which
+    # the branch is 100. The hull of the six nodes is the *trapezoid* whose left
+    # side is the square's 100-unit edge and whose right side runs from the
+    # stem's head back up to the square's far corner - 100 units of it on the
+    # lower side, 200 on the right, so 0.5 * (100 + 200) * 100. The lower-left
+    # corner is the square's, not the stem's, which is what makes it a trapezoid
+    # and not the rectangle the four corners alone would give.
+    network_units = 4.0 * side + branch
+    hull_units2 = 0.5 * (side + (side + branch)) * side
+    expected = {
+        "nodes": _DEADEND_NODES,
+        "edges": len(_DEADEND_SHAPE),
+        "components": 1,
+        "total_length_km": _deadend_ground(network_units) / 1000.0,
+        "deadend_nodes": 1,
+        "deadend_branches": 1,
+        "deadend_length_m": _deadend_ground(branch),
+        "deadend_node_ratio": 1.0 / _DEADEND_NODES,
+        "deadend_length_ratio": branch / network_units,
+        "stub_branches": 0,
+        "deadend_node_ratio_excl_stubs": 1.0 / _DEADEND_NODES,
+        "deadend_length_ratio_excl_stubs": branch / network_units,
+        "longest_branch_m": _deadend_ground(branch),
+        "mean_branch_m": _deadend_ground(branch),
+        "median_branch_m": _deadend_ground(branch),
+        "mean_branch_segments": 2.0,
+        "deadends_per_km2": 1.0 / (_deadend_ground_area(hull_units2) / 1e6),
+    }
+
+    missing = sorted(set(expected) - set(measured))
+    if missing:
+        return f"the summary does not report {', '.join(missing)}"
+    extra = sorted(set(measured) - set(expected))
+    if extra:
+        return (f"the summary reports {', '.join(extra)}, which this check has "
+                f"no expectation for")
+    for metric, want in expected.items():
+        got = measured[metric]
+        if abs(got - want) > 0.02 * max(abs(want), 1e-12):
+            return (f"{metric} is {got:g} where the fixture's own network makes "
+                    f"it {want:g}")
+    return None
+
+
 #: Value expectations for an extra run, keyed (algorithm id, extra label).
 #: An extra run exists because it takes a branch the primary case never
 #: reaches, and a branch that writes the right number of rows with the wrong
@@ -3336,6 +3693,16 @@ VALUE_EXPECTATIONS = {
     },
     "planx:greenconnectivity": {
         "OUT_PATCHES": _area_column_is_ground_metres("area_m2"),
+    },
+    # The three dead-end family entry points, all three read: the segment layer
+    # carries the branch attribution, the point layer the tip and its branch,
+    # and the summary the ratios - and each is the only place its own claim
+    # exists, so a case that checked one would leave the other two outputs
+    # verified as "non-empty" and nothing more.
+    "planx:deadends": {
+        "SEGMENTS": _expect_deadend_segments,
+        "DEAD_ENDS": _expect_deadend_points,
+        "SUMMARY": _expect_deadend_summary,
     },
 }
 

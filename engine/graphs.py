@@ -146,6 +146,122 @@ def nearest_nodes(graph: NodeGraph, points: np.ndarray) -> np.ndarray:
         return out
 
 
+def weak_component_count(graph: NodeGraph) -> int:
+    """How many weak components the graph has, SciPy when it is installed.
+
+    One definition because two callers were building the same CSR by hand:
+    the morphology tool inline, and this module's own pure-Python walk. The
+    traversal cost is what decides - a 100k-node city is seconds in Python
+    and milliseconds in SciPy - while the answer is identical either way, so
+    the fast path is tried first and the walk is the fallback rather than a
+    second implementation to keep in step.
+    """
+    try:
+        from scipy.sparse import csgraph, csr_matrix
+        matrix = csr_matrix((graph.adj_cost, graph.adj_node, graph.indptr),
+                            shape=(graph.num_nodes, graph.num_nodes))
+        return int(csgraph.connected_components(matrix, directed=False)[0])
+    except Exception:
+        return weak_components(graph)[1]
+
+
+def dead_end_branches(graph: NodeGraph, min_length: float = 0.0) -> dict:
+    """Label every dead-end branch: the chain hanging behind a degree-1 node.
+
+    A dead-end is a *chain*, not a node. A cul-de-sac is the whole street
+    from its junction out to the turning head, and it is that length - not
+    the number of tips - that says how far a resident has to drive before
+    reaching a through route, and how much of the network's total length is
+    carriageway that only ever carries local traffic. Counting degree-1
+    nodes sees the tip and misses the street, so the walk below starts at
+    each tip and follows the unique continuation through degree-2 nodes
+    until it reaches a junction (degree >= 3) or the far tip of a segment
+    that touches nothing else.
+
+    Self-loops are dropped from the adjacency: an edge that leaves and
+    returns to the same node is not a way out of it, and counting it would
+    hand a node a degree of 2 and hide a genuine dead end behind it.
+
+    ``min_length`` is in the same units as the graph's ``edge_len`` - the
+    caller's coordinate units, not metres. A branch shorter than it is
+    flagged as a stub, which is how under-snapping is told apart from real
+    cul-de-sac geometry: a 0.3 m "cul-de-sac" is a digitising gap, not a
+    street. Stubs are flagged rather than dropped, so the caller reports
+    both readings instead of silently choosing one.
+
+    Returns parallel arrays:
+
+    =============== ========= ==========================================
+    ``edge_branch`` (E,) int  branch id, -1 when the edge is not a dead end
+    ``edge_depth``  (E,) int  edges between the tip and this edge
+    ``node_branch`` (N,) int  branch id for every node on a branch, else -1
+    ``degree``      (N,) int  undirected degree
+    ``branch_tip``  (B,) int  degree-1 node the walk started from
+    ``branch_anchor`` (B,) int junction it ends at, -1 if there is none
+    ``branch_length`` (B,) float ground-free length in the same units as edge_len
+    ``branch_edges`` (B,) int segment count
+    ``branch_stub`` (B,) bool shorter than ``min_length``
+    =============== ========= ==========================================
+    """
+    node_count = graph.num_nodes
+    edge_count = graph.num_edges
+
+    adjacency: list[list[tuple[int, int]]] = [[] for _ in range(node_count)]
+    for edge_id in range(edge_count):
+        start = int(graph.edge_from[edge_id])
+        end = int(graph.edge_to[edge_id])
+        if start == end:
+            continue
+        adjacency[start].append((end, edge_id))
+        adjacency[end].append((start, edge_id))
+    degree = np.fromiter((len(row) for row in adjacency), dtype=np.int32, count=node_count)
+
+    edge_branch = np.full(edge_count, -1, dtype=np.int32)
+    edge_depth = np.zeros(edge_count, dtype=np.int32)
+    node_branch = np.full(node_count, -1, dtype=np.int32)
+
+    tips, anchors, lengths, counts, stubs = [], [], [], [], []
+    for tip in range(node_count):
+        if degree[tip] != 1:
+            continue
+        node, edge_id = adjacency[tip][0]
+        if edge_branch[edge_id] >= 0:
+            continue  # the far end of a chain another tip already walked
+        branch = len(tips)
+        node_branch[tip] = branch
+        walked, depth = [], 0
+        while edge_branch[edge_id] < 0:
+            edge_branch[edge_id] = branch
+            edge_depth[edge_id] = depth
+            node_branch[node] = branch
+            walked.append(edge_id)
+            if degree[node] != 2:
+                break  # a junction, or the tip at the other end of a lone segment
+            onward = [item for item in adjacency[node] if item[1] != edge_id]
+            if not onward:
+                break
+            node, edge_id = onward[0]
+            depth += 1
+        total = float(graph.edge_len[walked].sum())
+        tips.append(tip)
+        anchors.append(node if degree[node] >= 3 else -1)
+        lengths.append(total)
+        counts.append(len(walked))
+        stubs.append(bool(min_length > 0.0 and total < min_length))
+
+    return {
+        "edge_branch": edge_branch,
+        "edge_depth": edge_depth,
+        "node_branch": node_branch,
+        "degree": degree,
+        "branch_tip": np.asarray(tips, dtype=np.int32),
+        "branch_anchor": np.asarray(anchors, dtype=np.int32),
+        "branch_length": np.asarray(lengths, dtype=np.float64),
+        "branch_edges": np.asarray(counts, dtype=np.int32),
+        "branch_stub": np.asarray(stubs, dtype=bool),
+    }
+
+
 def weak_components(graph: NodeGraph) -> tuple[np.ndarray, int]:
     """Return weak component id per node and the component count."""
     undirected = [[] for _ in range(graph.num_nodes)]

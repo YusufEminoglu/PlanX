@@ -3612,6 +3612,94 @@ check("Jibson: the refusal for a zero critical acceleration names what diverges"
       "diverges" in _zero_message and "liquefaction" in _zero_message)
 
 # --------------------------------------------------------------------------- #
+# 37. Dead-end branches: a dead end is a chain, not a node
+# --------------------------------------------------------------------------- #
+# A square loop with one cul-de-sac hanging off its corner A. The loop is the
+# point of this fixture: none of its four segments has a degree-1 node, so a
+# reading that reaches for "every edge touching a node of degree <= 2" files
+# the whole ring as dead-end and still looks plausible next to the cul-de-sac.
+culdesac_lines = [
+    np.array([[0.0, 0.0], [1.0, 0.0]]),    # A-B    ring
+    np.array([[1.0, 0.0], [1.0, 1.0]]),    # B-C    ring
+    np.array([[1.0, 1.0], [0.0, 1.0]]),    # C-D    ring
+    np.array([[0.0, 1.0], [0.0, 0.0]]),    # D-A    ring
+    np.array([[0.0, 0.0], [0.0, -1.0]]),   # A-T1   cul-de-sac
+    np.array([[0.0, -1.0], [0.0, -2.0]]),  # T1-T2  cul-de-sac turning head
+]
+culdesac = graphs.build_node_graph(culdesac_lines)
+culdesac_de = graphs.dead_end_branches(culdesac)
+check("dead ends: the loop contributes no branch, only the cul-de-sac does",
+      len(culdesac_de["branch_tip"]) == 1 and int(culdesac_de["branch_edges"][0]) == 2)
+check("dead ends: the branch is the whole street to the turning head, not one segment",
+      close(float(culdesac_de["branch_length"][0]), 2.0))
+check("dead ends: the branch anchors on the junction it leaves from",
+      int(culdesac_de["branch_anchor"][0]) >= 0
+      and int(culdesac.degrees()[int(culdesac_de["branch_anchor"][0])]) == 3)
+check("dead ends: the ring's four segments stay out of every branch",
+      int((culdesac_de["edge_branch"] >= 0).sum()) == 2)
+check("dead ends: depth is the distance in segments back from the tip",
+      sorted((int(culdesac_de["edge_depth"][e]), int(culdesac_de["edge_branch"][e]))
+             for e in range(culdesac.num_edges) if culdesac_de["edge_branch"][e] >= 0)
+      == [(0, 0), (1, 0)])
+# The tip node plus the two segments of the cul-de-sac: three nodes on a branch,
+# and exactly one of them is the degree-1 end.
+check("dead ends: every node on the branch is labelled, and only the tip has degree 1",
+      int((culdesac_de["node_branch"] >= 0).sum()) == 3
+      and int((culdesac_de["degree"] == 1).sum()) == 1)
+
+# A closed loop with no stub has no dead ends at all - the degenerate case the
+# ring above would collapse to if the cul-de-sac were removed.
+loop_only = graphs.build_node_graph(culdesac_lines[:4])
+loop_de = graphs.dead_end_branches(loop_only)
+check("dead ends: a closed loop has none, in both readings",
+      len(loop_de["branch_tip"]) == 0
+      and int((loop_de["node_branch"] >= 0).sum()) == 0
+      and bool(np.all(loop_de["degree"] == 2)))
+
+# An isolated segment: no junction at either end, so the branch has no anchor
+# and both of its nodes are degree-1 tips of the *same* branch. Reporting it as
+# two dead ends would double-count one street.
+solo = graphs.build_node_graph([np.array([[0.0, 0.0], [3.0, 0.0]])])
+solo_de = graphs.dead_end_branches(solo)
+check("dead ends: a lone segment is one branch with no anchor",
+      len(solo_de["branch_tip"]) == 1 and int(solo_de["branch_edges"][0]) == 1
+      and int(solo_de["branch_anchor"][0]) == -1
+      and close(float(solo_de["branch_length"][0]), 3.0))
+check("dead ends: both ends of a lone segment carry the one branch id",
+      int((solo_de["node_branch"] == 0).sum()) == 2)
+
+# The stub threshold flags; it never drops. Summing the branch lengths with the
+# filter on and off is what proves nothing left the output.
+stubbed = graphs.build_node_graph([
+    np.array([[0.0, 0.0], [1.0, 0.0]]),
+    np.array([[1.0, 0.0], [2.0, 0.0]]),
+    np.array([[1.0, 0.0], [1.0, 0.2]]),    # a 0.2 m digitising gap, not a street
+])
+stub_off = graphs.dead_end_branches(stubbed)
+stub_on = graphs.dead_end_branches(stubbed, min_length=1.0)
+check("dead ends: the stub threshold flags the short branch and only that one",
+      not bool(stub_off["branch_stub"].any()) and int(stub_on["branch_stub"].sum()) == 1)
+check("dead ends: flagging a stub takes nothing out of the result",
+      int(stub_on["branch_edges"].sum()) == int(stub_off["branch_edges"].sum()) == 3
+      and close(float(stub_on["branch_length"].sum()), float(stub_off["branch_length"].sum())))
+
+# A self-loop leaves its node and returns to it, so it is not a way out of that
+# node. Counting it would give the node a degree of 2 and hide the real stub the
+# walk is looking for behind an apparent continuation.
+selfloop = graphs.build_node_graph([
+    np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0]]),  # edge 0: closed ring at node 0
+    np.array([[0.0, 0.0], [0.0, -1.0]]),                          # edge 1: the stub
+])
+selfloop_de = graphs.dead_end_branches(selfloop)
+check("dead ends: a self-loop is not a continuation and carries no branch",
+      int(selfloop_de["edge_branch"][0]) == -1 and int(selfloop_de["edge_branch"][1]) == 0)
+
+check("weak component count: the SciPy path and the pure walk agree",
+      graphs.weak_component_count(culdesac) == graphs.weak_components(culdesac)[1] == 1
+      and graphs.weak_component_count(solo) == 1
+      and graphs.weak_component_count(loop_only) == 1)
+
+# --------------------------------------------------------------------------- #
 def _failures():
     return [label for label, ok in CHECKS if not ok]
 

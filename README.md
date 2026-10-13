@@ -34,17 +34,18 @@ validate against observed shares, and Annual Solar can calibrate clear-sky
 results with an EPW weather file. The Studio adds search, favorites, recents,
 active-layer filtering, presets, and guided workflows.
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-five Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-six Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## 📖 Documentation
 
-**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 75 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (344 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (402 entries, 307 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
+**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 76 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (350 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (410 entries, 311 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
 
 ## ✨ Features
 
 - **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.
 - **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness, **eigenvector** and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
 - **Real network accessibility** — OD cost matrices with detour ratios, **exact service-area isochrones** (partial-edge trimming: reach ends mid-street, not at whole segments; street-buffer / concave-hull / convex-hull polygons, per-facility or merged) with straight-line **radius circles and the pedshed ratio** built in, nearest-facility allocation with load summaries and travel path geometries.
+- **Dead ends measured as streets, not points** — walks each cul-de-sac branch from the junction it leaves out to its turning head, so a dead-end street is one object you can measure, rank and map: branch length and depth in segments, the anchor junction, and a dead-end ratio by node count *and* by network length — the share of carriageway that only ever serves local traffic.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
 - **Microclimate screening** — UMEP-style **shadow casting** for any date/time (embedded NOAA solar position), **Sun Hours** (whole-day direct-sun maps), clear-sky **Solar Irradiation** (shadow-aware beam + SVF-weighted diffuse, kWh/m²), **Annual Solar Potential** (year-long clear-sky irradiation from twelve representative-day sweeps, kWh/m²/yr, with an optional monthly raster), **Sky View Factor**, frontal-area wind-roughness grids, a vector **Heat Island Risk Grid**, **Road Emissions** (daily segment emissions) and **Air Quality Screening** (dispersion index grid with canyon effect and exposure bands).
@@ -66,8 +67,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the seventy-five tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 731 engine unit checks against hand-computed values, plus a runtime matrix that executes every one of the 75 algorithms on real QGIS 3.44 LTR and on real QGIS 4.2 (78 cases, 0 failures on either). Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the seventy-six tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 755 engine unit checks against hand-computed values, plus a runtime matrix that executes every one of the 76 algorithms on real QGIS 3.44 LTR and on real QGIS 4.2 (83 cases, 0 failures on either). Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio toolbar panel** — click the single PlanX toolbar icon to browse and launch the whole toolset, every tool with its own icon.
 
 ## 🚀 Installation
@@ -97,6 +98,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Network Analysis | Service Areas (Isochrones) | Exact trimmed isochrones (street buffer / concave / convex), straight-line circles + pedshed ratio |
 | Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary and path routes |
 | Network Analysis | Link Criticality (Network Robustness) | Remove each segment over an OD demand → extra travel forced, demand severed, shortest-path usage; road-network vulnerability map |
+| Network Analysis | Dead-End Analysis | Cul-de-sac branches as whole streets: segment-level branch attribution, depth to the junction, dead-end ratios by node count and by network length |
 | Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, eigenvector, Brandes betweenness (nodes + edges) |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |
 | Urban Morphology | Building Form Metrics | Area, IPQ, convexity, elongation, orientation, courtyards, shared walls… |

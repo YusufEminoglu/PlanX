@@ -102,7 +102,7 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
         entropy, order = morphology.orientation_entropy(bearings, graph.edge_len)
 
         degrees = graph.degrees()
-        components = self._component_count(graph)
+        components = graphs.weak_component_count(graph)
         mesh = morphology.meshedness(n, e, components)
         hull = morphology.convex_hull(graph.node_xy)
         hull_km2 = morphology.ring_area(hull) / (per_unit * per_unit) / 1e6 if len(hull) >= 3 else 0.0
@@ -147,31 +147,6 @@ class StreetNetworkMorphologyAlgorithm(PlanXAlgorithm):
             feedback.pushInfo(f"  {name} = {value}")
 
         return {self.NODES: nodes_dest, self.SUMMARY: sum_dest}
-
-    @staticmethod
-    def _component_count(graph) -> int:
-        try:
-            from scipy.sparse import csgraph, csr_matrix
-            mat = csr_matrix((graph.adj_cost, graph.adj_node, graph.indptr),
-                             shape=(graph.num_nodes, graph.num_nodes))
-            return int(csgraph.connected_components(mat, directed=False)[0])
-        except Exception:
-            seen = np.zeros(graph.num_nodes, dtype=bool)
-            comps = 0
-            for start in range(graph.num_nodes):
-                if seen[start]:
-                    continue
-                comps += 1
-                stack = [start]
-                seen[start] = True
-                while stack:
-                    u = stack.pop()
-                    for k in range(graph.indptr[u], graph.indptr[u + 1]):
-                        v = graph.adj_node[k]
-                        if not seen[v]:
-                            seen[v] = True
-                            stack.append(v)
-            return comps
 
     def createInstance(self):
         return StreetNetworkMorphologyAlgorithm()
