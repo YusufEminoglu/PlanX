@@ -1,0 +1,20 @@
+{
+  "algo_id": "performancereport",
+  "display_name": "Plan Dashboard & Performance Report (HTML)",
+  "group": "Reporting and Dashboard",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T11:41:04",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Plan Dashboard & Performance Report (HTML) - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/performancereport/performancereport_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

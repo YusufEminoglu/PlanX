@@ -40,6 +40,8 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 
 **[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 76 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (350 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (410 entries, 311 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
 
+**[Practical Guide — applied workflows & screenshots](https://yusufeminoglu.github.io/PlanX/PRACTICAL_GUIDE/)** — the companion to the manual above: a **real 4-panel screenshot of every algorithm** (input data, parameters used, raw output, styled output), produced by running the PlanX engine headless in QGIS on **real open data for Utrecht, Netherlands** — OpenStreetMap, the Dutch BAG building register (32,812 buildings with build year), CBS neighbourhood and postcode statistics, the AHN national height model and the national GTFS feed. Each algorithm also gets a step-by-step workflow and interpretation notes.
+
 ## ✨ Features
 
 - **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.

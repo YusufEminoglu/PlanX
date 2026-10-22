@@ -1,0 +1,20 @@
+{
+  "algo_id": "lowstressislands",
+  "display_name": "Low-Stress Connectivity",
+  "group": "Cycling",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T20:07:34",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Low-Stress Connectivity - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/lowstressislands/lowstressislands_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

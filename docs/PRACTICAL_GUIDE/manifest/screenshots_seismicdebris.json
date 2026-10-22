@@ -1,0 +1,20 @@
+{
+  "algo_id": "seismicdebris",
+  "display_name": "Seismic Collapse and Debris Spread (Monte Carlo)",
+  "group": "Seismic Risk",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T20:16:40",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Seismic Collapse and Debris Spread (Monte Carlo) - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/seismicdebris/seismicdebris_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

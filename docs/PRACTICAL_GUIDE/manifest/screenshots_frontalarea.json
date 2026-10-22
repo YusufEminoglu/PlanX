@@ -1,0 +1,20 @@
+{
+  "algo_id": "frontalarea",
+  "display_name": "Frontal Area Index",
+  "group": "Microclimate",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T10:31:36",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Frontal Area Index - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/frontalarea/frontalarea_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

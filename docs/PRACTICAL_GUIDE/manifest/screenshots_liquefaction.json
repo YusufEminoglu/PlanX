@@ -1,0 +1,20 @@
+{
+  "algo_id": "liquefaction",
+  "display_name": "Liquefaction Screening",
+  "group": "Seismic Risk",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-22T02:55:10",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Liquefaction Screening - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/liquefaction/liquefaction_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

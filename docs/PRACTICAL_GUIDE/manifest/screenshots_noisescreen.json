@@ -1,0 +1,20 @@
+{
+  "algo_id": "noisescreen",
+  "display_name": "Road Noise Screening",
+  "group": "Microclimate",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T11:20:43",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Road Noise Screening - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/noisescreen/noisescreen_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

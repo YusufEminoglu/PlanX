@@ -1,0 +1,20 @@
+{
+  "algo_id": "groundmotion",
+  "display_name": "Ground Motion Scenario",
+  "group": "Seismic Risk",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T20:15:01",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Ground Motion Scenario - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/groundmotion/groundmotion_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

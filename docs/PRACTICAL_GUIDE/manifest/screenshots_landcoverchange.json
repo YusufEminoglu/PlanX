@@ -1,0 +1,20 @@
+{
+  "algo_id": "landcoverchange",
+  "display_name": "Land-Cover Change Analysis",
+  "group": "Urban Growth",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T20:07:27",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Land-Cover Change Analysis - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/landcoverchange/landcoverchange_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

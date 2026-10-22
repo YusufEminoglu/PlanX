@@ -1,0 +1,5440 @@
+{
+  "version": "1.0",
+  "generated": "2026-10-20",
+  "total_algorithms": 76,
+  "groups": {
+    "Network Analysis": [
+      "preparenetwork",
+      "odmatrix",
+      "odroutes",
+      "serviceareas",
+      "nearestfacility",
+      "linkcriticality",
+      "deadends"
+    ],
+    "Centrality & Space Syntax": [
+      "networkcentrality",
+      "spacesyntax"
+    ],
+    "Urban Morphology": [
+      "buildingmetrics",
+      "tessellation",
+      "spacematrix",
+      "streetmorphology"
+    ],
+    "Accessibility": [
+      "accessscore"
+    ],
+    "Microclimate": [
+      "shadowcasting",
+      "skyviewfactor",
+      "frontalarea",
+      "sunhours",
+      "solarirradiation",
+      "annualsolar",
+      "heatriskgrid",
+      "noisescreen",
+      "roademissions",
+      "airscreen"
+    ],
+    "Plan Standards and QA": [
+      "landusebalance",
+      "facilityadequacy",
+      "densitygrid"
+    ],
+    "Reporting and Dashboard": [
+      "performancereport",
+      "scenariocompare",
+      "scenariorank",
+      "scenariosnapshot",
+      "planaudit",
+      "democity",
+      "scenariopipeline"
+    ],
+    "Optimization": [
+      "facilitylocation",
+      "capacitatedallocation",
+      "landallocation",
+      "paretoallocation",
+      "capacitatedsiting"
+    ],
+    "Equity": [
+      "accessequity",
+      "inequalitycurves",
+      "equitycrosstab"
+    ],
+    "Walkability": [
+      "walkability",
+      "walkingslope",
+      "streetcomfort",
+      "routequality"
+    ],
+    "Transit": [
+      "gtfsimport",
+      "transitfrequency",
+      "transitaccess"
+    ],
+    "Visibility": [
+      "viewshed",
+      "isovistfield",
+      "visualexposure"
+    ],
+    "Population and Housing": [
+      "populationprojection",
+      "housingneeds",
+      "residentialcapacity",
+      "popallocate"
+    ],
+    "Green Infrastructure": [
+      "greenaccess",
+      "greenconnectivity"
+    ],
+    "Urban Growth": [
+      "landcoverchange",
+      "growthsim",
+      "sprawlmetrics"
+    ],
+    "Cycling": [
+      "cyclingstress",
+      "lowstressislands"
+    ],
+    "Hazard Screening": [
+      "flowaccumulation",
+      "handindex",
+      "floodexposure"
+    ],
+    "Travel Demand": [
+      "tripgeneration",
+      "gravitymodel",
+      "modesplit",
+      "parkingdemand",
+      "parkingsupplybalance"
+    ],
+    "Seismic Risk": [
+      "groundmotion",
+      "liquefaction",
+      "seismicdebris",
+      "seismicimpact",
+      "coseismiclandslide"
+    ]
+  },
+  "algorithms": [
+    {
+      "class_name": "PrepareNetworkAlgorithm",
+      "algo_id": "preparenetwork",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "ODCostMatrixAlgorithm",
+      "algo_id": "odmatrix",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "ODRoutesAlgorithm",
+      "algo_id": "odroutes",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "ServiceAreasAlgorithm",
+      "algo_id": "serviceareas",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "NearestFacilityAlgorithm",
+      "algo_id": "nearestfacility",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "LinkCriticalityAlgorithm",
+      "algo_id": "linkcriticality",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "DeadEndAnalysisAlgorithm",
+      "algo_id": "deadends",
+      "group": "Network Analysis",
+      "group_order": 1
+    },
+    {
+      "class_name": "NetworkCentralityAlgorithm",
+      "algo_id": "networkcentrality",
+      "group": "Centrality & Space Syntax",
+      "group_order": 2
+    },
+    {
+      "class_name": "SpaceSyntaxAlgorithm",
+      "algo_id": "spacesyntax",
+      "group": "Centrality & Space Syntax",
+      "group_order": 2
+    },
+    {
+      "class_name": "BuildingFormMetricsAlgorithm",
+      "algo_id": "buildingmetrics",
+      "group": "Urban Morphology",
+      "group_order": 3
+    },
+    {
+      "class_name": "MorphologicalTessellationAlgorithm",
+      "algo_id": "tessellation",
+      "group": "Urban Morphology",
+      "group_order": 3
+    },
+    {
+      "class_name": "SpacematrixDensityAlgorithm",
+      "algo_id": "spacematrix",
+      "group": "Urban Morphology",
+      "group_order": 3
+    },
+    {
+      "class_name": "StreetNetworkMorphologyAlgorithm",
+      "algo_id": "streetmorphology",
+      "group": "Urban Morphology",
+      "group_order": 3
+    },
+    {
+      "class_name": "MultiAmenityAccessAlgorithm",
+      "algo_id": "accessscore",
+      "group": "Accessibility",
+      "group_order": 4
+    },
+    {
+      "class_name": "ShadowCastingAlgorithm",
+      "algo_id": "shadowcasting",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "SkyViewFactorAlgorithm",
+      "algo_id": "skyviewfactor",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "FrontalAreaIndexAlgorithm",
+      "algo_id": "frontalarea",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "SunHoursAlgorithm",
+      "algo_id": "sunhours",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "SolarIrradiationAlgorithm",
+      "algo_id": "solarirradiation",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "AnnualSolarAlgorithm",
+      "algo_id": "annualsolar",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "HeatRiskGridAlgorithm",
+      "algo_id": "heatriskgrid",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "NoiseScreenAlgorithm",
+      "algo_id": "noisescreen",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "RoadEmissionsAlgorithm",
+      "algo_id": "roademissions",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "AirScreenAlgorithm",
+      "algo_id": "airscreen",
+      "group": "Microclimate",
+      "group_order": 5
+    },
+    {
+      "class_name": "LandUseBalanceAlgorithm",
+      "algo_id": "landusebalance",
+      "group": "Plan Standards and QA",
+      "group_order": 6
+    },
+    {
+      "class_name": "FacilityAdequacyAlgorithm",
+      "algo_id": "facilityadequacy",
+      "group": "Plan Standards and QA",
+      "group_order": 6
+    },
+    {
+      "class_name": "DensityGridAlgorithm",
+      "algo_id": "densitygrid",
+      "group": "Plan Standards and QA",
+      "group_order": 6
+    },
+    {
+      "class_name": "PlanPerformanceReportAlgorithm",
+      "algo_id": "performancereport",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "ScenarioCompareAlgorithm",
+      "algo_id": "scenariocompare",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "ScenarioRankAlgorithm",
+      "algo_id": "scenariorank",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "ScenarioSnapshotAlgorithm",
+      "algo_id": "scenariosnapshot",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "PlanAuditAlgorithm",
+      "algo_id": "planaudit",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "DemoCityAlgorithm",
+      "algo_id": "democity",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "ScenarioPipelineAlgorithm",
+      "algo_id": "scenariopipeline",
+      "group": "Reporting and Dashboard",
+      "group_order": 7
+    },
+    {
+      "class_name": "FacilityLocationAlgorithm",
+      "algo_id": "facilitylocation",
+      "group": "Optimization",
+      "group_order": 8
+    },
+    {
+      "class_name": "CapacitatedAllocationAlgorithm",
+      "algo_id": "capacitatedallocation",
+      "group": "Optimization",
+      "group_order": 8
+    },
+    {
+      "class_name": "LandUseAllocationAlgorithm",
+      "algo_id": "landallocation",
+      "group": "Optimization",
+      "group_order": 8
+    },
+    {
+      "class_name": "ParetoAllocationAlgorithm",
+      "algo_id": "paretoallocation",
+      "group": "Optimization",
+      "group_order": 8
+    },
+    {
+      "class_name": "CapacitatedSitingAlgorithm",
+      "algo_id": "capacitatedsiting",
+      "group": "Optimization",
+      "group_order": 8
+    },
+    {
+      "class_name": "AccessEquityAlgorithm",
+      "algo_id": "accessequity",
+      "group": "Equity",
+      "group_order": 9
+    },
+    {
+      "class_name": "InequalityCurvesAlgorithm",
+      "algo_id": "inequalitycurves",
+      "group": "Equity",
+      "group_order": 9
+    },
+    {
+      "class_name": "EquityCrosstabAlgorithm",
+      "algo_id": "equitycrosstab",
+      "group": "Equity",
+      "group_order": 9
+    },
+    {
+      "class_name": "WalkabilityAlgorithm",
+      "algo_id": "walkability",
+      "group": "Walkability",
+      "group_order": 10
+    },
+    {
+      "class_name": "WalkingSlopeAlgorithm",
+      "algo_id": "walkingslope",
+      "group": "Walkability",
+      "group_order": 10
+    },
+    {
+      "class_name": "StreetComfortAlgorithm",
+      "algo_id": "streetcomfort",
+      "group": "Walkability",
+      "group_order": 10
+    },
+    {
+      "class_name": "RouteQualityAlgorithm",
+      "algo_id": "routequality",
+      "group": "Walkability",
+      "group_order": 10
+    },
+    {
+      "class_name": "GtfsImportAlgorithm",
+      "algo_id": "gtfsimport",
+      "group": "Transit",
+      "group_order": 11
+    },
+    {
+      "class_name": "TransitFrequencyAlgorithm",
+      "algo_id": "transitfrequency",
+      "group": "Transit",
+      "group_order": 11
+    },
+    {
+      "class_name": "TransitAccessAlgorithm",
+      "algo_id": "transitaccess",
+      "group": "Transit",
+      "group_order": 11
+    },
+    {
+      "class_name": "ViewshedAlgorithm",
+      "algo_id": "viewshed",
+      "group": "Visibility",
+      "group_order": 12
+    },
+    {
+      "class_name": "IsovistFieldAlgorithm",
+      "algo_id": "isovistfield",
+      "group": "Visibility",
+      "group_order": 12
+    },
+    {
+      "class_name": "VisualExposureAlgorithm",
+      "algo_id": "visualexposure",
+      "group": "Visibility",
+      "group_order": 12
+    },
+    {
+      "class_name": "PopulationProjectionAlgorithm",
+      "algo_id": "populationprojection",
+      "group": "Population and Housing",
+      "group_order": 13
+    },
+    {
+      "class_name": "HousingNeedsAlgorithm",
+      "algo_id": "housingneeds",
+      "group": "Population and Housing",
+      "group_order": 13
+    },
+    {
+      "class_name": "ResidentialCapacityAlgorithm",
+      "algo_id": "residentialcapacity",
+      "group": "Population and Housing",
+      "group_order": 13
+    },
+    {
+      "class_name": "PopAllocateAlgorithm",
+      "algo_id": "popallocate",
+      "group": "Population and Housing",
+      "group_order": 13
+    },
+    {
+      "class_name": "GreenAccessAlgorithm",
+      "algo_id": "greenaccess",
+      "group": "Green Infrastructure",
+      "group_order": 14
+    },
+    {
+      "class_name": "GreenConnectivityAlgorithm",
+      "algo_id": "greenconnectivity",
+      "group": "Green Infrastructure",
+      "group_order": 14
+    },
+    {
+      "class_name": "LandCoverChangeAlgorithm",
+      "algo_id": "landcoverchange",
+      "group": "Urban Growth",
+      "group_order": 15
+    },
+    {
+      "class_name": "GrowthSimAlgorithm",
+      "algo_id": "growthsim",
+      "group": "Urban Growth",
+      "group_order": 15
+    },
+    {
+      "class_name": "SprawlMetricsAlgorithm",
+      "algo_id": "sprawlmetrics",
+      "group": "Urban Growth",
+      "group_order": 15
+    },
+    {
+      "class_name": "CyclingStressAlgorithm",
+      "algo_id": "cyclingstress",
+      "group": "Cycling",
+      "group_order": 16
+    },
+    {
+      "class_name": "LowStressIslandsAlgorithm",
+      "algo_id": "lowstressislands",
+      "group": "Cycling",
+      "group_order": 16
+    },
+    {
+      "class_name": "FlowAccumulationAlgorithm",
+      "algo_id": "flowaccumulation",
+      "group": "Hazard Screening",
+      "group_order": 17
+    },
+    {
+      "class_name": "HandIndexAlgorithm",
+      "algo_id": "handindex",
+      "group": "Hazard Screening",
+      "group_order": 17
+    },
+    {
+      "class_name": "FloodExposureAlgorithm",
+      "algo_id": "floodexposure",
+      "group": "Hazard Screening",
+      "group_order": 17
+    },
+    {
+      "class_name": "TripGenerationAlgorithm",
+      "algo_id": "tripgeneration",
+      "group": "Travel Demand",
+      "group_order": 18
+    },
+    {
+      "class_name": "GravityModelAlgorithm",
+      "algo_id": "gravitymodel",
+      "group": "Travel Demand",
+      "group_order": 18
+    },
+    {
+      "class_name": "ModeSplitAlgorithm",
+      "algo_id": "modesplit",
+      "group": "Travel Demand",
+      "group_order": 18
+    },
+    {
+      "class_name": "ParkingDemandAlgorithm",
+      "algo_id": "parkingdemand",
+      "group": "Travel Demand",
+      "group_order": 18
+    },
+    {
+      "class_name": "ParkingSupplyBalanceAlgorithm",
+      "algo_id": "parkingsupplybalance",
+      "group": "Travel Demand",
+      "group_order": 18
+    },
+    {
+      "class_name": "GroundMotionAlgorithm",
+      "algo_id": "groundmotion",
+      "group": "Seismic Risk",
+      "group_order": 19
+    },
+    {
+      "class_name": "LiquefactionAlgorithm",
+      "algo_id": "liquefaction",
+      "group": "Seismic Risk",
+      "group_order": 19
+    },
+    {
+      "class_name": "SeismicDebrisAlgorithm",
+      "algo_id": "seismicdebris",
+      "group": "Seismic Risk",
+      "group_order": 19
+    },
+    {
+      "class_name": "SeismicImpactAlgorithm",
+      "algo_id": "seismicimpact",
+      "group": "Seismic Risk",
+      "group_order": 19
+    },
+    {
+      "class_name": "CoseismicLandslideAlgorithm",
+      "algo_id": "coseismiclandslide",
+      "group": "Seismic Risk",
+      "group_order": 19
+    }
+  ],
+  "algo_details": {
+    "preparenetwork": {
+      "class_name": "PrepareNetworkAlgorithm",
+      "display_name": "Prepare Network",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_prepare_network.py",
+      "help_summary": "\"Turns a raw street/centerline layer into an analysis-ready network: \"\n            \"multipart geometries are exploded, lines are split at every mutual \"\n            \"intersection (noding",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "INPUT"
+        },
+        {
+          "name": "TARGET_CRS",
+          "label": "Reproject result to (empty = keep network CRS)",
+          "type": "Crs",
+          "constant": "TARGET_CRS"
+        },
+        {
+          "name": "CREATE_INDEX",
+          "label": "Create spatial index on the result",
+          "type": "Boolean",
+          "constant": "CREATE_INDEX"
+        },
+        {
+          "name": "SNAP_TOLERANCE",
+          "label": "Snap endpoint gaps within (map units; 0 = off)",
+          "type": "Number",
+          "constant": "SNAP_TOLERANCE"
+        },
+        {
+          "name": "ONEWAY_FIELD",
+          "label": "One-way field (optional: yes/1, -1/reverse, no/0)",
+          "type": "Field",
+          "constant": "ONEWAY_FIELD"
+        },
+        {
+          "name": "FORWARD_COST",
+          "label": "Forward additive cost field (optional)",
+          "type": "Field",
+          "constant": "FORWARD_COST"
+        },
+        {
+          "name": "REVERSE_COST",
+          "label": "Reverse additive cost field (optional)",
+          "type": "Field",
+          "constant": "REVERSE_COST"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Prepared network",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "preparenetwork"
+    },
+    "odroutes": {
+      "class_name": "ODRoutesAlgorithm",
+      "display_name": "OD Routes (Shortest Paths)",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_od_routes.py",
+      "help_summary": "\"Computes shortest-path routes over the street network from origins \"\n            \"to destinations. For each pair, it reconstructs the actual streets \"\n            \"traversed and optional straight desire lines.\\n\\n\"\n            \"This serves as the embedded-engine alternative to the QNEAT3 OD \"\n            \"workflow. It offers k-nearest and cost cutoff controls. \"\n            \"Points snap to their nearest network node. A cost cutoff of 0 means \"\n            \"unlimited.\\n\\n\"\n            \"Cost model: with the cost field empty, every segment costs its \"\n            \"geometric length, so net_cost is metres and 'nearest' means \"\n            \"physically shortest. Selecting a numeric attribute column of the \"\n            \"network layer overrides this: the router minimises the SUM of that \"\n            \"column's values along the route, so the column must hold an \"\n            \"additive per-segment quantity - a travel time, a weighted length, \"\n            \"a generalised cost - never a speed. Convert speeds first, e.g. \"\n            \"time_min = length_m / (speed_kmh · 1000 / 60",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "ORIGINS",
+          "label": "Origins",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "ORIGIN_ID",
+          "label": "Origin ID field",
+          "type": "Field",
+          "constant": "ORIGIN_ID"
+        },
+        {
+          "name": "DESTINATIONS",
+          "label": "Destinations (empty = origins)",
+          "type": "FeatureSource",
+          "constant": "DESTINATIONS"
+        },
+        {
+          "name": "DEST_ID",
+          "label": "Destination ID field",
+          "type": "Field",
+          "constant": "DEST_ID"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "CUTOFF",
+          "label": "Maximum cost (0 = unlimited)",
+          "type": "Number",
+          "constant": "CUTOFF"
+        },
+        {
+          "name": "K_NEAREST",
+          "label": "Keep only the k nearest destinations per origin (0 = all)",
+          "type": "Number",
+          "constant": "K_NEAREST"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_ROUTES",
+          "label": "OD routes",
+          "type": "FeatureSink",
+          "constant": "OUT_ROUTES"
+        },
+        {
+          "name": "OUT_LINES",
+          "label": "Desire lines (straight)",
+          "type": "FeatureSink",
+          "constant": "OUT_LINES"
+        }
+      ],
+      "algo_id": "odroutes"
+    },
+    "serviceareas": {
+      "class_name": "ServiceAreasAlgorithm",
+      "display_name": "Service Areas (Isochrones)",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_service_areas.py",
+      "help_summary": "\"True network catchments around facilities, computed by the \"\n            \"embedded Dijkstra engine with EXACT partial-edge reach: walking \"\n            \"budgets end mid-street, so streets are trimmed at the precise \"\n            \"point where the budget runs out (older buffer-only service \"\n            \"areas keep or drop whole segments and overshoot by up to a \"\n            \"full block",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "FACILITIES",
+          "label": "Facilities",
+          "type": "FeatureSource",
+          "constant": "FACILITIES"
+        },
+        {
+          "name": "FACILITY_ID",
+          "label": "Facility label field (optional)",
+          "type": "Field",
+          "constant": "FACILITY_ID"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "BREAKS",
+          "label": "Catchment distances / cost breaks (comma separated)",
+          "type": "String",
+          "constant": "BREAKS"
+        },
+        {
+          "name": "COMBINE",
+          "label": "Catchments",
+          "type": "Enum",
+          "constant": "COMBINE"
+        },
+        {
+          "name": "METHOD",
+          "label": "Polygon method",
+          "type": "Enum",
+          "constant": "METHOD"
+        },
+        {
+          "name": "BUFFER",
+          "label": "Street buffer width (map units)",
+          "type": "Number",
+          "constant": "BUFFER"
+        },
+        {
+          "name": "HULL_DETAIL",
+          "label": "Concave hull detail (0 = tight, 1 = convex)",
+          "type": "Number",
+          "constant": "HULL_DETAIL"
+        },
+        {
+          "name": "RINGS",
+          "label": "Output bands as rings (differences)",
+          "type": "Boolean",
+          "constant": "RINGS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "EDGES",
+          "label": "Reached streets (trimmed, by band)",
+          "type": "FeatureSink",
+          "constant": "EDGES"
+        },
+        {
+          "name": "AREAS",
+          "label": "Service area polygons (isochrones)",
+          "type": "FeatureSink",
+          "constant": "AREAS"
+        },
+        {
+          "name": "CIRCLES",
+          "label": "Straight-line catchments (circles)",
+          "type": "FeatureSink",
+          "constant": "CIRCLES"
+        },
+        {
+          "name": "SUMMARY",
+          "label": "Catchment summary (pedshed)",
+          "type": "FeatureSink",
+          "constant": "SUMMARY"
+        }
+      ],
+      "algo_id": "serviceareas"
+    },
+    "nearestfacility": {
+      "class_name": "NearestFacilityAlgorithm",
+      "display_name": "Nearest Facility Allocation",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_nearest_facility.py",
+      "help_summary": "\"Assigns every demand point (building, household, parcel \"\n            \"centroid...",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand points",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "FACILITIES",
+          "label": "Facilities",
+          "type": "FeatureSource",
+          "constant": "FACILITIES"
+        },
+        {
+          "name": "FACILITY_ID",
+          "label": "Facility ID field",
+          "type": "Field",
+          "constant": "FACILITY_ID"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "CUTOFF",
+          "label": "Maximum cost (0 = unlimited)",
+          "type": "Number",
+          "constant": "CUTOFF"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Allocated demand",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        },
+        {
+          "name": "SPIDER",
+          "label": "Allocation lines",
+          "type": "FeatureSink",
+          "constant": "SPIDER"
+        },
+        {
+          "name": "ROUTES",
+          "label": "Allocation routes (network paths)",
+          "type": "FeatureSink",
+          "constant": "ROUTES"
+        },
+        {
+          "name": "SUMMARY",
+          "label": "Facility load summary",
+          "type": "FeatureSink",
+          "constant": "SUMMARY"
+        }
+      ],
+      "algo_id": "nearestfacility"
+    },
+    "linkcriticality": {
+      "class_name": "LinkCriticalityAlgorithm",
+      "display_name": "Link Criticality (Network Robustness)",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_link_criticality.py",
+      "help_summary": "\"Ranks every street segment by how badly the network would suffer \"\n            \"if that segment were lost - the road-network vulnerability view \"\n            \"(Network Robustness Index; Scott et al. 2006 / Jenelius et al. \"\n            \"2006",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "ORIGINS",
+          "label": "Origins",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "DESTINATIONS",
+          "label": "Destinations (empty = origins)",
+          "type": "FeatureSource",
+          "constant": "DESTINATIONS"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "CUTOFF",
+          "label": "Maximum cost (0 = unlimited)",
+          "type": "Number",
+          "constant": "CUTOFF"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CRITICAL",
+          "label": "Segment criticality",
+          "type": "FeatureSink",
+          "constant": "CRITICAL"
+        }
+      ],
+      "algo_id": "linkcriticality"
+    },
+    "networkcentrality": {
+      "class_name": "NetworkCentralityAlgorithm",
+      "display_name": "Network Centrality",
+      "group": "Centrality & Space Syntax",
+      "group_order": 2,
+      "file": "alg_node_centrality.py",
+      "help_summary": "\"The full centrality family on the street network, computed by \"\n            \"the embedded engine (Multiple Centrality Assessment, Porta et \"\n            \"al. 2006",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "RADIUS",
+          "label": "Analysis radius in cost units (0 = global)",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "SAMPLES",
+          "label": "Betweenness sample sources (0 = exact)",
+          "type": "Number",
+          "constant": "SAMPLES"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "NODES",
+          "label": "Junction centrality (points)",
+          "type": "FeatureSink",
+          "constant": "NODES"
+        },
+        {
+          "name": "EDGES",
+          "label": "Street centrality (lines)",
+          "type": "FeatureSink",
+          "constant": "EDGES"
+        }
+      ],
+      "algo_id": "networkcentrality"
+    },
+    "spacesyntax": {
+      "class_name": "SpaceSyntaxAlgorithm",
+      "display_name": "Space Syntax (Segment Angular Analysis)",
+      "group": "Centrality & Space Syntax",
+      "group_order": 2,
+      "file": "alg_space_syntax.py",
+      "help_summary": "\"Segment angular analysis on road centerlines - the modern space \"\n            \"syntax workflow (Hillier and Iida 2005; Turner 2001",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines, prepared)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "RADII",
+          "label": "Metric radii (comma separated, 'n' = global)",
+          "type": "String",
+          "constant": "RADII"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Segment analysis",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "spacesyntax"
+    },
+    "shadowcasting": {
+      "class_name": "ShadowCastingAlgorithm",
+      "display_name": "Shadow Casting (DSM)",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_shadow_casting.py",
+      "help_summary": "\"Casts building and terrain shadows from a digital surface model \"\n            \"for any date and time - the UMEP-style shadow algorithm with an \"\n            \"embedded NOAA solar-position model (no plugins, no ephemeris \"\n            \"files",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Digital surface model (terrain + buildings)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "WHEN",
+          "label": "Date and local clock time",
+          "type": "DateTime",
+          "constant": "WHEN"
+        },
+        {
+          "name": "UTC_OFFSET",
+          "label": "UTC offset of that clock time (hours)",
+          "type": "Number",
+          "constant": "UTC_OFFSET"
+        },
+        {
+          "name": "MAX_SEARCH",
+          "label": "Maximum shadow length to scan (map units, 0 = auto)",
+          "type": "Number",
+          "constant": "MAX_SEARCH"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Shadow raster (1 = shadow)",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "shadowcasting"
+    },
+    "skyviewfactor": {
+      "class_name": "SkyViewFactorAlgorithm",
+      "display_name": "Sky View Factor (DSM)",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_sky_view_factor.py",
+      "help_summary": "\"Computes the Sky View Factor - the fraction of the sky \"\n            \"hemisphere visible from each cell (1 = open field, ~0.5 at the \"\n            \"foot of a long wall, lower in deep canyons",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Digital surface model (terrain + buildings)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "DIRECTIONS",
+          "label": "Horizon scan directions",
+          "type": "Number",
+          "constant": "DIRECTIONS"
+        },
+        {
+          "name": "RADIUS",
+          "label": "Search radius (map units)",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Sky view factor",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "skyviewfactor"
+    },
+    "sunhours": {
+      "class_name": "SunHoursAlgorithm",
+      "display_name": "Sun Hours (DSM)",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_sun_hours.py",
+      "help_summary": "\"Hours of direct sunlight per cell over one full day - the \"\n            \"shadow-duration map that previously required a Batch run of \"\n            \"Shadow Casting, now in a single tool.\\n\\n\"\n            \"The day is swept at a fixed interval (default 30 minutes",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Digital surface model (terrain + buildings)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "DATE",
+          "label": "Date (time of day is ignored)",
+          "type": "DateTime",
+          "constant": "DATE"
+        },
+        {
+          "name": "UTC_OFFSET",
+          "label": "UTC offset of local time (hours)",
+          "type": "Number",
+          "constant": "UTC_OFFSET"
+        },
+        {
+          "name": "INTERVAL",
+          "label": "Time step (minutes)",
+          "type": "Number",
+          "constant": "INTERVAL"
+        },
+        {
+          "name": "MAX_SEARCH",
+          "label": "Maximum shadow length to scan (map units, 0 = auto)",
+          "type": "Number",
+          "constant": "MAX_SEARCH"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Sun hours raster",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "sunhours"
+    },
+    "solarirradiation": {
+      "class_name": "SolarIrradiationAlgorithm",
+      "display_name": "Solar Irradiation (DSM)",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_solar_irradiation.py",
+      "help_summary": "\"Clear-sky global solar irradiation per cell for one day \"\n            \"(kWh/m2",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Digital surface model (terrain + buildings)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "DATE",
+          "label": "Date (time of day is ignored)",
+          "type": "DateTime",
+          "constant": "DATE"
+        },
+        {
+          "name": "UTC_OFFSET",
+          "label": "UTC offset of local time (hours)",
+          "type": "Number",
+          "constant": "UTC_OFFSET"
+        },
+        {
+          "name": "INTERVAL",
+          "label": "Time step (minutes)",
+          "type": "Number",
+          "constant": "INTERVAL"
+        },
+        {
+          "name": "USE_SVF",
+          "label": "Weight diffuse light by sky view factor",
+          "type": "Boolean",
+          "constant": "USE_SVF"
+        },
+        {
+          "name": "SVF_RADIUS",
+          "label": "SVF search radius (map units)",
+          "type": "Number",
+          "constant": "SVF_RADIUS"
+        },
+        {
+          "name": "MAX_SEARCH",
+          "label": "Maximum shadow length to scan (map units, 0 = auto)",
+          "type": "Number",
+          "constant": "MAX_SEARCH"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Daily irradiation (kWh/m2)",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "solarirradiation"
+    },
+    "annualsolar": {
+      "class_name": "AnnualSolarAlgorithm",
+      "display_name": "Annual Solar Potential (DSM)",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_annual_solar.py",
+      "help_summary": "\"Clear-sky global solar irradiation per cell summed over a whole \"\n            \"year (kWh/m2/yr",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Digital surface model (terrain + buildings)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "YEAR",
+          "label": "Year",
+          "type": "Number",
+          "constant": "YEAR"
+        },
+        {
+          "name": "UTC_OFFSET",
+          "label": "UTC offset of local time (hours)",
+          "type": "Number",
+          "constant": "UTC_OFFSET"
+        },
+        {
+          "name": "INTERVAL",
+          "label": "Time step (minutes)",
+          "type": "Number",
+          "constant": "INTERVAL"
+        },
+        {
+          "name": "USE_SVF",
+          "label": "Weight diffuse light by sky view factor",
+          "type": "Boolean",
+          "constant": "USE_SVF"
+        },
+        {
+          "name": "SVF_RADIUS",
+          "label": "SVF search radius (map units)",
+          "type": "Number",
+          "constant": "SVF_RADIUS"
+        },
+        {
+          "name": "MAX_SEARCH",
+          "label": "Maximum shadow length to scan (map units, 0 = auto)",
+          "type": "Number",
+          "constant": "MAX_SEARCH"
+        },
+        {
+          "name": "EPW",
+          "label": "EPW weather file for measured-sky calibration (optional)",
+          "type": "File",
+          "constant": "EPW"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Annual irradiation (kWh/m2/yr)",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "annualsolar"
+    },
+    "heatriskgrid": {
+      "class_name": "HeatRiskGridAlgorithm",
+      "display_name": "Heat Island Risk Grid",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_heat_risk.py",
+      "help_summary": "\"Screens a plan area for urban heat island risk on a regular \"\n            \"grid - no satellite imagery or DSM needed, just the layers \"\n            \"every plan already has: building footprints, green areas and \"\n            \"(optionally",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Building footprints (polygons)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "HEIGHT_FIELD",
+          "label": "Building height field (m, empty = ignore height)",
+          "type": "Field",
+          "constant": "HEIGHT_FIELD"
+        },
+        {
+          "name": "GREEN",
+          "label": "Green / vegetated areas (polygons, optional)",
+          "type": "FeatureSource",
+          "constant": "GREEN"
+        },
+        {
+          "name": "WATER",
+          "label": "Water bodies (polygons, optional)",
+          "type": "FeatureSource",
+          "constant": "WATER"
+        },
+        {
+          "name": "CELL_SIZE",
+          "label": "Grid cell size (map units)",
+          "type": "Number",
+          "constant": "CELL_SIZE"
+        },
+        {
+          "name": "H_REF",
+          "label": "Reference height for full height effect (m)",
+          "type": "Number",
+          "constant": "H_REF"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Heat risk grid",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "heatriskgrid"
+    },
+    "noisescreen": {
+      "class_name": "NoiseScreenAlgorithm",
+      "display_name": "Road Noise Screening",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_noise_screen.py",
+      "help_summary": "\"Where is traffic noise a problem? A SCREENING-quality road \"\n            \"noise grid - it ranks exposure and finds hotspots; it is NOT \"\n            \"a legal noise map (no ground effect, no meteorology, no \"\n            \"reflections - use a licensed engine for compliance",
+      "parameters": [
+        {
+          "name": "ROADS",
+          "label": "Roads (lines)",
+          "type": "FeatureSource",
+          "constant": "ROADS"
+        },
+        {
+          "name": "VOLUME_FIELD",
+          "label": "Traffic volume field",
+          "type": "Field",
+          "constant": "VOLUME_FIELD"
+        },
+        {
+          "name": "HOURLY_FACTOR",
+          "label": "Hourly factor (multiply the volume field, 1/24 for AADT)",
+          "type": "Number",
+          "constant": "HOURLY_FACTOR"
+        },
+        {
+          "name": "HEAVY_FIELD",
+          "label": "Heavy-vehicle share field (percent, optional)",
+          "type": "Field",
+          "constant": "HEAVY_FIELD"
+        },
+        {
+          "name": "HEAVY_PCT",
+          "label": "Default heavy share (percent)",
+          "type": "Number",
+          "constant": "HEAVY_PCT"
+        },
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings for screening (optional)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "SCREEN_DB",
+          "label": "Insertion loss behind buildings (dB)",
+          "type": "Number",
+          "constant": "SCREEN_DB"
+        },
+        {
+          "name": "EXTENT",
+          "label": "Grid extent (empty = roads extent + cutoff)",
+          "type": "Extent",
+          "constant": "EXTENT"
+        },
+        {
+          "name": "CELL",
+          "label": "Grid cell size (map units)",
+          "type": "Number",
+          "constant": "CELL"
+        },
+        {
+          "name": "CUTOFF",
+          "label": "Source cutoff distance (map units)",
+          "type": "Number",
+          "constant": "CUTOFF"
+        },
+        {
+          "name": "RECEIVERS",
+          "label": "Receiver points (optional, e.g. dwellings)",
+          "type": "FeatureSource",
+          "constant": "RECEIVERS"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Receiver population field (optional)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Noise level grid dB(A)",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_RECEIVERS",
+          "label": "Receiver levels",
+          "type": "FeatureSink",
+          "constant": "OUT_RECEIVERS"
+        }
+      ],
+      "algo_id": "noisescreen"
+    },
+    "roademissions": {
+      "class_name": "RoadEmissionsAlgorithm",
+      "display_name": "Road Emissions",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_road_emissions.py",
+      "help_summary": "\"Calculates road segment emissions (g/km/day",
+      "parameters": [
+        {
+          "name": "ROADS",
+          "label": "Roads (lines)",
+          "type": "FeatureSource",
+          "constant": "ROADS"
+        },
+        {
+          "name": "VOLUME_FIELD",
+          "label": "Traffic volume field (e.g. AADT)",
+          "type": "Field",
+          "constant": "VOLUME_FIELD"
+        },
+        {
+          "name": "HOURLY_FACTOR",
+          "label": "Volume multiplier (to daily volume, e.g. 24.0 if volume is hourly, 1.0 if AADT)",
+          "type": "Number",
+          "constant": "HOURLY_FACTOR"
+        },
+        {
+          "name": "EF_GKM",
+          "label": "Emission factor (g/km per vehicle, default is generic NOx-proxy)",
+          "type": "Number",
+          "constant": "EF_GKM"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Roads with emissions (g/km/day)",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "roademissions"
+    },
+    "airscreen": {
+      "class_name": "AirScreenAlgorithm",
+      "display_name": "Air Quality Screening",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_air_screen.py",
+      "help_summary": "\"Where is air pollution a screening concern? A SCREENING-quality road \"\n            \"emission dispersion grid - it ranks exposure and locates hotspots; it is NOT \"\n            \"a legal compliance model (no complex chemistry, terrain, or meteorology",
+      "parameters": [
+        {
+          "name": "ROADS",
+          "label": "Roads with emissions (lines)",
+          "type": "FeatureSource",
+          "constant": "ROADS"
+        },
+        {
+          "name": "EMISSION_FIELD",
+          "label": "Emission rate field (g/km/day)",
+          "type": "Field",
+          "constant": "EMISSION_FIELD"
+        },
+        {
+          "name": "WIND_SPEED",
+          "label": "Wind speed (m/s)",
+          "type": "Number",
+          "constant": "WIND_SPEED"
+        },
+        {
+          "name": "ALPHA",
+          "label": "Decay exponent (alpha)",
+          "type": "Number",
+          "constant": "ALPHA"
+        },
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings for canyon effect (optional)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "HEIGHT_FIELD",
+          "label": "Building height field (optional)",
+          "type": "Field",
+          "constant": "HEIGHT_FIELD"
+        },
+        {
+          "name": "DEFAULT_HEIGHT",
+          "label": "Default building height (m)",
+          "type": "Number",
+          "constant": "DEFAULT_HEIGHT"
+        },
+        {
+          "name": "CANYON_WIDTH",
+          "label": "Canyon street width (m)",
+          "type": "Number",
+          "constant": "CANYON_WIDTH"
+        },
+        {
+          "name": "CANYON_SEARCH",
+          "label": "Canyon search distance (m)",
+          "type": "Number",
+          "constant": "CANYON_SEARCH"
+        },
+        {
+          "name": "CANYON_BUFFER",
+          "label": "Canyon buffer distance (m)",
+          "type": "Number",
+          "constant": "CANYON_BUFFER"
+        },
+        {
+          "name": "EXTENT",
+          "label": "Grid extent (empty = roads extent + cutoff)",
+          "type": "Extent",
+          "constant": "EXTENT"
+        },
+        {
+          "name": "CELL",
+          "label": "Grid cell size (map units)",
+          "type": "Number",
+          "constant": "CELL"
+        },
+        {
+          "name": "CUTOFF",
+          "label": "Source cutoff distance (map units)",
+          "type": "Number",
+          "constant": "CUTOFF"
+        },
+        {
+          "name": "RECEIVERS",
+          "label": "Receiver points (optional, e.g. dwellings)",
+          "type": "FeatureSource",
+          "constant": "RECEIVERS"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Receiver population field (optional)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Air pollution index grid",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_RECEIVERS",
+          "label": "Receiver index values",
+          "type": "FeatureSink",
+          "constant": "OUT_RECEIVERS"
+        }
+      ],
+      "algo_id": "airscreen"
+    },
+    "landusebalance": {
+      "class_name": "LandUseBalanceAlgorithm",
+      "display_name": "Land-Use Balance (Per-Capita Standards)",
+      "group": "Plan Standards and QA",
+      "group_order": 6,
+      "file": "alg_landuse_balance.py",
+      "help_summary": "\"Builds the classic land-use balance table: total area per \"\n            \"category, square metres per capita, the area required by your \"\n            \"per-capita standards, and the surplus or deficit - the core QA \"\n            \"check of any land-use plan.\\n\\n\"\n            \"Standards are free text, e.g. 'green=10, education=4, \"\n            \"health=1.5' (10 m2 of green space per capita...",
+      "parameters": [
+        {
+          "name": "LANDUSE",
+          "label": "Land-use plan (polygons)",
+          "type": "FeatureSource",
+          "constant": "LANDUSE"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "Land-use category field",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "POPULATION",
+          "label": "Planned population",
+          "type": "Number",
+          "constant": "POPULATION"
+        },
+        {
+          "name": "STANDARDS",
+          "label": "Per-capita standards (keyword=m2, ...)",
+          "type": "String",
+          "constant": "STANDARDS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Land-use balance table",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "landusebalance"
+    },
+    "facilityadequacy": {
+      "class_name": "FacilityAdequacyAlgorithm",
+      "display_name": "Facility Adequacy (Capacity + Distance)",
+      "group": "Plan Standards and QA",
+      "group_order": 6,
+      "file": "alg_facility_adequacy.py",
+      "help_summary": "\"Checks whether facilities (schools, clinics, parks...",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand (buildings / address points)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "FACILITIES",
+          "label": "Facilities",
+          "type": "FeatureSource",
+          "constant": "FACILITIES"
+        },
+        {
+          "name": "FACILITY_ID",
+          "label": "Facility ID field",
+          "type": "Field",
+          "constant": "FACILITY_ID"
+        },
+        {
+          "name": "CAPACITY_FIELD",
+          "label": "Capacity field (persons)",
+          "type": "Field",
+          "constant": "CAPACITY_FIELD"
+        },
+        {
+          "name": "MAX_COST",
+          "label": "Maximum network cost (catchment, map units)",
+          "type": "Number",
+          "constant": "MAX_COST"
+        },
+        {
+          "name": "FCA_DECAY",
+          "label": "E2SFCA Gaussian decay strength (0 = unweighted catchment)",
+          "type": "Number",
+          "constant": "FCA_DECAY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_FACILITIES",
+          "label": "Facility adequacy",
+          "type": "FeatureSink",
+          "constant": "OUT_FACILITIES"
+        },
+        {
+          "name": "OUT_DEMAND",
+          "label": "Demand coverage",
+          "type": "FeatureSink",
+          "constant": "OUT_DEMAND"
+        }
+      ],
+      "algo_id": "facilityadequacy"
+    },
+    "densitygrid": {
+      "class_name": "DensityGridAlgorithm",
+      "display_name": "Density Grid",
+      "group": "Plan Standards and QA",
+      "group_order": 6,
+      "file": "alg_density_grid.py",
+      "help_summary": "\"Distributes a numeric value (population, dwellings, jobs, gross \"\n            \"floor area...",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "label": "Source features (polygons or points)",
+          "type": "FeatureSource",
+          "constant": "INPUT"
+        },
+        {
+          "name": "VALUE_FIELD",
+          "label": "Value field (empty = count features)",
+          "type": "Field",
+          "constant": "VALUE_FIELD"
+        },
+        {
+          "name": "CELL_SIZE",
+          "label": "Grid cell size (map units)",
+          "type": "Number",
+          "constant": "CELL_SIZE"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Density grid",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "densitygrid"
+    },
+    "scenariocompare": {
+      "class_name": "ScenarioCompareAlgorithm",
+      "display_name": "Scenario Compare (A/B)",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_scenario_compare.py",
+      "help_summary": "\"Compares two plan alternatives metric by metric - the A/B view \"\n            \"of the Plan Dashboard.\\n\\n\"\n            \"Feed it two scenario snapshot JSON files. Snapshots are written \"\n            \"by the Plan Dashboard dock (Scenario: Save A / Save B",
+      "parameters": [
+        {
+          "name": "SNAPSHOT_A",
+          "label": "Scenario snapshot A (JSON)",
+          "type": "File",
+          "constant": "SNAPSHOT_A"
+        },
+        {
+          "name": "SNAPSHOT_B",
+          "label": "Scenario snapshot B (JSON)",
+          "type": "File",
+          "constant": "SNAPSHOT_B"
+        },
+        {
+          "name": "OUTPUT_HTML",
+          "label": "Comparison report (HTML)",
+          "type": "FileDestination",
+          "constant": "OUTPUT_HTML"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_TABLE",
+          "label": "Scenario comparison",
+          "type": "FeatureSink",
+          "constant": "OUT_TABLE"
+        }
+      ],
+      "algo_id": "scenariocompare"
+    },
+    "scenariorank": {
+      "class_name": "ScenarioRankAlgorithm",
+      "display_name": "Scenario Ranking",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_scenario_rank.py",
+      "help_summary": "\"Ranks any number of scenario snapshots by a weighted composite score using direction-aware \"\n            \"min-max normalisation.\\n\\n\"\n            \"Provide a list of paths to scenario snapshots (JSON format",
+      "parameters": [
+        {
+          "name": "FILES",
+          "label": "Snapshot files (paths, ';' or ',' separated)",
+          "type": "String",
+          "constant": "FILES"
+        },
+        {
+          "name": "SIMULATIONS",
+          "label": "Weight-uncertainty simulations (0 = off)",
+          "type": "Number",
+          "constant": "SIMULATIONS"
+        },
+        {
+          "name": "WEIGHT_VARIATION",
+          "label": "Weight variation (+/- proportion)",
+          "type": "Number",
+          "constant": "WEIGHT_VARIATION"
+        },
+        {
+          "name": "RANDOM_SEED",
+          "label": "Uncertainty random seed",
+          "type": "Number",
+          "constant": "RANDOM_SEED"
+        },
+        {
+          "name": "FOLDER",
+          "label": "Snapshot folder (contains *.json)",
+          "type": "File",
+          "constant": "FOLDER"
+        },
+        {
+          "name": "WEIGHTS",
+          "label": "Metric weights 'key=weight, ...' (empty = equal)",
+          "type": "String",
+          "constant": "WEIGHTS"
+        },
+        {
+          "name": "OUTPUT_HTML",
+          "label": "Ranking board (HTML)",
+          "type": "FileDestination",
+          "constant": "OUTPUT_HTML"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_TABLE",
+          "label": "Ranking",
+          "type": "FeatureSink",
+          "constant": "OUT_TABLE"
+        },
+        {
+          "name": "OUT_DETAIL",
+          "label": "Metric detail",
+          "type": "FeatureSink",
+          "constant": "OUT_DETAIL"
+        }
+      ],
+      "algo_id": "scenariorank"
+    },
+    "scenariosnapshot": {
+      "class_name": "ScenarioSnapshotAlgorithm",
+      "display_name": "Scenario Snapshot",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_scenario_snapshot.py",
+      "help_summary": "\"Captures the plan score metrics of the CURRENT PROJECT into a \"\n            \"scenario snapshot JSON - the batchable front door to scenario \"\n            \"comparison: run the PlanX tools for plan alternative A, \"\n            \"snapshot, rerun for alternative B, snapshot, then feed both \"\n            \"files to Scenario Compare (A/B",
+      "parameters": [
+        {
+          "name": "NAME",
+          "label": "Scenario name",
+          "type": "String",
+          "constant": "NAME"
+        },
+        {
+          "name": "OUTPUT_JSON",
+          "label": "Scenario snapshot (JSON)",
+          "type": "FileDestination",
+          "constant": "OUTPUT_JSON"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_METRICS",
+          "label": "Snapshot metrics",
+          "type": "FeatureSink",
+          "constant": "OUT_METRICS"
+        }
+      ],
+      "algo_id": "scenariosnapshot"
+    },
+    "planaudit": {
+      "class_name": "PlanAuditAlgorithm",
+      "display_name": "Batch Plan Auditor",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_plan_audit.py",
+      "help_summary": "\"The WHOLE standard battery in one run: give the plan's core \"\n            \"layers once and the auditor chains the PlanX tools, gathers \"\n            \"their scores into one scenario snapshot and (optionally",
+      "parameters": [
+        {
+          "name": "NAME",
+          "label": "Scenario name",
+          "type": "String",
+          "constant": "NAME"
+        },
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand / origins (points or buildings)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "AMENITIES",
+          "label": "Amenity layers for the access score (optional)",
+          "type": "MultipleLayers",
+          "constant": "AMENITIES"
+        },
+        {
+          "name": "THRESHOLD",
+          "label": "Access threshold (minutes)",
+          "type": "Number",
+          "constant": "THRESHOLD"
+        },
+        {
+          "name": "LANDUSE",
+          "label": "Land-use polygons (optional)",
+          "type": "VectorLayer",
+          "constant": "LANDUSE"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "Land-use category field",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "POPULATION",
+          "label": "Planned population (for the standards)",
+          "type": "Number",
+          "constant": "POPULATION"
+        },
+        {
+          "name": "STANDARDS",
+          "label": "Per-capita standards",
+          "type": "String",
+          "constant": "STANDARDS"
+        },
+        {
+          "name": "FACILITIES",
+          "label": "Facilities with capacity (optional)",
+          "type": "VectorLayer",
+          "constant": "FACILITIES"
+        },
+        {
+          "name": "FACILITY_ID",
+          "label": "Facility ID field",
+          "type": "Field",
+          "constant": "FACILITY_ID"
+        },
+        {
+          "name": "CAPACITY_FIELD",
+          "label": "Facility capacity field",
+          "type": "Field",
+          "constant": "CAPACITY_FIELD"
+        },
+        {
+          "name": "MAX_COST",
+          "label": "Facility catchment (map units)",
+          "type": "Number",
+          "constant": "MAX_COST"
+        },
+        {
+          "name": "GREENS",
+          "label": "Public green spaces (optional)",
+          "type": "VectorLayer",
+          "constant": "GREENS"
+        },
+        {
+          "name": "HIERARCHY",
+          "label": "Green hierarchy 'min_ha=max_dist, ...'",
+          "type": "String",
+          "constant": "HIERARCHY"
+        },
+        {
+          "name": "OUTPUT_JSON",
+          "label": "Scenario snapshot (JSON)",
+          "type": "FileDestination",
+          "constant": "OUTPUT_JSON"
+        },
+        {
+          "name": "OUTPUT_HTML",
+          "label": "Plan Performance Report (HTML)",
+          "type": "FileDestination",
+          "constant": "OUTPUT_HTML"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_METRICS",
+          "label": "Audit metrics",
+          "type": "FeatureSink",
+          "constant": "OUT_METRICS"
+        }
+      ],
+      "algo_id": "planaudit"
+    },
+    "democity": {
+      "class_name": "DemoCityAlgorithm",
+      "display_name": "Generate Demo City",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_demo_city.py",
+      "help_summary": "\"Generates a deterministic synthetic city for testing and demonstration. \"\n            \"Creates a grid of street blocks with a diagonal avenue, building footprints \"\n            \"with random heights, land-use zones, POIs, facilities, demand points with \"\n            \"population, green spaces, and a corresponding DSM raster.\\n\\n\"\n            \"This tool provides a complete, clean set of spatial layers that are perfectly \"\n            \"compatible with all other PlanX tools, allowing you to try out space syntax, \"\n            \"network centrality, walkability, shadow casting, and access tools in one click.\\n\\n\"\n            \"Outputs: street network lines, building footprints (with height",
+      "parameters": [
+        {
+          "name": "SEED",
+          "label": "Random seed",
+          "type": "Number",
+          "constant": "SEED"
+        },
+        {
+          "name": "BLOCKS_X",
+          "label": "Number of blocks in X direction",
+          "type": "Number",
+          "constant": "BLOCKS_X"
+        },
+        {
+          "name": "BLOCKS_Y",
+          "label": "Number of blocks in Y direction",
+          "type": "Number",
+          "constant": "BLOCKS_Y"
+        },
+        {
+          "name": "BLOCK_SIZE",
+          "label": "Block size (meters)",
+          "type": "Number",
+          "constant": "BLOCK_SIZE"
+        },
+        {
+          "name": "CRS",
+          "label": "Projected target CRS",
+          "type": "Crs",
+          "constant": "CRS"
+        },
+        {
+          "name": "OUTPUT_DSM",
+          "label": "Digital surface model (DSM)",
+          "type": "RasterDestination",
+          "constant": "OUTPUT_DSM"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT_STREETS",
+          "label": "Streets network",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_STREETS"
+        },
+        {
+          "name": "OUTPUT_BUILDINGS",
+          "label": "Buildings footprints",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_BUILDINGS"
+        },
+        {
+          "name": "OUTPUT_LANDUSE",
+          "label": "Land-use zones",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_LANDUSE"
+        },
+        {
+          "name": "OUTPUT_POIS",
+          "label": "Points of interest (POIs)",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_POIS"
+        },
+        {
+          "name": "OUTPUT_FACILITIES",
+          "label": "Facilities",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_FACILITIES"
+        },
+        {
+          "name": "OUTPUT_DEMAND",
+          "label": "Demand points",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_DEMAND"
+        },
+        {
+          "name": "OUTPUT_GREEN",
+          "label": "Green spaces",
+          "type": "FeatureSink",
+          "constant": "OUTPUT_GREEN"
+        }
+      ],
+      "algo_id": "democity"
+    },
+    "scenariopipeline": {
+      "class_name": "ScenarioPipelineAlgorithm",
+      "display_name": "Scenario Pipeline (LUTI-lite)",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_scenario_pipeline.py",
+      "help_summary": "\"Weld growth, allocation, and evaluations into one decision pipeline.\\n\\n\"\n            \"Chains the Urban Growth CA model to simulate city expansion, apportioning \"\n            \"the population growth increment over the newly developed cells proportional \"\n            \"to their suitability values. The pipeline then constructs the grown city's \"\n            \"demand points and re-evaluates 15-minute accessibility and walkability, \"\n            \"producing a scenario snapshot JSON.\\n\\n\"\n            \"How to read the results\\n\"\n            \"- The metric table scores the GROWN city, not today's: \"\n            \"compare it against a snapshot of the present and the \"\n            \"difference is what the growth pattern does to liveability \"\n            \"- the usual finding is falling mean access, because new \"\n            \"edge growth lands far from existing amenities. The SIZE \"\n            \"of that drop is the planning information.\\n\"\n            \"- The chain is only as good as its inputs: the suitability \"\n            \"raster decides where growth lands, and the amenity layers \"\n            \"stay FIXED - so the result reads as 'growth without new \"\n            \"services', the honest worst case for service planning.\\n\"\n            \"- Same seed = same scenario, so metric differences between \"\n            \"runs are caused by your parameter changes, never by \"\n            \"randomness.\\n\\n\"\n            \"Using the results: run compact (high neighbourhood \"\n            \"weight, constraints on",
+      "parameters": [
+        {
+          "name": "NAME",
+          "label": "Scenario name",
+          "type": "String",
+          "constant": "NAME"
+        },
+        {
+          "name": "SEED",
+          "label": "Seed urban mask (nonzero = urban)",
+          "type": "RasterLayer",
+          "constant": "SEED"
+        },
+        {
+          "name": "SUITABILITY",
+          "label": "Development suitability raster",
+          "type": "RasterLayer",
+          "constant": "SUITABILITY"
+        },
+        {
+          "name": "CONSTRAINTS",
+          "label": "Constraints raster (nonzero = never build, optional)",
+          "type": "RasterLayer",
+          "constant": "CONSTRAINTS"
+        },
+        {
+          "name": "DEMAND_HA",
+          "label": "Land demand (hectares)",
+          "type": "Number",
+          "constant": "DEMAND_HA"
+        },
+        {
+          "name": "ITERATIONS",
+          "label": "Growth steps",
+          "type": "Number",
+          "constant": "ITERATIONS"
+        },
+        {
+          "name": "NEIGH_WEIGHT",
+          "label": "Neighbourhood weight (edge growth)",
+          "type": "Number",
+          "constant": "NEIGH_WEIGHT"
+        },
+        {
+          "name": "BASE",
+          "label": "Base term (leapfrog growth)",
+          "type": "Number",
+          "constant": "BASE"
+        },
+        {
+          "name": "RNG_SEED",
+          "label": "Random seed (tie-breaking only)",
+          "type": "Number",
+          "constant": "RNG_SEED"
+        },
+        {
+          "name": "POP_GROWTH",
+          "label": "Population growth to allocate",
+          "type": "Number",
+          "constant": "POP_GROWTH"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Existing demand / origins (optional)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field on demand (optional)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "AMENITIES",
+          "label": "Amenity layers for the access score (optional)",
+          "type": "MultipleLayers",
+          "constant": "AMENITIES"
+        },
+        {
+          "name": "THRESHOLD",
+          "label": "Access threshold (minutes)",
+          "type": "Number",
+          "constant": "THRESHOLD"
+        },
+        {
+          "name": "LANDUSE",
+          "label": "Land-use polygons (optional)",
+          "type": "VectorLayer",
+          "constant": "LANDUSE"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "Land-use category field (optional)",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "OUTPUT_JSON",
+          "label": "Scenario snapshot (JSON)",
+          "type": "FileDestination",
+          "constant": "OUTPUT_JSON"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_METRICS",
+          "label": "Audit metrics",
+          "type": "FeatureSink",
+          "constant": "OUT_METRICS"
+        }
+      ],
+      "algo_id": "scenariopipeline"
+    },
+    "facilitylocation": {
+      "class_name": "FacilityLocationAlgorithm",
+      "display_name": "Facility Location Optimizer (Coverage / P-Median)",
+      "group": "Optimization",
+      "group_order": 8,
+      "file": "alg_facility_location.py",
+      "help_summary": "\"Chooses the best sites for new facilities (schools, clinics, \"\n            \"parks, fire stations...",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand (buildings / address points)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "CANDIDATES",
+          "label": "Candidate sites",
+          "type": "FeatureSource",
+          "constant": "CANDIDATES"
+        },
+        {
+          "name": "CANDIDATE_ID",
+          "label": "Candidate ID field",
+          "type": "Field",
+          "constant": "CANDIDATE_ID"
+        },
+        {
+          "name": "EXISTING",
+          "label": "Existing facilities (kept in the solution)",
+          "type": "FeatureSource",
+          "constant": "EXISTING"
+        },
+        {
+          "name": "METHOD",
+          "label": "Objective",
+          "type": "Enum",
+          "constant": "METHOD"
+        },
+        {
+          "name": "P",
+          "label": "Number of new facilities to site (p)",
+          "type": "Number",
+          "constant": "P"
+        },
+        {
+          "name": "RADIUS",
+          "label": "Catchment radius (map units; coverage + screening)",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "SITE_COST",
+          "label": "Candidate implementation cost (optional)",
+          "type": "Field",
+          "constant": "SITE_COST"
+        },
+        {
+          "name": "BUDGET",
+          "label": "Maximum budget (0 = unlimited)",
+          "type": "Number",
+          "constant": "BUDGET"
+        },
+        {
+          "name": "EXACT_AUDIT",
+          "label": "Audit heuristic against exact optimum when feasible",
+          "type": "Boolean",
+          "constant": "EXACT_AUDIT"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_SITES",
+          "label": "Candidate sites (screened + selected)",
+          "type": "FeatureSink",
+          "constant": "OUT_SITES"
+        },
+        {
+          "name": "OUT_ASSIGN",
+          "label": "Demand allocation",
+          "type": "FeatureSink",
+          "constant": "OUT_ASSIGN"
+        }
+      ],
+      "algo_id": "facilitylocation"
+    },
+    "capacitatedallocation": {
+      "class_name": "CapacitatedAllocationAlgorithm",
+      "display_name": "Capacitated Allocation (Nearest with Capacity)",
+      "group": "Optimization",
+      "group_order": 8,
+      "file": "alg_capacitated_allocation.py",
+      "help_summary": "\"Allocates demand to fixed facilities while RESPECTING their \"\n            \"capacity - the realistic companion to Facility Adequacy (which \"\n            \"assigns everyone to the nearest facility and only flags the \"\n            \"overload afterwards",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand (buildings / address points)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "FACILITIES",
+          "label": "Facilities",
+          "type": "FeatureSource",
+          "constant": "FACILITIES"
+        },
+        {
+          "name": "FACILITY_ID",
+          "label": "Facility ID field",
+          "type": "Field",
+          "constant": "FACILITY_ID"
+        },
+        {
+          "name": "CAPACITY_FIELD",
+          "label": "Capacity field (persons)",
+          "type": "Field",
+          "constant": "CAPACITY_FIELD"
+        },
+        {
+          "name": "MAX_COST",
+          "label": "Maximum network cost (catchment, map units)",
+          "type": "Number",
+          "constant": "MAX_COST"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_DEMAND",
+          "label": "Demand allocation",
+          "type": "FeatureSink",
+          "constant": "OUT_DEMAND"
+        },
+        {
+          "name": "OUT_FACILITIES",
+          "label": "Facility load",
+          "type": "FeatureSink",
+          "constant": "OUT_FACILITIES"
+        }
+      ],
+      "algo_id": "capacitatedallocation"
+    },
+    "paretoallocation": {
+      "class_name": "ParetoAllocationAlgorithm",
+      "display_name": "Land-Use Pareto Front",
+      "group": "Optimization",
+      "group_order": 8,
+      "file": "alg_pareto_allocation.py",
+      "help_summary": "\"Maps the TRADE-OFF between suitability and compactness in \"\n            \"land-use allocation, instead of committing to a single weighted \"\n            \"run. There is rarely one best plan: pushing parcels of a use to \"\n            \"cluster into compact zones (good form",
+      "parameters": [
+        {
+          "name": "PARCELS",
+          "label": "Parcels / cells",
+          "type": "FeatureSource",
+          "constant": "PARCELS"
+        },
+        {
+          "name": "SUIT_FIELDS",
+          "label": "Suitability fields (one per land use)",
+          "type": "Field",
+          "constant": "SUIT_FIELDS"
+        },
+        {
+          "name": "TARGETS",
+          "label": "Target area per use (name=area, ...)",
+          "type": "String",
+          "constant": "TARGETS"
+        },
+        {
+          "name": "AREA_FIELD",
+          "label": "Area field (optional; default = geometry area)",
+          "type": "Field",
+          "constant": "AREA_FIELD"
+        },
+        {
+          "name": "LOCK_FIELD",
+          "label": "Lock field (optional; pre-assigned use name)",
+          "type": "Field",
+          "constant": "LOCK_FIELD"
+        },
+        {
+          "name": "N_POINTS",
+          "label": "Number of weights to sample along the front",
+          "type": "Number",
+          "constant": "N_POINTS"
+        },
+        {
+          "name": "W_MAX",
+          "label": "Maximum compactness weight (0 = auto-scale to the data)",
+          "type": "Number",
+          "constant": "W_MAX"
+        },
+        {
+          "name": "SOLUTION",
+          "label": "Solution to export as the parcel map",
+          "type": "Enum",
+          "constant": "SOLUTION"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_FRONT",
+          "label": "Pareto front",
+          "type": "FeatureSink",
+          "constant": "OUT_FRONT"
+        },
+        {
+          "name": "OUT_PARCELS",
+          "label": "Allocated parcels (selected solution)",
+          "type": "FeatureSink",
+          "constant": "OUT_PARCELS"
+        }
+      ],
+      "algo_id": "paretoallocation"
+    },
+    "capacitatedsiting": {
+      "class_name": "CapacitatedSitingAlgorithm",
+      "display_name": "Capacitated Facility Siting",
+      "group": "Optimization",
+      "group_order": 8,
+      "file": "alg_capacitated_siting.py",
+      "help_summary": "\"Chooses where to build p new facilities among candidate locations \"\n            \"while respecting per-site capacity constraints and minimizing travel cost.\\n\\n\"\n            \"First, a greedy construction phase selects sites that maximize newly \"\n            \"served demand under a capacity-respecting allocation. Then, a Teitz-Bart \"\n            \"vertex substitution phase optimizes the locations by swapping sites to \"\n            \"maximize total served demand (with total travel cost as a tiebreaker",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand (buildings / address points)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "CANDIDATES",
+          "label": "Candidate sites",
+          "type": "FeatureSource",
+          "constant": "CANDIDATES"
+        },
+        {
+          "name": "CANDIDATE_ID",
+          "label": "Candidate ID field",
+          "type": "Field",
+          "constant": "CANDIDATE_ID"
+        },
+        {
+          "name": "CAPACITY_FIELD",
+          "label": "Capacity field (persons)",
+          "type": "Field",
+          "constant": "CAPACITY_FIELD"
+        },
+        {
+          "name": "EXISTING",
+          "label": "Existing facilities (kept in the solution)",
+          "type": "FeatureSource",
+          "constant": "EXISTING"
+        },
+        {
+          "name": "EXISTING_ID",
+          "label": "Existing facility ID field",
+          "type": "Field",
+          "constant": "EXISTING_ID"
+        },
+        {
+          "name": "EXISTING_CAP_FIELD",
+          "label": "Existing facility capacity field",
+          "type": "Field",
+          "constant": "EXISTING_CAP_FIELD"
+        },
+        {
+          "name": "P",
+          "label": "Number of new facilities to site (p)",
+          "type": "Number",
+          "constant": "P"
+        },
+        {
+          "name": "MAX_COST",
+          "label": "Maximum travel cost (catchment limit, map units)",
+          "type": "Number",
+          "constant": "MAX_COST"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_SITES",
+          "label": "Selected sites",
+          "type": "FeatureSink",
+          "constant": "OUT_SITES"
+        },
+        {
+          "name": "OUT_ALLOCATION",
+          "label": "Allocation lines",
+          "type": "FeatureSink",
+          "constant": "OUT_ALLOCATION"
+        },
+        {
+          "name": "OUT_UNCOVERED",
+          "label": "Uncovered demand",
+          "type": "FeatureSink",
+          "constant": "OUT_UNCOVERED"
+        }
+      ],
+      "algo_id": "capacitatedsiting"
+    },
+    "accessequity": {
+      "class_name": "AccessEquityAlgorithm",
+      "display_name": "Accessibility Equity (Gini / Theil)",
+      "group": "Equity",
+      "group_order": 9,
+      "file": "alg_access_equity.py",
+      "help_summary": "\"Measures how FAIRLY a value is distributed across the \"\n            \"population - the spatial-equity / environmental-justice view \"\n            \"that the level-of-access tools do not give you. Feed it any \"\n            \"per-unit value: an Access Score, a travel time, a distance to \"\n            \"the nearest facility...\\n\\n\"\n            \"Headline indices (population-weighted",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "label": "Units (origins / cells with a value)",
+          "type": "FeatureSource",
+          "constant": "INPUT"
+        },
+        {
+          "name": "VALUE_FIELD",
+          "label": "Value field (access score, time, distance...)",
+          "type": "Field",
+          "constant": "VALUE_FIELD"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per unit)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "GROUP_FIELD",
+          "label": "Group field for between/within decomposition (optional)",
+          "type": "Field",
+          "constant": "GROUP_FIELD"
+        },
+        {
+          "name": "DIRECTION",
+          "label": "Value meaning",
+          "type": "Enum",
+          "constant": "DIRECTION"
+        },
+        {
+          "name": "POVERTY",
+          "label": "Access-poverty threshold (optional)",
+          "type": "Number",
+          "constant": "POVERTY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_POINTS",
+          "label": "Units (with equity attributes)",
+          "type": "FeatureSink",
+          "constant": "OUT_POINTS"
+        },
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Equity summary table",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "accessequity"
+    },
+    "inequalitycurves": {
+      "class_name": "InequalityCurvesAlgorithm",
+      "display_name": "Inequality Curves (Lorenz & Atkinson)",
+      "group": "Equity",
+      "group_order": 9,
+      "file": "alg_inequality_curves.py",
+      "help_summary": "\"Draws the LORENZ CURVE of a value across the population and the \"\n            \"ATKINSON inequality index - the distributional view, with an \"\n            \"exportable curve you can chart and a measure that lets you set \"\n            \"how much you care about the worst-off.\\n\\n\"\n            \"Feed it any per-unit value treated as a non-negative good \"\n            \"(an access score, green space per capita, income...",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "label": "Units (origins / cells with a value)",
+          "type": "FeatureSource",
+          "constant": "INPUT"
+        },
+        {
+          "name": "VALUE_FIELD",
+          "label": "Value field (a non-negative good)",
+          "type": "Field",
+          "constant": "VALUE_FIELD"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per unit)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "RANK_FIELD",
+          "label": "Rank field for a concentration curve (optional)",
+          "type": "Field",
+          "constant": "RANK_FIELD"
+        },
+        {
+          "name": "EPSILON",
+          "label": "Atkinson inequality-aversion (epsilon)",
+          "type": "Number",
+          "constant": "EPSILON"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_CURVE",
+          "label": "Lorenz / concentration curve",
+          "type": "FeatureSink",
+          "constant": "OUT_CURVE"
+        },
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Inequality summary",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "inequalitycurves"
+    },
+    "equitycrosstab": {
+      "class_name": "EquityCrosstabAlgorithm",
+      "display_name": "Demographic Equity Cross-Tabs",
+      "group": "Equity",
+      "group_order": 9,
+      "file": "alg_equity_crosstab.py",
+      "help_summary": "\"Cross-tabulates any per-unit value (an access score, green space \"\n            \"per capita, travel time...",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "label": "Units (origins / cells with a value)",
+          "type": "FeatureSource",
+          "constant": "INPUT"
+        },
+        {
+          "name": "VALUE_FIELD",
+          "label": "Value field",
+          "type": "Field",
+          "constant": "VALUE_FIELD"
+        },
+        {
+          "name": "GROUP_FIELD",
+          "label": "Group field (demographic subgroup)",
+          "type": "Field",
+          "constant": "GROUP_FIELD"
+        },
+        {
+          "name": "GROUP_FIELD_B",
+          "label": "Second group field (optional, crosses the two)",
+          "type": "Field",
+          "constant": "GROUP_FIELD_B"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per unit)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "N_CLASSES",
+          "label": "Value classes (weighted quantiles)",
+          "type": "Number",
+          "constant": "N_CLASSES"
+        },
+        {
+          "name": "BREAKS",
+          "label": "Fixed class breaks instead (e.g. '50, 100, 150')",
+          "type": "String",
+          "constant": "BREAKS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_CELLS",
+          "label": "Cross-tab cells",
+          "type": "FeatureSink",
+          "constant": "OUT_CELLS"
+        },
+        {
+          "name": "OUT_GROUPS",
+          "label": "Group summary",
+          "type": "FeatureSink",
+          "constant": "OUT_GROUPS"
+        },
+        {
+          "name": "OUT_UNITS",
+          "label": "Units with class",
+          "type": "FeatureSink",
+          "constant": "OUT_UNITS"
+        }
+      ],
+      "algo_id": "equitycrosstab"
+    },
+    "walkability": {
+      "class_name": "WalkabilityAlgorithm",
+      "display_name": "Walkability Audit",
+      "group": "Walkability",
+      "group_order": 10,
+      "file": "alg_walkability.py",
+      "help_summary": "\"Scores every street segment 0-100 for WALKABILITY - the audit \"\n            \"layer of the walkable-city agenda, computed from the classic \"\n            \"ingredients of the walkability-index literature (Frank et al. \"\n            \"2010; Ewing & Cervero's D-variables",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "LANDUSE",
+          "label": "Land-use polygons (optional, for the mix)",
+          "type": "FeatureSource",
+          "constant": "LANDUSE"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "Land-use category field",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "POIS",
+          "label": "Destinations / POIs (optional)",
+          "type": "FeatureSource",
+          "constant": "POIS"
+        },
+        {
+          "name": "DEM",
+          "label": "DEM for slope (optional)",
+          "type": "RasterLayer",
+          "constant": "DEM"
+        },
+        {
+          "name": "RADIUS",
+          "label": "Audit radius around each segment (map units)",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "WEIGHTS",
+          "label": "Component weights",
+          "type": "String",
+          "constant": "WEIGHTS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_SEGMENTS",
+          "label": "Walkability segments",
+          "type": "FeatureSink",
+          "constant": "OUT_SEGMENTS"
+        }
+      ],
+      "algo_id": "walkability"
+    },
+    "walkingslope": {
+      "class_name": "WalkingSlopeAlgorithm",
+      "display_name": "Walking Slope Comfort",
+      "group": "Walkability",
+      "group_order": 10,
+      "file": "alg_walking_slope.py",
+      "help_summary": "\"Profiles every street segment against a DEM to compute slope \"\n            \"statistics, comfort classes, and direction-aware walking times \"\n            \"based on Tobler's hiking speed.\\n\\n\"\n            \"The Tobler speed is calculated as speed = 6·e^(−3.5·|m+0.05|",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEM",
+          "label": "DEM (elevation)",
+          "type": "RasterLayer",
+          "constant": "DEM"
+        },
+        {
+          "name": "SAMPLE_STEP",
+          "label": "Profile sample spacing (m)",
+          "type": "Number",
+          "constant": "SAMPLE_STEP"
+        },
+        {
+          "name": "BREAKS",
+          "label": "Comfort class breakpoints, mean |slope| % (ILLUSTRATIVE defaults)",
+          "type": "String",
+          "constant": "BREAKS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Slope-profiled segments",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "walkingslope"
+    },
+    "streetcomfort": {
+      "class_name": "StreetComfortAlgorithm",
+      "display_name": "Street Environment Comfort",
+      "group": "Walkability",
+      "group_order": 10,
+      "file": "alg_street_comfort.py",
+      "help_summary": "\"Scores street segments 0–100 by aggregating kernel densities of comfort \"\n            \"assets (trees, benches, lights",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "POSITIVE",
+          "label": "Comfort assets (point layers: trees, lamps, benches...)",
+          "type": "MultipleLayers",
+          "constant": "POSITIVE"
+        },
+        {
+          "name": "NEGATIVE",
+          "label": "Comfort barriers (point layers: obstacles, potholes...)",
+          "type": "MultipleLayers",
+          "constant": "NEGATIVE"
+        },
+        {
+          "name": "WEIGHT_FIELD",
+          "label": "Per-feature weight field name (used when a layer has it; empty or missing field = weight 1)",
+          "type": "String",
+          "constant": "WEIGHT_FIELD"
+        },
+        {
+          "name": "RASTER_PLUS",
+          "label": "Raster raising comfort (e.g. winter sun hours)",
+          "type": "RasterLayer",
+          "constant": "RASTER_PLUS"
+        },
+        {
+          "name": "RASTER_MINUS",
+          "label": "Raster lowering comfort (e.g. heat risk, noise)",
+          "type": "RasterLayer",
+          "constant": "RASTER_MINUS"
+        },
+        {
+          "name": "BANDWIDTH",
+          "label": "Kernel bandwidth (m)",
+          "type": "Number",
+          "constant": "BANDWIDTH"
+        },
+        {
+          "name": "KERNEL",
+          "label": "Kernel shape",
+          "type": "Enum",
+          "constant": "KERNEL"
+        },
+        {
+          "name": "SAMPLE_STEP",
+          "label": "Segment sample spacing (m)",
+          "type": "Number",
+          "constant": "SAMPLE_STEP"
+        },
+        {
+          "name": "WEIGHTS",
+          "label": "Component weights 'positive=1, negative=1, raster_plus=1, raster_minus=1' (empty = equal)",
+          "type": "String",
+          "constant": "WEIGHTS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Comfort-scored segments",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "streetcomfort"
+    },
+    "routequality": {
+      "class_name": "RouteQualityAlgorithm",
+      "display_name": "Pedestrian Route Quality",
+      "group": "Walkability",
+      "group_order": 10,
+      "file": "alg_route_quality.py",
+      "help_summary": "\"Routes pedestrians over QUALITY-WEIGHTED streets and reports \"\n            \"what the walk is actually like - the follow-up to the \"\n            \"Walkability Audit: feed its output as the network and the \"\n            \"router prefers pleasant streets, accepting a detour when the \"\n            \"direct street scores badly.\\n\\n\"\n            \"Each segment's routing weight is length x (1 + penalty x \"\n            \"(100 - walk score",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (ideally the Walkability output)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "SCORE_FIELD",
+          "label": "Walk-score field 0-100 (empty = all neutral)",
+          "type": "Field",
+          "constant": "SCORE_FIELD"
+        },
+        {
+          "name": "ORIGINS",
+          "label": "Origins",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "DESTINATIONS",
+          "label": "Destinations",
+          "type": "FeatureSource",
+          "constant": "DESTINATIONS"
+        },
+        {
+          "name": "PAIRING",
+          "label": "Pairing",
+          "type": "Enum",
+          "constant": "PAIRING"
+        },
+        {
+          "name": "PENALTY",
+          "label": "Quality penalty (0 = plain shortest path)",
+          "type": "Number",
+          "constant": "PENALTY"
+        },
+        {
+          "name": "LOW_THRESHOLD",
+          "label": "Low-quality threshold (walk score)",
+          "type": "Number",
+          "constant": "LOW_THRESHOLD"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_ROUTES",
+          "label": "Quality routes",
+          "type": "FeatureSink",
+          "constant": "OUT_ROUTES"
+        }
+      ],
+      "algo_id": "routequality"
+    },
+    "gtfsimport": {
+      "class_name": "GtfsImportAlgorithm",
+      "display_name": "GTFS Import and Service Stats",
+      "group": "Transit",
+      "group_order": 11,
+      "file": "alg_gtfs_import.py",
+      "help_summary": "\"Loads a GTFS transit feed (the zip you download from an agency \"\n            \"or a national open-data portal",
+      "parameters": [
+        {
+          "name": "FILE",
+          "label": "GTFS feed (zip)",
+          "type": "File",
+          "constant": "FILE"
+        },
+        {
+          "name": "DAY",
+          "label": "Service day YYYYMMDD (empty = first active)",
+          "type": "String",
+          "constant": "DAY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_STOPS",
+          "label": "Transit stops",
+          "type": "FeatureSink",
+          "constant": "OUT_STOPS"
+        },
+        {
+          "name": "OUT_ROUTES",
+          "label": "Route summary",
+          "type": "FeatureSink",
+          "constant": "OUT_ROUTES"
+        }
+      ],
+      "algo_id": "gtfsimport"
+    },
+    "transitfrequency": {
+      "class_name": "TransitFrequencyAlgorithm",
+      "display_name": "Transit Frequency Map",
+      "group": "Transit",
+      "group_order": 11,
+      "file": "alg_transit_frequency.py",
+      "help_summary": "\"How OFTEN does transit actually come? Counts the scheduled \"\n            \"departures at every stop within a time window of a service day \"\n            \"and turns them into the two numbers riders feel: departures \"\n            \"per hour and the mean headway (minutes between services",
+      "parameters": [
+        {
+          "name": "FILE",
+          "label": "GTFS feed (zip)",
+          "type": "File",
+          "constant": "FILE"
+        },
+        {
+          "name": "DAY",
+          "label": "Service day YYYYMMDD (empty = first active)",
+          "type": "String",
+          "constant": "DAY"
+        },
+        {
+          "name": "START",
+          "label": "Window start (hour of day)",
+          "type": "Number",
+          "constant": "START"
+        },
+        {
+          "name": "END",
+          "label": "Window end (hour of day)",
+          "type": "Number",
+          "constant": "END"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_STOPS",
+          "label": "Stop frequencies",
+          "type": "FeatureSink",
+          "constant": "OUT_STOPS"
+        },
+        {
+          "name": "OUT_ROUTES",
+          "label": "Route trips in window",
+          "type": "FeatureSink",
+          "constant": "OUT_ROUTES"
+        }
+      ],
+      "algo_id": "transitfrequency"
+    },
+    "transitaccess": {
+      "class_name": "TransitAccessAlgorithm",
+      "display_name": "Transit Travel-Time Access",
+      "group": "Transit",
+      "group_order": 11,
+      "file": "alg_transit_access.py",
+      "help_summary": "\"Door-to-door travel times WITH PUBLIC TRANSPORT: from the \"\n            \"origin(s",
+      "parameters": [
+        {
+          "name": "FILE",
+          "label": "GTFS feed (zip)",
+          "type": "File",
+          "constant": "FILE"
+        },
+        {
+          "name": "DAY",
+          "label": "Service day YYYYMMDD (empty = first active)",
+          "type": "String",
+          "constant": "DAY"
+        },
+        {
+          "name": "DEPARTURE",
+          "label": "Departure time (hour of day)",
+          "type": "Number",
+          "constant": "DEPARTURE"
+        },
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines, projected CRS)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "ORIGINS",
+          "label": "Origin(s) - one departure place",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Destinations (demand points)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "WALK_SPEED",
+          "label": "Walking speed (km/h)",
+          "type": "Number",
+          "constant": "WALK_SPEED"
+        },
+        {
+          "name": "MAX_WALK",
+          "label": "Max access/egress walk (minutes)",
+          "type": "Number",
+          "constant": "MAX_WALK"
+        },
+        {
+          "name": "MAX_TRANSFERS",
+          "label": "Max transfers",
+          "type": "Number",
+          "constant": "MAX_TRANSFERS"
+        },
+        {
+          "name": "TRANSFER_WALK",
+          "label": "Maximum walk transfer between stops (metres; 0 = same stop only)",
+          "type": "Number",
+          "constant": "TRANSFER_WALK"
+        },
+        {
+          "name": "MIN_TRANSFER",
+          "label": "Minimum transfer time (minutes)",
+          "type": "Number",
+          "constant": "MIN_TRANSFER"
+        },
+        {
+          "name": "SAMPLE_WINDOW",
+          "label": "Departure reliability window (minutes)",
+          "type": "Number",
+          "constant": "SAMPLE_WINDOW"
+        },
+        {
+          "name": "DEPARTURE_SAMPLES",
+          "label": "Departure samples in reliability window",
+          "type": "Number",
+          "constant": "DEPARTURE_SAMPLES"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_DEMAND",
+          "label": "Destinations with travel times",
+          "type": "FeatureSink",
+          "constant": "OUT_DEMAND"
+        }
+      ],
+      "algo_id": "transitaccess"
+    },
+    "viewshed": {
+      "class_name": "ViewshedAlgorithm",
+      "display_name": "Viewshed (DSM)",
+      "group": "Visibility",
+      "group_order": 12,
+      "file": "alg_viewshed.py",
+      "help_summary": "\"What can be SEEN from here? Sweeps sight lines over a surface \"\n            \"model (DSM - terrain plus buildings",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Surface model (DSM, projected CRS)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "OBSERVERS",
+          "label": "Observer points",
+          "type": "FeatureSource",
+          "constant": "OBSERVERS"
+        },
+        {
+          "name": "OBSERVER_HEIGHT",
+          "label": "Observer height above surface (m)",
+          "type": "Number",
+          "constant": "OBSERVER_HEIGHT"
+        },
+        {
+          "name": "TARGET_HEIGHT",
+          "label": "Target height above surface (m)",
+          "type": "Number",
+          "constant": "TARGET_HEIGHT"
+        },
+        {
+          "name": "RADIUS",
+          "label": "View radius (map units, 0 = unlimited)",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "DIRECTIONS",
+          "label": "Sweep directions",
+          "type": "Number",
+          "constant": "DIRECTIONS"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Visibility count",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "viewshed"
+    },
+    "isovistfield": {
+      "class_name": "IsovistFieldAlgorithm",
+      "display_name": "Isovist Field",
+      "group": "Visibility",
+      "group_order": 12,
+      "file": "alg_isovist_field.py",
+      "help_summary": "\"How does OPEN SPACE feel from inside? Samples a point grid \"\n            \"between the buildings and measures the ISOVIST at every point \"\n            \"- the 2-D area you can see standing there (Benedikt 1979",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (polygons)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "EXTENT",
+          "label": "Study extent (empty = buildings extent)",
+          "type": "Extent",
+          "constant": "EXTENT"
+        },
+        {
+          "name": "CELL",
+          "label": "Grid cell size (map units)",
+          "type": "Number",
+          "constant": "CELL"
+        },
+        {
+          "name": "N_RAYS",
+          "label": "Rays per point",
+          "type": "Number",
+          "constant": "N_RAYS"
+        },
+        {
+          "name": "MAX_DIST",
+          "label": "Max sight distance (map units)",
+          "type": "Number",
+          "constant": "MAX_DIST"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_POINTS",
+          "label": "Isovist points",
+          "type": "FeatureSink",
+          "constant": "OUT_POINTS"
+        }
+      ],
+      "algo_id": "isovistfield"
+    },
+    "visualexposure": {
+      "class_name": "VisualExposureAlgorithm",
+      "display_name": "Visual Exposure of Landmarks",
+      "group": "Visibility",
+      "group_order": 12,
+      "file": "alg_visual_exposure.py",
+      "help_summary": "\"From WHERE can the landmark be seen? The inverse viewshed: \"\n            \"sample points around the landmark's outline, sweep a viewshed \"\n            \"from each (at the DSM surface there, plus an optional extra \"\n            \"height for a spire or antenna the DSM misses",
+      "parameters": [
+        {
+          "name": "DSM",
+          "label": "Surface model (DSM, projected CRS)",
+          "type": "RasterLayer",
+          "constant": "DSM"
+        },
+        {
+          "name": "LANDMARKS",
+          "label": "Landmark footprint(s) (polygons)",
+          "type": "FeatureSource",
+          "constant": "LANDMARKS"
+        },
+        {
+          "name": "EXTRA_HEIGHT",
+          "label": "Extra height above the DSM at the landmark (m)",
+          "type": "Number",
+          "constant": "EXTRA_HEIGHT"
+        },
+        {
+          "name": "SAMPLE_STEP",
+          "label": "Outline sample step (map units)",
+          "type": "Number",
+          "constant": "SAMPLE_STEP"
+        },
+        {
+          "name": "EYE_HEIGHT",
+          "label": "Observer eye height (m)",
+          "type": "Number",
+          "constant": "EYE_HEIGHT"
+        },
+        {
+          "name": "RADIUS",
+          "label": "Exposure radius (map units, 0 = unlimited)",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Landmark visibility count",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "visualexposure"
+    },
+    "populationprojection": {
+      "class_name": "PopulationProjectionAlgorithm",
+      "display_name": "Population Projection (Cohort-Component)",
+      "group": "Population and Housing",
+      "group_order": 13,
+      "file": "alg_population_projection.py",
+      "help_summary": "\"Projects an age-structured population forward with the \"\n            \"COHORT-COMPONENT method (a Leslie matrix",
+      "parameters": [
+        {
+          "name": "INPUT",
+          "label": "Age-group table (youngest to oldest)",
+          "type": "FeatureSource",
+          "constant": "INPUT"
+        },
+        {
+          "name": "AGE_FIELD",
+          "label": "Age-group label field",
+          "type": "Field",
+          "constant": "AGE_FIELD"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "SURVIVAL_FIELD",
+          "label": "Survival rate field (per step)",
+          "type": "Field",
+          "constant": "SURVIVAL_FIELD"
+        },
+        {
+          "name": "FERTILITY_FIELD",
+          "label": "Fertility field (births per person per step)",
+          "type": "Field",
+          "constant": "FERTILITY_FIELD"
+        },
+        {
+          "name": "MIGRATION_FIELD",
+          "label": "Net migration field (per step, optional)",
+          "type": "Field",
+          "constant": "MIGRATION_FIELD"
+        },
+        {
+          "name": "STEPS",
+          "label": "Projection steps",
+          "type": "Number",
+          "constant": "STEPS"
+        },
+        {
+          "name": "STEP_YEARS",
+          "label": "Years per step (labels only)",
+          "type": "Number",
+          "constant": "STEP_YEARS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_PROJECTION",
+          "label": "Projection (step x age group)",
+          "type": "FeatureSink",
+          "constant": "OUT_PROJECTION"
+        },
+        {
+          "name": "OUT_TOTALS",
+          "label": "Per-step totals",
+          "type": "FeatureSink",
+          "constant": "OUT_TOTALS"
+        }
+      ],
+      "algo_id": "populationprojection"
+    },
+    "housingneeds": {
+      "class_name": "HousingNeedsAlgorithm",
+      "display_name": "Housing Needs Assessment",
+      "group": "Population and Housing",
+      "group_order": 13,
+      "file": "alg_housing_needs.py",
+      "help_summary": "\"How many dwellings must the plan deliver? The standard \"\n            \"needs identity, as a batchable tool:\\n\\n\"\n            \"1. Future households = horizon population / household size \"\n            \"(take the population from the Population Projection tool",
+      "parameters": [
+        {
+          "name": "POP_FUTURE",
+          "label": "Horizon population",
+          "type": "Number",
+          "constant": "POP_FUTURE"
+        },
+        {
+          "name": "HH_SIZE",
+          "label": "Household size at the horizon",
+          "type": "Number",
+          "constant": "HH_SIZE"
+        },
+        {
+          "name": "EXISTING",
+          "label": "Existing dwellings",
+          "type": "Number",
+          "constant": "EXISTING"
+        },
+        {
+          "name": "VACANCY",
+          "label": "Vacancy allowance (share, e.g. 0.05)",
+          "type": "Number",
+          "constant": "VACANCY"
+        },
+        {
+          "name": "REPLACEMENT",
+          "label": "Replacement losses over the period (units)",
+          "type": "Number",
+          "constant": "REPLACEMENT"
+        },
+        {
+          "name": "BACKLOG",
+          "label": "Backlog to absorb (units)",
+          "type": "Number",
+          "constant": "BACKLOG"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Housing needs summary",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "housingneeds"
+    },
+    "residentialcapacity": {
+      "class_name": "ResidentialCapacityAlgorithm",
+      "display_name": "Residential Capacity",
+      "group": "Population and Housing",
+      "group_order": 13,
+      "file": "alg_residential_capacity.py",
+      "help_summary": "\"Can the zoning DELIVER the housing need? Per parcel:\\n\\n\"\n            \"buildable floorspace = max(0, parcel area x FAR - existing \"\n            \"floorspace",
+      "parameters": [
+        {
+          "name": "PARCELS",
+          "label": "Parcels (polygons)",
+          "type": "FeatureSource",
+          "constant": "PARCELS"
+        },
+        {
+          "name": "FAR_FIELD",
+          "label": "FAR / floor-area-ratio field",
+          "type": "Field",
+          "constant": "FAR_FIELD"
+        },
+        {
+          "name": "EXISTING_FIELD",
+          "label": "Existing floorspace field (m2, optional)",
+          "type": "Field",
+          "constant": "EXISTING_FIELD"
+        },
+        {
+          "name": "DISTRICT_FIELD",
+          "label": "District field for the roll-up (optional)",
+          "type": "Field",
+          "constant": "DISTRICT_FIELD"
+        },
+        {
+          "name": "UNIT_SIZE",
+          "label": "Average dwelling size (m2)",
+          "type": "Number",
+          "constant": "UNIT_SIZE"
+        },
+        {
+          "name": "EFFICIENCY",
+          "label": "Net-to-gross efficiency",
+          "type": "Number",
+          "constant": "EFFICIENCY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_PARCELS",
+          "label": "Parcel capacity",
+          "type": "FeatureSink",
+          "constant": "OUT_PARCELS"
+        },
+        {
+          "name": "OUT_DISTRICTS",
+          "label": "District roll-up",
+          "type": "FeatureSink",
+          "constant": "OUT_DISTRICTS"
+        }
+      ],
+      "algo_id": "residentialcapacity"
+    },
+    "popallocate": {
+      "class_name": "PopAllocateAlgorithm",
+      "display_name": "Allocate Population Growth",
+      "group": "Population and Housing",
+      "group_order": 13,
+      "file": "alg_pop_allocate.py",
+      "help_summary": "\"Distributes a population growth increment over parcels/zones.\\n\\n\"\n            \"Allocates a target population increment using deterministic largest-remainder \"\n            \"apportionment (Hare-Niemeyer method",
+      "parameters": [
+        {
+          "name": "PARCELS",
+          "label": "Parcels or zones layer",
+          "type": "FeatureSource",
+          "constant": "PARCELS"
+        },
+        {
+          "name": "INCREMENT",
+          "label": "Population increment to allocate",
+          "type": "Number",
+          "constant": "INCREMENT"
+        },
+        {
+          "name": "CAPACITY_FIELD",
+          "label": "Capacity field (optional)",
+          "type": "Field",
+          "constant": "CAPACITY_FIELD"
+        },
+        {
+          "name": "WEIGHT_FIELD",
+          "label": "Weight field (optional)",
+          "type": "Field",
+          "constant": "WEIGHT_FIELD"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Allocated parcels or zones",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "popallocate"
+    },
+    "greenaccess": {
+      "class_name": "GreenAccessAlgorithm",
+      "display_name": "Green Space Access",
+      "group": "Green Infrastructure",
+      "group_order": 14,
+      "file": "alg_green_access.py",
+      "help_summary": "\"Does everyone have a park NEARBY - and a big one within \"\n            \"reach? Tests the classic park HIERARCHY standard on real \"\n            \"street-network distances: every class pairs a minimum size \"\n            \"with a maximum distance, e.g. '0.5=300, 2=800, 10=2000' \"\n            \"reads as a pocket park (0.5 ha or more",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand (buildings / blocks / addresses)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "GREENS",
+          "label": "Public green spaces (polygons)",
+          "type": "FeatureSource",
+          "constant": "GREENS"
+        },
+        {
+          "name": "HIERARCHY",
+          "label": "Hierarchy classes 'min_ha=max_dist, ...'",
+          "type": "String",
+          "constant": "HIERARCHY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_DEMAND",
+          "label": "Demand with green access",
+          "type": "FeatureSink",
+          "constant": "OUT_DEMAND"
+        },
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Coverage per class",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "greenaccess"
+    },
+    "greenconnectivity": {
+      "class_name": "GreenConnectivityAlgorithm",
+      "display_name": "Urban Green Connectivity",
+      "group": "Green Infrastructure",
+      "group_order": 14,
+      "file": "alg_green_connectivity.py",
+      "help_summary": "\"How well does the green network HANG TOGETHER - and which \"\n            \"patch holds it together? Two patches are considered linked \"\n            \"when the gap between them is at most the maximum gap \"\n            \"distance (what your target species or your pedestrians can \"\n            \"cross",
+      "parameters": [
+        {
+          "name": "GREENS",
+          "label": "Green patches (polygons)",
+          "type": "FeatureSource",
+          "constant": "GREENS"
+        },
+        {
+          "name": "MAX_GAP",
+          "label": "Maximum gap to count as linked (map units)",
+          "type": "Number",
+          "constant": "MAX_GAP"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_PATCHES",
+          "label": "Patches with connectivity",
+          "type": "FeatureSink",
+          "constant": "OUT_PATCHES"
+        },
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Connectivity summary",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "greenconnectivity"
+    },
+    "landcoverchange": {
+      "class_name": "LandCoverChangeAlgorithm",
+      "display_name": "Land-Cover Change Analysis",
+      "group": "Urban Growth",
+      "group_order": 15,
+      "file": "alg_landcover_change.py",
+      "help_summary": "\"What became what between two dates? Cross-tabulates two \"\n            \"land-cover class rasters cell by cell into the classic \"\n            \"TRANSITION MATRIX - the accounting table behind every \"\n            \"urban-expansion or deforestation figure.\\n\\n\"\n            \"The rasters must share extent and cell size (resample first \"\n            \"if not; the tool checks",
+      "parameters": [
+        {
+          "name": "RASTER_T1",
+          "label": "Land cover at time 1 (class raster)",
+          "type": "RasterLayer",
+          "constant": "RASTER_T1"
+        },
+        {
+          "name": "RASTER_T2",
+          "label": "Land cover at time 2 (class raster)",
+          "type": "RasterLayer",
+          "constant": "RASTER_T2"
+        },
+        {
+          "name": "CLASS_NAMES",
+          "label": "Class labels 'code=label, ...' (optional)",
+          "type": "String",
+          "constant": "CLASS_NAMES"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_MATRIX",
+          "label": "Transitions",
+          "type": "FeatureSink",
+          "constant": "OUT_MATRIX"
+        },
+        {
+          "name": "OUT_CLASSES",
+          "label": "Class summary",
+          "type": "FeatureSink",
+          "constant": "OUT_CLASSES"
+        }
+      ],
+      "algo_id": "landcoverchange"
+    },
+    "growthsim": {
+      "class_name": "GrowthSimAlgorithm",
+      "display_name": "Urban Growth Simulation (CA)",
+      "group": "Urban Growth",
+      "group_order": 15,
+      "file": "alg_growth_sim.py",
+      "help_summary": "\"Where will the city grow if the trend continues? A \"\n            \"constrained CELLULAR-AUTOMATON growth model in the SLEUTH \"\n            \"tradition, deliberately simple and fully deterministic:\\n\\n\"\n            \"each step, every non-urban unconstrained cell scores\\n\"\n            \"suitability x (base + weight x urban share of its 8 \"\n            \"neighbours",
+      "parameters": [
+        {
+          "name": "SEED",
+          "label": "Seed urban mask (nonzero = urban)",
+          "type": "RasterLayer",
+          "constant": "SEED"
+        },
+        {
+          "name": "SUITABILITY",
+          "label": "Development suitability raster",
+          "type": "RasterLayer",
+          "constant": "SUITABILITY"
+        },
+        {
+          "name": "CONSTRAINTS",
+          "label": "Constraints raster (nonzero = never build, optional)",
+          "type": "RasterLayer",
+          "constant": "CONSTRAINTS"
+        },
+        {
+          "name": "DEMAND_HA",
+          "label": "Land demand (hectares)",
+          "type": "Number",
+          "constant": "DEMAND_HA"
+        },
+        {
+          "name": "ITERATIONS",
+          "label": "Growth steps",
+          "type": "Number",
+          "constant": "ITERATIONS"
+        },
+        {
+          "name": "NEIGH_WEIGHT",
+          "label": "Neighbourhood weight (edge growth)",
+          "type": "Number",
+          "constant": "NEIGH_WEIGHT"
+        },
+        {
+          "name": "BASE",
+          "label": "Base term (leapfrog growth)",
+          "type": "Number",
+          "constant": "BASE"
+        },
+        {
+          "name": "RNG_SEED",
+          "label": "Random seed (tie-breaking only)",
+          "type": "Number",
+          "constant": "RNG_SEED"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Year of conversion",
+          "type": "RasterDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "growthsim"
+    },
+    "sprawlmetrics": {
+      "class_name": "SprawlMetricsAlgorithm",
+      "display_name": "Urban Sprawl Metrics",
+      "group": "Urban Growth",
+      "group_order": 15,
+      "file": "alg_sprawl_metrics.py",
+      "help_summary": "\"Is the city consuming land faster than it grows people? \"\n            \"Computes the SDG indicator 11.3.1 - the LAND CONSUMPTION \"\n            \"RATE to POPULATION GROWTH RATE ratio:\\n\\n\"\n            \"LCRPGR = ln(Urban2 / Urban1",
+      "parameters": [
+        {
+          "name": "URBAN_T1",
+          "label": "Urban extent at time 1 (nonzero = urban)",
+          "type": "RasterLayer",
+          "constant": "URBAN_T1"
+        },
+        {
+          "name": "URBAN_T2",
+          "label": "Urban extent at time 2 (nonzero = urban)",
+          "type": "RasterLayer",
+          "constant": "URBAN_T2"
+        },
+        {
+          "name": "POP_T1",
+          "label": "Population at time 1",
+          "type": "Number",
+          "constant": "POP_T1"
+        },
+        {
+          "name": "POP_T2",
+          "label": "Population at time 2",
+          "type": "Number",
+          "constant": "POP_T2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Sprawl metrics",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "sprawlmetrics"
+    },
+    "cyclingstress": {
+      "class_name": "CyclingStressAlgorithm",
+      "display_name": "Cycling Stress (LTS)",
+      "group": "Cycling",
+      "group_order": 16,
+      "file": "alg_cycling_stress.py",
+      "help_summary": "\"Classifies every street segment into Level of Traffic Stress \"\n            \"(LTS 1-4",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "SPEED_FIELD",
+          "label": "Speed field (empty = default speed)",
+          "type": "Field",
+          "constant": "SPEED_FIELD"
+        },
+        {
+          "name": "LANES_FIELD",
+          "label": "Lane count field (empty = default lanes)",
+          "type": "Field",
+          "constant": "LANES_FIELD"
+        },
+        {
+          "name": "AADT_FIELD",
+          "label": "AADT field (empty = default AADT)",
+          "type": "Field",
+          "constant": "AADT_FIELD"
+        },
+        {
+          "name": "INFRA_FIELD",
+          "label": "Cycling infrastructure field (path / lane / mixed)",
+          "type": "Field",
+          "constant": "INFRA_FIELD"
+        },
+        {
+          "name": "DEFAULT_SPEED",
+          "label": "Default speed",
+          "type": "Number",
+          "constant": "DEFAULT_SPEED"
+        },
+        {
+          "name": "DEFAULT_LANES",
+          "label": "Default lane count",
+          "type": "Number",
+          "constant": "DEFAULT_LANES"
+        },
+        {
+          "name": "DEFAULT_AADT",
+          "label": "Default AADT",
+          "type": "Number",
+          "constant": "DEFAULT_AADT"
+        },
+        {
+          "name": "DEFAULT_INFRA",
+          "label": "Default cycling infrastructure (path / lane / mixed)",
+          "type": "String",
+          "constant": "DEFAULT_INFRA"
+        },
+        {
+          "name": "RULES",
+          "label": "LTS threshold rules",
+          "type": "String",
+          "constant": "RULES"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Segments with LTS",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        },
+        {
+          "name": "SUMMARY",
+          "label": "LTS length share",
+          "type": "FeatureSink",
+          "constant": "SUMMARY"
+        }
+      ],
+      "algo_id": "cyclingstress"
+    },
+    "lowstressislands": {
+      "class_name": "LowStressIslandsAlgorithm",
+      "display_name": "Low-Stress Connectivity",
+      "group": "Cycling",
+      "group_order": 16,
+      "file": "alg_low_stress_islands.py",
+      "help_summary": "\"Finds the connected cycling islands available at or below a \"\n            \"chosen Level of Traffic Stress. Use the output of Cycling \"\n            \"Stress as the network and choose a threshold such as LTS 2 \"\n            \"for an all-ages low-stress network.\\n\\n\"\n            \"The tool removes segments above the threshold, builds connected \"\n            \"components on the remaining primal street graph, and writes \"\n            \"each segment's island id and island length. High-stress \"\n            \"segments are kept in the output with island id 0 so the breaks \"\n            \"remain visible on the map.\\n\\n\"\n            \"If origins with population and a destination layer are supplied, \"\n            \"the summary also reports the population whose snapped network \"\n            \"node lies in an island that contains at least one destination. \"\n            \"This is a screening answer to 'can people reach there at low \"\n            \"stress?' using network topology only. Use a projected CRS.\\n\\n\"\n            \"How to read the results\\n\"\n            \"- The island map is the honest cycling map: however much \"\n            \"'bike network' the city has painted, an everyday rider can \"\n            \"only use ONE island per trip. Many small islands = a \"\n            \"network in name only.\\n\"\n            \"- The gaps between islands (the id-0 high-stress segments \"\n            \"separating two large islands",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network with LTS (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "LTS_FIELD",
+          "label": "LTS field",
+          "type": "Field",
+          "constant": "LTS_FIELD"
+        },
+        {
+          "name": "THRESHOLD",
+          "label": "Maximum LTS for low-stress network",
+          "type": "Number",
+          "constant": "THRESHOLD"
+        },
+        {
+          "name": "ORIGINS",
+          "label": "Origins with population (optional)",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (empty = 1 per origin)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "DESTINATIONS",
+          "label": "Destination layer (optional)",
+          "type": "FeatureSource",
+          "constant": "DESTINATIONS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Segments with low-stress islands",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        },
+        {
+          "name": "SUMMARY",
+          "label": "Low-stress connectivity summary",
+          "type": "FeatureSink",
+          "constant": "SUMMARY"
+        }
+      ],
+      "algo_id": "lowstressislands"
+    },
+    "flowaccumulation": {
+      "class_name": "FlowAccumulationAlgorithm",
+      "display_name": "Flow Accumulation",
+      "group": "Hazard Screening",
+      "group_order": 17,
+      "file": "alg_flow_accumulation.py",
+      "help_summary": "\"Screening-quality flow direction and flow accumulation. \"\n            \"Fills depressions in the DEM using a deterministic priority-flood \"\n            \"algorithm, computes D8 steepest-descent direction, and calculates \"\n            \"topological flow accumulation.\\n\\n\"\n            \"Outputs the filled DEM, D8 direction raster, and flow accumulation raster.\\n\\n\"\n            \"How to read the results\\n\"\n            \"- Accumulation counts the upstream cells draining THROUGH \"\n            \"each cell: style it with a log scale, because values span \"\n            \"orders of magnitude - the bright branching lines are where \"\n            \"water concentrates when it rains, whether or not any \"\n            \"stream is mapped there.\\n\"\n            \"- In urban areas those lines crossing streets and parcels \"\n            \"are the surface-flow paths of a cloudburst: buildings \"\n            \"sitting ON a high-accumulation line flood first, \"\n            \"culverts under it are the choke points to check.\\n\"\n            \"- filled-minus-original DEM marks the depressions: real \"\n            \"ponds and karst, but in cities often underpasses and \"\n            \"basins - exactly where pluvial water parks itself.\\n\"\n            \"- The direction raster is plumbing for HAND and other \"\n            \"downstream tools; 255 = nodata, 0 = flat/pit.\\n\\n\"\n            \"Using the results: keep the high-accumulation corridors \"\n            \"free of building in new layouts (they are free drainage",
+      "parameters": [
+        {
+          "name": "DEM",
+          "label": "Digital Elevation Model (projected CRS)",
+          "type": "RasterLayer",
+          "constant": "DEM"
+        },
+        {
+          "name": "OUTPUT_FILLED",
+          "label": "Filled DEM",
+          "type": "RasterDestination",
+          "constant": "OUTPUT_FILLED"
+        },
+        {
+          "name": "OUTPUT_DIR",
+          "label": "D8 Flow Direction",
+          "type": "RasterDestination",
+          "constant": "OUTPUT_DIR"
+        },
+        {
+          "name": "OUTPUT_ACCUM",
+          "label": "Flow Accumulation",
+          "type": "RasterDestination",
+          "constant": "OUTPUT_ACCUM"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "flowaccumulation"
+    },
+    "handindex": {
+      "class_name": "HandIndexAlgorithm",
+      "display_name": "HAND and Inundation",
+      "group": "Hazard Screening",
+      "group_order": 17,
+      "file": "alg_hand_index.py",
+      "help_summary": "\"Screening-quality Height Above Nearest Drainage (HAND",
+      "parameters": [
+        {
+          "name": "DEM",
+          "label": "Filled DEM (projected CRS)",
+          "type": "RasterLayer",
+          "constant": "DEM"
+        },
+        {
+          "name": "D8_DIR",
+          "label": "D8 flow direction raster",
+          "type": "RasterLayer",
+          "constant": "D8_DIR"
+        },
+        {
+          "name": "ACCUM",
+          "label": "Flow accumulation raster",
+          "type": "RasterLayer",
+          "constant": "ACCUM"
+        },
+        {
+          "name": "THRESHOLD",
+          "label": "Drainage accumulation threshold (cells)",
+          "type": "Number",
+          "constant": "THRESHOLD"
+        },
+        {
+          "name": "DEPTH",
+          "label": "Inundation depth (m)",
+          "type": "Number",
+          "constant": "DEPTH"
+        },
+        {
+          "name": "OUTPUT_HAND",
+          "label": "HAND index",
+          "type": "RasterDestination",
+          "constant": "OUTPUT_HAND"
+        },
+        {
+          "name": "OUTPUT_INUNDATION",
+          "label": "Inundation mask",
+          "type": "RasterDestination",
+          "constant": "OUTPUT_INUNDATION"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "handindex"
+    },
+    "floodexposure": {
+      "class_name": "FloodExposureAlgorithm",
+      "display_name": "Flood Exposure",
+      "group": "Hazard Screening",
+      "group_order": 17,
+      "file": "alg_flood_exposure.py",
+      "help_summary": "\"Screening-quality flood exposure analysis.\\n\\n\"\n            \"Intersects a binary inundation mask raster with buildings footprints and/or \"\n            \"demand points. For buildings, computes the count and share of exposed buildings. \"\n            \"For demand points, computes the sum and share of exposed population, and outputs \"\n            \"a vector layer of demand points annotated with 'wet' or 'dry'.\\n\\n\"\n            \"Outputs a summary table containing counts and percentages of exposure.\\n\\n\"\n            \"How to read the results\\n\"\n            \"- The summary turns a blue polygon into policy numbers: \"\n            \"'1,240 residents and 310 buildings in the 2 m scenario' \"\n            \"is what a risk chapter, an insurance question or a \"\n            \"relocation debate actually needs.\\n\"\n            \"- Run it once per depth scenario and read the CURVE of \"\n            \"exposed population vs depth: a city where exposure \"\n            \"explodes between 1 m and 2 m has its growth sitting just \"\n            \"above the everyday flood - the classic creeping-risk \"\n            \"signature.\\n\"\n            \"- On the annotated points, 'wet' clusters in one \"\n            \"neighbourhood mean concentrated (defendable",
+      "parameters": [
+        {
+          "name": "INUNDATION",
+          "label": "Inundation mask raster (projected CRS)",
+          "type": "RasterLayer",
+          "constant": "INUNDATION"
+        },
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings vector layer (optional)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand points vector layer (optional)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field (optional)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Summary table",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        },
+        {
+          "name": "OUT_DEMAND",
+          "label": "Annotated demand points",
+          "type": "FeatureSink",
+          "constant": "OUT_DEMAND"
+        }
+      ],
+      "algo_id": "floodexposure"
+    },
+    "tripgeneration": {
+      "class_name": "TripGenerationAlgorithm",
+      "display_name": "Trip Generation",
+      "group": "Travel Demand",
+      "group_order": 18,
+      "file": "alg_trip_generation.py",
+      "help_summary": "\"Screening-quality trip generation model.\\n\\n\"\n            \"Calculates trip productions (P",
+      "parameters": [
+        {
+          "name": "ZONES",
+          "label": "Zone layer",
+          "type": "FeatureSource",
+          "constant": "ZONES"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "JOBS_FIELD",
+          "label": "Jobs field",
+          "type": "Field",
+          "constant": "JOBS_FIELD"
+        },
+        {
+          "name": "P_RATE",
+          "label": "Production rate (trips per capita)",
+          "type": "Number",
+          "constant": "P_RATE"
+        },
+        {
+          "name": "A_RATE",
+          "label": "Attraction rate (trips per job)",
+          "type": "Number",
+          "constant": "A_RATE"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Trip generation table",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "tripgeneration"
+    },
+    "gravitymodel": {
+      "class_name": "GravityModelAlgorithm",
+      "display_name": "Gravity Distribution",
+      "group": "Travel Demand",
+      "group_order": 18,
+      "file": "alg_gravity_model.py",
+      "help_summary": "\"Screening-quality gravity travel distribution model.\\n\\n\"\n            \"Runs a doubly constrained Furness/IPF gravity model over zone productions, \"\n            \"attractions, and a travel cost matrix computed over the street network. \"\n            \"Deterrence functions include exponential exp(-beta * cost",
+      "parameters": [
+        {
+          "name": "ZONES",
+          "label": "Zone layer",
+          "type": "FeatureSource",
+          "constant": "ZONES"
+        },
+        {
+          "name": "ZONE_ID",
+          "label": "Zone ID field",
+          "type": "Field",
+          "constant": "ZONE_ID"
+        },
+        {
+          "name": "PRODUCTION_FIELD",
+          "label": "Productions field",
+          "type": "Field",
+          "constant": "PRODUCTION_FIELD"
+        },
+        {
+          "name": "ATTRACTION_FIELD",
+          "label": "Attractions field",
+          "type": "Field",
+          "constant": "ATTRACTION_FIELD"
+        },
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "BETA",
+          "label": "Deterrence coefficient (beta)",
+          "type": "Number",
+          "constant": "BETA"
+        },
+        {
+          "name": "KIND",
+          "label": "Deterrence function type",
+          "type": "Enum",
+          "constant": "KIND"
+        },
+        {
+          "name": "MAX_ITER",
+          "label": "Maximum balancing iterations",
+          "type": "Number",
+          "constant": "MAX_ITER"
+        },
+        {
+          "name": "TOL",
+          "label": "Convergence tolerance",
+          "type": "Number",
+          "constant": "TOL"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "OD matrix (table)",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        },
+        {
+          "name": "LINES",
+          "label": "Desire lines",
+          "type": "FeatureSink",
+          "constant": "LINES"
+        }
+      ],
+      "algo_id": "gravitymodel"
+    },
+    "modesplit": {
+      "class_name": "ModeSplitAlgorithm",
+      "display_name": "Mode Split",
+      "group": "Travel Demand",
+      "group_order": 18,
+      "file": "alg_mode_split.py",
+      "help_summary": "\"Screening-quality mode split travel demand model.\\n\\n\"\n            \"Calculates shares and flows for each transportation mode using a multinomial \"\n            \"logit model based on travel times, coefficients (betas",
+      "parameters": [
+        {
+          "name": "FLOWS",
+          "label": "OD flows layer",
+          "type": "FeatureSource",
+          "constant": "FLOWS"
+        },
+        {
+          "name": "FLOW_FIELD",
+          "label": "Total flow field",
+          "type": "Field",
+          "constant": "FLOW_FIELD"
+        },
+        {
+          "name": "MODE_TIMES",
+          "label": "Mode travel time fields (comma-separated)",
+          "type": "String",
+          "constant": "MODE_TIMES"
+        },
+        {
+          "name": "MODE_BETAS",
+          "label": "Mode utility time coefficients (comma-separated, typically negative)",
+          "type": "String",
+          "constant": "MODE_BETAS"
+        },
+        {
+          "name": "MODE_ASCS",
+          "label": "Mode alternative-specific constants (comma-separated)",
+          "type": "String",
+          "constant": "MODE_ASCS"
+        },
+        {
+          "name": "MODE_NAMES",
+          "label": "Mode names (comma-separated, optional)",
+          "type": "String",
+          "constant": "MODE_NAMES"
+        },
+        {
+          "name": "OBSERVED_SHARES",
+          "label": "Observed share fields for validation (comma-separated, optional)",
+          "type": "String",
+          "constant": "OBSERVED_SHARES"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Annotated OD flows",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "modesplit"
+    },
+    "parkingdemand": {
+      "class_name": "ParkingDemandAlgorithm",
+      "display_name": "Parking Demand Estimator",
+      "group": "Travel Demand",
+      "group_order": 18,
+      "file": "alg_parking_demand.py",
+      "help_summary": "\"Screening-quality parking demand estimator.\\n\\n\"\n            \"Converts each zone's land-use category and size into parking \"\n            \"spaces demanded, using a per-category rate table you control. \"\n            \"Each entry is category=basis:rate, where the basis says what \"\n            \"one rate unit counts against: unit = spaces per dwelling \"\n            \"unit, sqm = spaces per 1000 m2 gross floor area, seat = \"\n            \"spaces per seat. A zone takes the first rate row whose \"\n            \"category keyword it contains.\\n\\n\"\n            \"The size column is read in each matched category's own basis, \"\n            \"so the table is only fully coherent when the categories it \"\n            \"matches share one basis. A single layer mixing dwelling \"\n            \"counts, floor areas and seats cannot be correct for all three \"\n            \"at once: where the bases differ, split the zones into one \"\n            \"layer per basis and run each with its own table.\\n\\n\"\n            \"The shipped rates are illustrative starting values written in \"\n            \"the convention of the ITE Parking Generation manual (Institute \"\n            \"of Transportation Engineers",
+      "parameters": [
+        {
+          "name": "ZONES",
+          "label": "Zone layer",
+          "type": "FeatureSource",
+          "constant": "ZONES"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "Land-use category field",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "SIZE_FIELD",
+          "label": "SIZE_FIELD",
+          "type": "Field",
+          "constant": "SIZE_FIELD"
+        },
+        {
+          "name": "RATES",
+          "label": "Parking rates (category=basis:rate, ...)",
+          "type": "String",
+          "constant": "RATES"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "OUTPUT",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "parkingdemand"
+    },
+    "parkingsupplybalance": {
+      "class_name": "ParkingSupplyBalanceAlgorithm",
+      "display_name": "Parking Supply-Demand Balance",
+      "group": "Travel Demand",
+      "group_order": 18,
+      "file": "alg_parking_balance.py",
+      "help_summary": "\"Compares the parking each zone demands with the parking it \"\n            \"actually has within reach, and reports the surplus or deficit.\\n\\n\"\n            \"Zones carry the demand figure the Parking Demand Estimator \"\n            \"produced (its parking_demand column, joined back onto your zone \"\n            \"polygons by zone id",
+      "parameters": [
+        {
+          "name": "ZONES",
+          "label": "Zone layer (carries the demand field)",
+          "type": "FeatureSource",
+          "constant": "ZONES"
+        },
+        {
+          "name": "DEMAND_FIELD",
+          "label": "DEMAND_FIELD",
+          "type": "Field",
+          "constant": "DEMAND_FIELD"
+        },
+        {
+          "name": "SUPPLY",
+          "label": "SUPPLY",
+          "type": "FeatureSource",
+          "constant": "SUPPLY"
+        },
+        {
+          "name": "SUPPLY_FIELD",
+          "label": "Spaces per facility",
+          "type": "Field",
+          "constant": "SUPPLY_FIELD"
+        },
+        {
+          "name": "RADIUS",
+          "label": "RADIUS",
+          "type": "Number",
+          "constant": "RADIUS"
+        },
+        {
+          "name": "NETWORK",
+          "label": "NETWORK",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Parking balance table",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "parkingsupplybalance"
+    },
+    "groundmotion": {
+      "class_name": "GroundMotionAlgorithm",
+      "display_name": "Ground Motion Scenario",
+      "group": "Seismic Risk",
+      "group_order": 19,
+      "file": "alg_ground_motion.py",
+      "help_summary": "\"How hard does the ground shake at each site in one earthquake \"\n            \"scenario? Gives peak ground acceleration, peak ground velocity and \"\n            \"any spectral accelerations you ask for, at every receiver, from an \"\n            \"explicit magnitude - distance - site scenario.\\n\\n\"\n            \"Model: Akkar, Sandikkaya & Bommer (2014",
+      "parameters": [
+        {
+          "name": "SCENARIO",
+          "label": "Scenario geometry (see help)",
+          "type": "Enum",
+          "constant": "SCENARIO"
+        },
+        {
+          "name": "MAGNITUDE",
+          "label": "Moment magnitude (Mw)",
+          "type": "Number",
+          "constant": "MAGNITUDE"
+        },
+        {
+          "name": "EPICENTRE",
+          "label": "Epicentre (one point; geometry B ignores this)",
+          "type": "FeatureSource",
+          "constant": "EPICENTRE"
+        },
+        {
+          "name": "DEPTH_KM",
+          "label": "Focal depth, km (hypocentral distance only)",
+          "type": "Number",
+          "constant": "DEPTH_KM"
+        },
+        {
+          "name": "FAULT_TRACE",
+          "label": "Fault trace (line; geometry A ignores this)",
+          "type": "FeatureSource",
+          "constant": "FAULT_TRACE"
+        },
+        {
+          "name": "DISTANCE_METRIC",
+          "label": "Distance metric (written to every row)",
+          "type": "Enum",
+          "constant": "DISTANCE_METRIC"
+        },
+        {
+          "name": "FAULT_MECHANISM",
+          "label": "Fault mechanism",
+          "type": "Enum",
+          "constant": "FAULT_MECHANISM"
+        },
+        {
+          "name": "VS30",
+          "label": "Vs30, m/s (default = the model's reference velocity)",
+          "type": "Number",
+          "constant": "VS30"
+        },
+        {
+          "name": "SPECTRAL_PERIODS",
+          "label": "Spectral periods in seconds, comma-separated (empty = PGA and PGV only)",
+          "type": "String",
+          "constant": "SPECTRAL_PERIODS"
+        },
+        {
+          "name": "EPSILON",
+          "label": "Epsilon (standard deviations from the median; 0 = median)",
+          "type": "Number",
+          "constant": "EPSILON"
+        },
+        {
+          "name": "RECEIVERS",
+          "label": "Receivers - the layer to evaluate (any geometry)",
+          "type": "FeatureSource",
+          "constant": "RECEIVERS"
+        },
+        {
+          "name": "VS30_FIELD",
+          "label": "Vs30 field (optional; overrides the constant)",
+          "type": "Field",
+          "constant": "VS30_FIELD"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Receivers with ground motion",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "groundmotion"
+    },
+    "liquefaction": {
+      "class_name": "LiquefactionAlgorithm",
+      "display_name": "Liquefaction Screening",
+      "group": "Seismic Risk",
+      "group_order": 19,
+      "file": "alg_liquefaction.py",
+      "help_summary": "\"Where is the ground likely to liquefy in an earthquake, and by \"\n            \"how much will it settle? Two models answer it from two different \"\n            \"sets of inputs.\\n\\n\"\n            \"REGRESSION (the default",
+      "parameters": [
+        {
+          "name": "MODE",
+          "label": "Model (see help)",
+          "type": "Enum",
+          "constant": "MODE"
+        },
+        {
+          "name": "DEM",
+          "label": "DEM",
+          "type": "RasterLayer",
+          "constant": "DEM"
+        },
+        {
+          "name": "TARGET",
+          "label": "Layer to evaluate (any geometry; one sample per feature)",
+          "type": "FeatureSource",
+          "constant": "TARGET"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "CATEGORY_FIELD",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "PGA_G",
+          "label": "PGA, g (constant; a field overrides it)",
+          "type": "Number",
+          "constant": "PGA_G"
+        },
+        {
+          "name": "PGA_FIELD",
+          "label": "PGA_FIELD",
+          "type": "Field",
+          "constant": "PGA_FIELD"
+        },
+        {
+          "name": "MAGNITUDE",
+          "label": "Moment magnitude (Mw)",
+          "type": "Number",
+          "constant": "MAGNITUDE"
+        },
+        {
+          "name": "TECTONIC",
+          "label": "TECTONIC",
+          "type": "Enum",
+          "constant": "TECTONIC"
+        },
+        {
+          "name": "VS30_MS",
+          "label": "VS30_MS",
+          "type": "Number",
+          "constant": "VS30_MS"
+        },
+        {
+          "name": "VS30_FIELD",
+          "label": "VS30_FIELD",
+          "type": "Field",
+          "constant": "VS30_FIELD"
+        },
+        {
+          "name": "VS30_RASTER",
+          "label": "VS30_RASTER",
+          "type": "RasterLayer",
+          "constant": "VS30_RASTER"
+        },
+        {
+          "name": "GROUNDWATER_M",
+          "label": "GROUNDWATER_M",
+          "type": "Number",
+          "constant": "GROUNDWATER_M"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Liquefaction screening",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "liquefaction"
+    },
+    "seismicdebris": {
+      "class_name": "SeismicDebrisAlgorithm",
+      "display_name": "Seismic Collapse and Debris Spread (Monte Carlo)",
+      "group": "Seismic Risk",
+      "group_order": 19,
+      "file": "alg_seismic_debris.py",
+      "help_summary": "\"Screening-quality Monte Carlo model for earthquake-induced building \"\n            \"damage, the debris it throws onto the street, and the evacuation \"\n            \"corridors that stay open.\\n\\n\"\n            \"HOW DAMAGE IS ESTIMATED\\n\"\n            \"Each building gets a full damage distribution - none, slight, \"\n            \"moderate, extensive, complete - from lognormal fragility curves, \"\n            \"not a single collapse yes/no. The curves are the equivalent-PGA \"\n            \"structural fragilities of the Hazus Earthquake Model Technical \"\n            \"Manual 6.1 (Tables 5-37 to 5-40",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (polygon)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "FLOOR_FIELD",
+          "label": "Floor count field",
+          "type": "Field",
+          "constant": "FLOOR_FIELD"
+        },
+        {
+          "name": "YEAR_FIELD",
+          "label": "Construction year field",
+          "type": "Field",
+          "constant": "YEAR_FIELD"
+        },
+        {
+          "name": "PGA_FIELD",
+          "label": "Peak ground acceleration field, in g (recommended - replaces the magnitude estimate)",
+          "type": "Field",
+          "constant": "PGA_FIELD"
+        },
+        {
+          "name": "BUILDING_TYPE",
+          "label": "Building type (Hazus type; height class comes from the floor field)",
+          "type": "Enum",
+          "constant": "BUILDING_TYPE"
+        },
+        {
+          "name": "NETWORK_MODE",
+          "label": "Network source (four alternatives - see help)",
+          "type": "Enum",
+          "constant": "NETWORK_MODE"
+        },
+        {
+          "name": "NETWORK",
+          "label": "A: Road / open-space polygons (used as-is)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "NETWORK_LINES",
+          "label": "B, C: Road centerlines (e.g. a QuickOSM 'highway' download)",
+          "type": "FeatureSource",
+          "constant": "NETWORK_LINES"
+        },
+        {
+          "name": "HIGHWAY_FIELD",
+          "label": "B: Highway class field (blank = auto-detect 'highway')",
+          "type": "Field",
+          "constant": "HIGHWAY_FIELD"
+        },
+        {
+          "name": "WIDTH_FIELD",
+          "label": "C: Road width field, full metres (in B: overrides the class width)",
+          "type": "Field",
+          "constant": "WIDTH_FIELD"
+        },
+        {
+          "name": "DEFAULT_WIDTH",
+          "label": "B, C: Fallback road width (m); D: expansion of the automatic ROI hull",
+          "type": "Number",
+          "constant": "DEFAULT_WIDTH"
+        },
+        {
+          "name": "ROI",
+          "label": "D: Region of interest (blank = convex hull of the blocks, expanded)",
+          "type": "FeatureSource",
+          "constant": "ROI"
+        },
+        {
+          "name": "BLOCKS",
+          "label": "D: Urban blocks or parcels (dissolved internally)",
+          "type": "FeatureSource",
+          "constant": "BLOCKS"
+        },
+        {
+          "name": "REFERENCE_PGA",
+          "label": "Nominal site PGA at Mw 7.0, in g (used only when no PGA field is given)",
+          "type": "Number",
+          "constant": "REFERENCE_PGA"
+        },
+        {
+          "name": "FLOOR_HEIGHT",
+          "label": "Average floor height (m)",
+          "type": "Number",
+          "constant": "FLOOR_HEIGHT"
+        },
+        {
+          "name": "DEBRIS_FACTOR",
+          "label": "Debris spread coefficient (k, fraction of height)",
+          "type": "Number",
+          "constant": "DEBRIS_FACTOR"
+        },
+        {
+          "name": "SOLID_VOLUME_RATIO",
+          "label": "Void/solid volume ratio (material share of the building)",
+          "type": "Number",
+          "constant": "SOLID_VOLUME_RATIO"
+        },
+        {
+          "name": "VOID_RATIO",
+          "label": "Void fraction of the debris pile (air between fragments)",
+          "type": "Number",
+          "constant": "VOID_RATIO"
+        },
+        {
+          "name": "DEBRIS_DENSITY",
+          "label": "Debris material density (tonnes per m3)",
+          "type": "Number",
+          "constant": "DEBRIS_DENSITY"
+        },
+        {
+          "name": "MIN_CLEAR_WIDTH",
+          "label": "Minimum clear width for a usable route (m, emergency-vehicle access)",
+          "type": "Number",
+          "constant": "MIN_CLEAR_WIDTH"
+        },
+        {
+          "name": "SIMULATIONS",
+          "label": "Simulation runs (0 = one realization; 5-20 repeats to see what survives)",
+          "type": "Number",
+          "constant": "SIMULATIONS"
+        },
+        {
+          "name": "SEED",
+          "label": "Random seed (Monte Carlo reproducibility)",
+          "type": "Number",
+          "constant": "SEED"
+        },
+        {
+          "name": "CORRELATION",
+          "label": "Simulation runs: how buildings share the shaking (see help)",
+          "type": "Enum",
+          "constant": "CORRELATION"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_BUILDINGS",
+          "label": "Annotated buildings (damage risk and debris)",
+          "type": "FeatureSink",
+          "constant": "OUT_BUILDINGS"
+        },
+        {
+          "name": "OUT_ENVELOPE",
+          "label": "Debris spread envelope (dissolved)",
+          "type": "FeatureSink",
+          "constant": "OUT_ENVELOPE"
+        },
+        {
+          "name": "OUT_BLOCKED",
+          "label": "Network blockage from debris",
+          "type": "FeatureSink",
+          "constant": "OUT_BLOCKED"
+        },
+        {
+          "name": "OUT_CORRIDORS",
+          "label": "Open evacuation corridors",
+          "type": "FeatureSink",
+          "constant": "OUT_CORRIDORS"
+        },
+        {
+          "name": "OUT_NAVIGABLE",
+          "label": "Navigable street core (corridors narrowed by the minimum clear width)",
+          "type": "FeatureSink",
+          "constant": "OUT_NAVIGABLE"
+        }
+      ],
+      "algo_id": "seismicdebris"
+    },
+    "seismicimpact": {
+      "class_name": "SeismicImpactAlgorithm",
+      "display_name": "Seismic Human Impact (Casualties and Shelter)",
+      "group": "Seismic Risk",
+      "group_order": 19,
+      "file": "alg_seismic_impact.py",
+      "help_summary": "\"Expected injuries, deaths and shelter need for an earthquake \"\n            \"scenario, per building.\\n\\n\"\n            \"This is the half of an earthquake assessment the rest of the \"\n            \"toolbox leaves out. Damage and debris are physical; this turns \"\n            \"them into people - how many need a hospital, how many households \"\n            \"lose their home, how many will turn up at a public shelter.\\n\\n\"\n            \"WHAT IT READS\\n\"\n            \"The four damage-state probabilities the Seismic Collapse and \"\n            \"Debris Spread tool writes (prob_slight, prob_moderate, \"\n            \"prob_extensive, prob_complete",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (the debris tool's output, or any layer with the four damage probabilities)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "FLOOR_FIELD",
+          "label": "Floor count field (sets the building's height class)",
+          "type": "Field",
+          "constant": "FLOOR_FIELD"
+        },
+        {
+          "name": "AREA_FIELD",
+          "label": "AREA_FIELD",
+          "type": "Field",
+          "constant": "AREA_FIELD"
+        },
+        {
+          "name": "DAMAGE_STATE_FIELD",
+          "label": "Damage state field (fallback when the four probability columns are absent)",
+          "type": "Field",
+          "constant": "DAMAGE_STATE_FIELD"
+        },
+        {
+          "name": "BUILDING_TYPE",
+          "label": "Building type (Hazus type; must match the one the damage run used)",
+          "type": "Enum",
+          "constant": "BUILDING_TYPE"
+        },
+        {
+          "name": "TIME_OF_DAY",
+          "label": "Scenario time (who is in the building)",
+          "type": "Enum",
+          "constant": "TIME_OF_DAY"
+        },
+        {
+          "name": "OCCUPANCY",
+          "label": "Occupancy class for every building without an occupancy field",
+          "type": "Enum",
+          "constant": "OCCUPANCY"
+        },
+        {
+          "name": "OCCUPANCY_FIELD",
+          "label": "Occupancy field (text: residential, commercial, school, industrial, hotel)",
+          "type": "Field",
+          "constant": "OCCUPANCY_FIELD"
+        },
+        {
+          "name": "OCCUPANCY_SOURCE",
+          "label": "Occupant count comes from",
+          "type": "Enum",
+          "constant": "OCCUPANCY_SOURCE"
+        },
+        {
+          "name": "POPULATION_FIELD",
+          "label": "Population field (people in the building)",
+          "type": "Field",
+          "constant": "POPULATION_FIELD"
+        },
+        {
+          "name": "AREA_PER_OCCUPANT",
+          "label": "Area per occupant (m2 of floor area; this tool's screening value, not a Hazus figure)",
+          "type": "Number",
+          "constant": "AREA_PER_OCCUPANT"
+        },
+        {
+          "name": "UNITS_FIELD",
+          "label": "Dwelling units field (blank: 1 for a residential building, 0 otherwise)",
+          "type": "Field",
+          "constant": "UNITS_FIELD"
+        },
+        {
+          "name": "HOUSEHOLD_RATE",
+          "label": "Households per dwelling unit (Hazus occupancy rate)",
+          "type": "Number",
+          "constant": "HOUSEHOLD_RATE"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT",
+          "label": "Building impact (casualties and shelter need)",
+          "type": "FeatureSink",
+          "constant": "OUT"
+        }
+      ],
+      "algo_id": "seismicimpact"
+    },
+    "coseismiclandslide": {
+      "class_name": "CoseismicLandslideAlgorithm",
+      "display_name": "Coseismic Landslide Screening",
+      "group": "Seismic Risk",
+      "group_order": 19,
+      "file": "alg_coseismic_landslide.py",
+      "help_summary": "\"Where is a slope likely to fail in an earthquake, and how far \"\n            \"will it move? A Newmark sliding-block calculation, driven by the \"\n            \"shaking you already have from the seismic chain.\\n\\n\"\n            \"THE DISPLACEMENT - Jibson (2007",
+      "parameters": [
+        {
+          "name": "AC_SOURCE",
+          "label": "AC_SOURCE",
+          "type": "Enum",
+          "constant": "AC_SOURCE"
+        },
+        {
+          "name": "TARGET",
+          "label": "Layer to evaluate (any geometry; one sample per feature)",
+          "type": "FeatureSource",
+          "constant": "TARGET"
+        },
+        {
+          "name": "TERRAIN",
+          "label": "Critical acceleration field, g (field route: required)",
+          "type": "RasterLayer",
+          "constant": "TERRAIN"
+        },
+        {
+          "name": "AC_FIELD",
+          "label": "Critical acceleration field, g (field route: required)",
+          "type": "Field",
+          "constant": "AC_FIELD"
+        },
+        {
+          "name": "GROUP_FIELD",
+          "label": "GROUP_FIELD",
+          "type": "Field",
+          "constant": "GROUP_FIELD"
+        },
+        {
+          "name": "CATEGORY_FIELD",
+          "label": "CATEGORY_FIELD",
+          "type": "Field",
+          "constant": "CATEGORY_FIELD"
+        },
+        {
+          "name": "MOISTURE",
+          "label": "MOISTURE",
+          "type": "Enum",
+          "constant": "MOISTURE"
+        },
+        {
+          "name": "PGA_G",
+          "label": "PGA, g (constant; a field overrides it)",
+          "type": "Number",
+          "constant": "PGA_G"
+        },
+        {
+          "name": "PGA_FIELD",
+          "label": "PGA_FIELD",
+          "type": "Field",
+          "constant": "PGA_FIELD"
+        },
+        {
+          "name": "MAGNITUDE",
+          "label": "Moment magnitude (Mw)",
+          "type": "Number",
+          "constant": "MAGNITUDE"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Landslide screening",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "coseismiclandslide"
+    },
+    "odmatrix": {
+      "class_name": "ODCostMatrixAlgorithm",
+      "display_name": "OD Cost Matrix",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_od_matrix.py",
+      "help_summary": "\"Computes the full origin-destination cost matrix over the street \"\n            \"network with the embedded Dijkstra engine (SciPy-accelerated when \"\n            \"available",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "ORIGINS",
+          "label": "Origins",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "ORIGIN_ID",
+          "label": "Origin ID field",
+          "type": "Field",
+          "constant": "ORIGIN_ID"
+        },
+        {
+          "name": "DESTINATIONS",
+          "label": "Destinations (empty = origins)",
+          "type": "FeatureSource",
+          "constant": "DESTINATIONS"
+        },
+        {
+          "name": "DEST_ID",
+          "label": "Destination ID field",
+          "type": "Field",
+          "constant": "DEST_ID"
+        },
+        {
+          "name": "COST_FIELD",
+          "label": "Cost field on network (empty = length)",
+          "type": "Field",
+          "constant": "COST_FIELD"
+        },
+        {
+          "name": "CUTOFF",
+          "label": "Maximum cost (0 = unlimited)",
+          "type": "Number",
+          "constant": "CUTOFF"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MATRIX",
+          "label": "OD matrix (table)",
+          "type": "FeatureSink",
+          "constant": "MATRIX"
+        },
+        {
+          "name": "LINES",
+          "label": "Desire lines",
+          "type": "FeatureSink",
+          "constant": "LINES"
+        }
+      ],
+      "algo_id": "odmatrix"
+    },
+    "deadends": {
+      "class_name": "DeadEndAnalysisAlgorithm",
+      "display_name": "Dead-End Analysis",
+      "group": "Network Analysis",
+      "group_order": 1,
+      "file": "alg_dead_ends.py",
+      "help_summary": "\"Finds the dead ends in a street network and measures them as \"\n            \"streets, not as points:\\n\"\n            \"- every segment is tagged with the dead-end branch it belongs to, \"\n            \"so cul-de-sacs can be mapped, measured and styled as whole streets\\n\"\n            \"- branch depth: how many segments you drive before reaching a \"\n            \"junction, and the junction you reach\\n\"\n            \"- a dead-end ratio by node count and by network length, so \"\n            \"'how much of this network is dead end' has a length answer as \"\n            \"well as a count answer\\n\\n\"\n            \"A dead end here is a *chain*, not a node. A cul-de-sac is the \"\n            \"whole street from its junction out to the turning head, and that \"\n            \"is the length a resident has to drive twice before reaching a \"\n            \"through route. Counting degree-1 nodes sees the tip and misses \"\n            \"the street.\\n\\n\"\n            \"Lengths are ground metres, not the layer's coordinate units: on a \"\n            \"state-plane layer in feet, or on EPSG:3857 away from the equator, \"\n            \"those two differ by a constant factor and every length row would \"\n            \"be wrong without saying so.\\n\\n\"\n            \"How to read the results\\n\"\n            \"- deadend_node_ratio: share of junctions/endpoints that are a \"\n            \"dead end. ~0.02-0.10 for a grid, 0.10-0.25 for modernist \"\n            \"superblocks, 0.30-0.60 for planned suburban 'loops and lollipops'.\\n\"\n        ",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "MIN_BRANCH",
+          "label": "Flag branches shorter than (map units; 0 = flag none)",
+          "type": "Number",
+          "constant": "MIN_BRANCH"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SEGMENTS",
+          "label": "Segments with dead-end attribution (lines)",
+          "type": "FeatureSink",
+          "constant": "SEGMENTS"
+        },
+        {
+          "name": "DEAD_ENDS",
+          "label": "Dead-end points (points)",
+          "type": "FeatureSink",
+          "constant": "DEAD_ENDS"
+        },
+        {
+          "name": "SUMMARY",
+          "label": "Dead-end summary (table)",
+          "type": "FeatureSink",
+          "constant": "SUMMARY"
+        }
+      ],
+      "algo_id": "deadends"
+    },
+    "buildingmetrics": {
+      "class_name": "BuildingFormMetricsAlgorithm",
+      "display_name": "Building Form Metrics",
+      "group": "Urban Morphology",
+      "group_order": 3,
+      "file": "alg_building_metrics.py",
+      "help_summary": "\"Computes the standard urban-morphology shape indicators for \"\n            \"every building footprint (the momepy-style toolkit, embedded",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (polygons)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Building metrics",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "buildingmetrics"
+    },
+    "tessellation": {
+      "class_name": "MorphologicalTessellationAlgorithm",
+      "display_name": "Morphological Tessellation",
+      "group": "Urban Morphology",
+      "group_order": 3,
+      "file": "alg_tessellation.py",
+      "help_summary": "\"Partitions urban space into cells around buildings - a parcel \"\n            \"proxy when cadastral plots are unavailable (Fleischmann et al. \"\n            \"2020, the momepy method, embedded with native QGIS Voronoi",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (polygons)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "STUDY_AREA",
+          "label": "Study area (polygon, optional)",
+          "type": "FeatureSource",
+          "constant": "STUDY_AREA"
+        },
+        {
+          "name": "SHRINK",
+          "label": "Footprint shrink (map units)",
+          "type": "Number",
+          "constant": "SHRINK"
+        },
+        {
+          "name": "DENSIFY",
+          "label": "Boundary densify spacing (map units)",
+          "type": "Number",
+          "constant": "DENSIFY"
+        },
+        {
+          "name": "LIMIT",
+          "label": "Hull buffer when no study area (map units)",
+          "type": "Number",
+          "constant": "LIMIT"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Tessellation cells",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "tessellation"
+    },
+    "spacematrix": {
+      "class_name": "SpacematrixDensityAlgorithm",
+      "display_name": "Spacematrix Density",
+      "group": "Urban Morphology",
+      "group_order": 3,
+      "file": "alg_spacematrix.py",
+      "help_summary": "\"Computes the Spacematrix density indicators (Berghauser Pont \"\n            \"and Haupt",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (polygons)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "LEVELS_FIELD",
+          "label": "Floor count field (empty = constant)",
+          "type": "Field",
+          "constant": "LEVELS_FIELD"
+        },
+        {
+          "name": "DEFAULT_LEVELS",
+          "label": "Default floor count",
+          "type": "Number",
+          "constant": "DEFAULT_LEVELS"
+        },
+        {
+          "name": "BLOCKS",
+          "label": "Blocks / analysis units (polygons)",
+          "type": "FeatureSource",
+          "constant": "BLOCKS"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Spacematrix blocks",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "spacematrix"
+    },
+    "streetmorphology": {
+      "class_name": "StreetNetworkMorphologyAlgorithm",
+      "display_name": "Street Network Morphology",
+      "group": "Urban Morphology",
+      "group_order": 3,
+      "file": "alg_street_morphology.py",
+      "help_summary": "\"Profiles the structure of a street network in one pass:\\n\"\n            \"- orientation entropy and orientation order (Boeing 2019",
+      "parameters": [
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "NODES",
+          "label": "Junction typology (points)",
+          "type": "FeatureSink",
+          "constant": "NODES"
+        },
+        {
+          "name": "SUMMARY",
+          "label": "Network summary (table)",
+          "type": "FeatureSink",
+          "constant": "SUMMARY"
+        }
+      ],
+      "algo_id": "streetmorphology"
+    },
+    "accessscore": {
+      "class_name": "MultiAmenityAccessAlgorithm",
+      "display_name": "Multi-Amenity Access Score (15-Minute City)",
+      "group": "Accessibility",
+      "group_order": 4,
+      "file": "alg_access_score.py",
+      "help_summary": "\"Scores every origin (building, address point, parcel...",
+      "parameters": [
+        {
+          "name": "ORIGINS",
+          "label": "Origins",
+          "type": "FeatureSource",
+          "constant": "ORIGINS"
+        },
+        {
+          "name": "NETWORK",
+          "label": "Street network (lines)",
+          "type": "FeatureSource",
+          "constant": "NETWORK"
+        },
+        {
+          "name": "AMENITIES",
+          "label": "Amenity layers (one per category)",
+          "type": "MultipleLayers",
+          "constant": "AMENITIES"
+        },
+        {
+          "name": "POP_FIELD",
+          "label": "Population field on origins (optional, for weighted summary)",
+          "type": "Field",
+          "constant": "POP_FIELD"
+        },
+        {
+          "name": "SPEED",
+          "label": "Walking speed (km/h)",
+          "type": "Number",
+          "constant": "SPEED"
+        },
+        {
+          "name": "THRESHOLD",
+          "label": "Time threshold (minutes)",
+          "type": "Number",
+          "constant": "THRESHOLD"
+        },
+        {
+          "name": "THRESHOLDS",
+          "label": "Additional cumulative thresholds in minutes",
+          "type": "String",
+          "constant": "THRESHOLDS"
+        },
+        {
+          "name": "DECAY",
+          "label": "Accessibility decay",
+          "type": "Enum",
+          "constant": "DECAY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Access scores",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "accessscore"
+    },
+    "frontalarea": {
+      "class_name": "FrontalAreaIndexAlgorithm",
+      "display_name": "Frontal Area Index",
+      "group": "Microclimate",
+      "group_order": 5,
+      "file": "alg_frontal_area.py",
+      "help_summary": "\"Computes the frontal area index (lambda_f",
+      "parameters": [
+        {
+          "name": "BUILDINGS",
+          "label": "Buildings (polygons)",
+          "type": "FeatureSource",
+          "constant": "BUILDINGS"
+        },
+        {
+          "name": "HEIGHT_FIELD",
+          "label": "Height field, metres (empty = default)",
+          "type": "Field",
+          "constant": "HEIGHT_FIELD"
+        },
+        {
+          "name": "DEFAULT_HEIGHT",
+          "label": "Default building height (m)",
+          "type": "Number",
+          "constant": "DEFAULT_HEIGHT"
+        },
+        {
+          "name": "WIND_DIR",
+          "label": "Wind direction (degrees from north, wind FROM)",
+          "type": "Number",
+          "constant": "WIND_DIR"
+        },
+        {
+          "name": "CELL_SIZE",
+          "label": "Grid cell size (map units)",
+          "type": "Number",
+          "constant": "CELL_SIZE"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT",
+          "label": "Roughness grid",
+          "type": "FeatureSink",
+          "constant": "OUTPUT"
+        }
+      ],
+      "algo_id": "frontalarea"
+    },
+    "performancereport": {
+      "class_name": "PlanPerformanceReportAlgorithm",
+      "display_name": "Plan Dashboard & Performance Report (HTML)",
+      "group": "Reporting and Dashboard",
+      "group_order": 7,
+      "file": "alg_performance_report.py",
+      "help_summary": "\"Builds a single-file HTML 'Plan Dashboard & Performance Report' from the \"\n            \"outputs of the other PlanX tools - score cards, charts and \"\n            \"compliance tables, ready to share with stakeholders. No \"\n            \"external services: charts are inline SVG drawn by the \"\n            \"embedded engine.\\n\\n\"\n            \"Feed it any combination of (all optional, at least one",
+      "parameters": [
+        {
+          "name": "TITLE",
+          "label": "Report title",
+          "type": "String",
+          "constant": "TITLE"
+        },
+        {
+          "name": "POPULATION",
+          "label": "Planned population (0 = omit)",
+          "type": "Number",
+          "constant": "POPULATION"
+        },
+        {
+          "name": "ACCESS",
+          "label": "Access scores (from Multi-Amenity Access Score)",
+          "type": "FeatureSource",
+          "constant": "ACCESS"
+        },
+        {
+          "name": "ACCESS_SCORE",
+          "label": "Score field",
+          "type": "Field",
+          "constant": "ACCESS_SCORE"
+        },
+        {
+          "name": "BALANCE",
+          "label": "Land-use balance table (from Land-Use Balance)",
+          "type": "FeatureSource",
+          "constant": "BALANCE"
+        },
+        {
+          "name": "FACILITIES",
+          "label": "Facility adequacy (from Facility Adequacy)",
+          "type": "FeatureSource",
+          "constant": "FACILITIES"
+        },
+        {
+          "name": "DEMAND",
+          "label": "Demand coverage (from Facility Adequacy)",
+          "type": "FeatureSource",
+          "constant": "DEMAND"
+        },
+        {
+          "name": "DEMAND_POP",
+          "label": "Demand population field (empty = 1 per point)",
+          "type": "Field",
+          "constant": "DEMAND_POP"
+        },
+        {
+          "name": "DENSITY",
+          "label": "Density grid (from Density Grid)",
+          "type": "FeatureSource",
+          "constant": "DENSITY"
+        },
+        {
+          "name": "DENSITY_FIELD",
+          "label": "Density field",
+          "type": "Field",
+          "constant": "DENSITY_FIELD"
+        },
+        {
+          "name": "OUTPUT",
+          "label": "Plan Performance Report",
+          "type": "FileDestination",
+          "constant": "OUTPUT"
+        }
+      ],
+      "outputs": [],
+      "algo_id": "performancereport"
+    },
+    "landallocation": {
+      "class_name": "LandUseAllocationAlgorithm",
+      "display_name": "Land-Use Allocation Optimizer",
+      "group": "Optimization",
+      "group_order": 8,
+      "file": "alg_land_allocation.py",
+      "help_summary": "\"Assigns a land use to each parcel to MAXIMISE an objective \"\n            \"while meeting a target area for each use - the spatial \"\n            \"allocation problem at the heart of plan-making, solved \"\n            \"natively, no external solver.\\n\\n\"\n            \"You provide, on the parcel layer, one suitability field per \"\n            \"land use (0-1 or 0-100, e.g. straight from Suitability Lab",
+      "parameters": [
+        {
+          "name": "PARCELS",
+          "label": "Parcels / cells",
+          "type": "FeatureSource",
+          "constant": "PARCELS"
+        },
+        {
+          "name": "SUIT_FIELDS",
+          "label": "Suitability fields (one per land use)",
+          "type": "Field",
+          "constant": "SUIT_FIELDS"
+        },
+        {
+          "name": "TARGETS",
+          "label": "Target area per use (name=area, ...)",
+          "type": "String",
+          "constant": "TARGETS"
+        },
+        {
+          "name": "AREA_FIELD",
+          "label": "Area field (optional; default = geometry area)",
+          "type": "Field",
+          "constant": "AREA_FIELD"
+        },
+        {
+          "name": "LOCK_FIELD",
+          "label": "Lock field (optional; pre-assigned use name)",
+          "type": "Field",
+          "constant": "LOCK_FIELD"
+        },
+        {
+          "name": "W_COMPACT",
+          "label": "W_COMPACT",
+          "type": "Number",
+          "constant": "W_COMPACT"
+        },
+        {
+          "name": "ADJACENCY",
+          "label": "Adjacency rules (useA|useB=value, ...; + attract, - repel)",
+          "type": "String",
+          "constant": "ADJACENCY"
+        },
+        {
+          "name": "CONTIGUITY",
+          "label": "Contiguity mode",
+          "type": "Enum",
+          "constant": "CONTIGUITY"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUT_PARCELS",
+          "label": "Allocated parcels",
+          "type": "FeatureSink",
+          "constant": "OUT_PARCELS"
+        },
+        {
+          "name": "OUT_SUMMARY",
+          "label": "Allocation summary",
+          "type": "FeatureSink",
+          "constant": "OUT_SUMMARY"
+        }
+      ],
+      "algo_id": "landallocation"
+    }
+  }
+}

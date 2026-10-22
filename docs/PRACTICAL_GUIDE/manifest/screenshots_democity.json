@@ -1,0 +1,19 @@
+{
+  "algo_id": "democity",
+  "display_name": "Generate Demo City",
+  "group": "Reporting and Dashboard",
+  "timestamp": "2026-10-20T22:15:48",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Generate Demo City - 4-panel view (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/democity/democity_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

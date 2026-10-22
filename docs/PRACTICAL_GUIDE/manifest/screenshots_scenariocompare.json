@@ -1,0 +1,20 @@
+{
+  "algo_id": "scenariocompare",
+  "display_name": "Scenario Compare (A/B)",
+  "group": "Reporting and Dashboard",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T11:41:05",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Scenario Compare (A/B) - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/scenariocompare/scenariocompare_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

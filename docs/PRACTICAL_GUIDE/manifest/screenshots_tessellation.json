@@ -1,0 +1,20 @@
+{
+  "algo_id": "tessellation",
+  "display_name": "Morphological Tessellation",
+  "group": "Urban Morphology",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T10:31:13",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Morphological Tessellation - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/tessellation/tessellation_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

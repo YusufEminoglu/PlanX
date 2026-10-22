@@ -1,0 +1,20 @@
+{
+  "algo_id": "inequalitycurves",
+  "display_name": "Inequality Curves (Lorenz & Atkinson)",
+  "group": "Equity",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T22:33:30",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Inequality Curves (Lorenz & Atkinson) - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/inequalitycurves/inequalitycurves_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

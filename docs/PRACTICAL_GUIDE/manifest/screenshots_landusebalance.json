@@ -1,0 +1,20 @@
+{
+  "algo_id": "landusebalance",
+  "display_name": "Land-Use Balance (Per-Capita Standards)",
+  "group": "Plan Standards and QA",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T11:20:47",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Land-Use Balance (Per-Capita Standards) - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/landusebalance/landusebalance_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

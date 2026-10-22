@@ -1,0 +1,20 @@
+{
+  "algo_id": "housingneeds",
+  "display_name": "Housing Needs Assessment",
+  "group": "Population and Housing",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T20:07:06",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Housing Needs Assessment - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/housingneeds/housingneeds_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

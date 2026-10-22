@@ -1,0 +1,20 @@
+{
+  "algo_id": "planaudit",
+  "display_name": "Batch Plan Auditor",
+  "group": "Reporting and Dashboard",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T11:49:14",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Batch Plan Auditor - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/planaudit/planaudit_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

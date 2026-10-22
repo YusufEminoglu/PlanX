@@ -1,0 +1,20 @@
+{
+  "algo_id": "buildingmetrics",
+  "display_name": "Building Form Metrics",
+  "group": "Urban Morphology",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T10:30:19",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Building Form Metrics - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/buildingmetrics/buildingmetrics_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

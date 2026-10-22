@@ -1,0 +1,20 @@
+{
+  "algo_id": "visualexposure",
+  "display_name": "Visual Exposure of Landmarks",
+  "group": "Visibility",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T20:07:05",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Visual Exposure of Landmarks - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/visualexposure/visualexposure_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

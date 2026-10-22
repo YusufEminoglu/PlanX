@@ -1,0 +1,20 @@
+{
+  "algo_id": "networkcentrality",
+  "display_name": "Network Centrality",
+  "group": "Centrality and Space Syntax",
+  "dataset": "Utrecht, Netherlands - open data (OSM / BAG / CBS / AHN / GTFS)",
+  "timestamp": "2026-10-21T10:27:21",
+  "screenshots": [
+    {
+      "step": 1,
+      "caption": "Network Centrality - 4-panel view on real Utrecht data (Input | Parameters | Raw Output | Styled Output)",
+      "path": "screenshots/networkcentrality/networkcentrality_4panel.png",
+      "panels": [
+        "Input Data",
+        "Parameters",
+        "Raw Output",
+        "Styled Output"
+      ]
+    }
+  ]
+}

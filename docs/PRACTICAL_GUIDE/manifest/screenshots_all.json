@@ -1,0 +1,656 @@
+{
+  "total": 76,
+  "ok": 75,
+  "failed": 0,
+  "dataset": "Utrecht, Netherlands (open data)",
+  "generated": "2026-10-22T02:56:26",
+  "results": {
+    "preparenetwork": {
+      "ok": true,
+      "display_name": "Prepare Network",
+      "group": "Network Analysis",
+      "png": "screenshots/preparenetwork/preparenetwork_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "odmatrix": {
+      "ok": true,
+      "display_name": "OD Cost Matrix",
+      "group": "Network Analysis",
+      "png": "screenshots/odmatrix/odmatrix_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "odroutes": {
+      "ok": true,
+      "display_name": "OD Routes (Shortest Paths)",
+      "group": "Network Analysis",
+      "png": "screenshots/odroutes/odroutes_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "serviceareas": {
+      "ok": true,
+      "display_name": "Service Areas (Isochrones)",
+      "group": "Network Analysis",
+      "png": "screenshots/serviceareas/serviceareas_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "nearestfacility": {
+      "ok": true,
+      "display_name": "Nearest Facility Allocation",
+      "group": "Network Analysis",
+      "png": "screenshots/nearestfacility/nearestfacility_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "linkcriticality": {
+      "ok": true,
+      "display_name": "Link Criticality (Network Robustness)",
+      "group": "Network Analysis",
+      "png": "screenshots/linkcriticality/linkcriticality_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "deadends": {
+      "ok": true,
+      "display_name": "Dead-End Analysis",
+      "group": "Network Analysis",
+      "png": "screenshots/deadends/deadends_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "networkcentrality": {
+      "ok": true,
+      "display_name": "Network Centrality",
+      "group": "Centrality and Space Syntax",
+      "png": "screenshots/networkcentrality/networkcentrality_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "spacesyntax": {
+      "ok": true,
+      "display_name": "Space Syntax (Segment Angular Analysis)",
+      "group": "Centrality and Space Syntax",
+      "png": "screenshots/spacesyntax/spacesyntax_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "buildingmetrics": {
+      "ok": true,
+      "display_name": "Building Form Metrics",
+      "group": "Urban Morphology",
+      "png": "screenshots/buildingmetrics/buildingmetrics_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "tessellation": {
+      "ok": true,
+      "display_name": "Morphological Tessellation",
+      "group": "Urban Morphology",
+      "png": "screenshots/tessellation/tessellation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "spacematrix": {
+      "ok": true,
+      "display_name": "Spacematrix Density",
+      "group": "Urban Morphology",
+      "png": "screenshots/spacematrix/spacematrix_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "streetmorphology": {
+      "ok": true,
+      "display_name": "Street Network Morphology",
+      "group": "Urban Morphology",
+      "png": "screenshots/streetmorphology/streetmorphology_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "accessscore": {
+      "ok": true,
+      "display_name": "Multi-Amenity Access Score (15-Minute City)",
+      "group": "Accessibility",
+      "png": "screenshots/accessscore/accessscore_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "shadowcasting": {
+      "ok": true,
+      "display_name": "Shadow Casting (DSM)",
+      "group": "Microclimate",
+      "png": "screenshots/shadowcasting/shadowcasting_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "skyviewfactor": {
+      "ok": true,
+      "display_name": "Sky View Factor (DSM)",
+      "group": "Microclimate",
+      "png": "screenshots/skyviewfactor/skyviewfactor_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "frontalarea": {
+      "ok": true,
+      "display_name": "Frontal Area Index",
+      "group": "Microclimate",
+      "png": "screenshots/frontalarea/frontalarea_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "sunhours": {
+      "ok": true,
+      "display_name": "Sun Hours (DSM)",
+      "group": "Microclimate",
+      "png": "screenshots/sunhours/sunhours_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "solarirradiation": {
+      "ok": true,
+      "display_name": "Solar Irradiation (DSM)",
+      "group": "Microclimate",
+      "png": "screenshots/solarirradiation/solarirradiation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "annualsolar": {
+      "ok": true,
+      "display_name": "Annual Solar Potential (DSM)",
+      "group": "Microclimate",
+      "png": "screenshots/annualsolar/annualsolar_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "heatriskgrid": {
+      "ok": true,
+      "display_name": "Heat Island Risk Grid",
+      "group": "Microclimate",
+      "png": "screenshots/heatriskgrid/heatriskgrid_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "noisescreen": {
+      "ok": true,
+      "display_name": "Road Noise Screening",
+      "group": "Microclimate",
+      "png": "screenshots/noisescreen/noisescreen_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "roademissions": {
+      "ok": true,
+      "display_name": "Road Emissions",
+      "group": "Microclimate",
+      "png": "screenshots/roademissions/roademissions_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "airscreen": {
+      "ok": true,
+      "display_name": "Air Quality Screening",
+      "group": "Microclimate",
+      "png": "screenshots/airscreen/airscreen_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "landusebalance": {
+      "ok": true,
+      "display_name": "Land-Use Balance (Per-Capita Standards)",
+      "group": "Plan Standards and QA",
+      "png": "screenshots/landusebalance/landusebalance_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "facilityadequacy": {
+      "ok": true,
+      "display_name": "Facility Adequacy (Capacity + Distance)",
+      "group": "Plan Standards and QA",
+      "png": "screenshots/facilityadequacy/facilityadequacy_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "densitygrid": {
+      "ok": true,
+      "display_name": "Density Grid",
+      "group": "Plan Standards and QA",
+      "png": "screenshots/densitygrid/densitygrid_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "performancereport": {
+      "ok": true,
+      "display_name": "Plan Dashboard & Performance Report (HTML)",
+      "group": "Reporting and Dashboard",
+      "png": "screenshots/performancereport/performancereport_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "scenariosnapshot": {
+      "ok": true,
+      "display_name": "Scenario Snapshot",
+      "group": "Reporting and Dashboard",
+      "png": "screenshots/scenariosnapshot/scenariosnapshot_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "scenariocompare": {
+      "ok": true,
+      "display_name": "Scenario Compare (A/B)",
+      "group": "Reporting and Dashboard",
+      "png": "screenshots/scenariocompare/scenariocompare_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "scenariorank": {
+      "ok": true,
+      "display_name": "Scenario Ranking",
+      "group": "Reporting and Dashboard",
+      "png": "screenshots/scenariorank/scenariorank_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "planaudit": {
+      "ok": true,
+      "display_name": "Batch Plan Auditor",
+      "group": "Reporting and Dashboard",
+      "png": "screenshots/planaudit/planaudit_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "scenariopipeline": {
+      "ok": true,
+      "display_name": "Scenario Pipeline (LUTI-lite)",
+      "group": "Reporting and Dashboard",
+      "png": "screenshots/scenariopipeline/scenariopipeline_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "facilitylocation": {
+      "ok": true,
+      "display_name": "Facility Location Optimizer (Coverage / P-Median)",
+      "group": "Optimization",
+      "png": "screenshots/facilitylocation/facilitylocation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "capacitatedallocation": {
+      "ok": true,
+      "display_name": "Capacitated Allocation (Nearest with Capacity)",
+      "group": "Optimization",
+      "png": "screenshots/capacitatedallocation/capacitatedallocation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "landallocation": {
+      "ok": true,
+      "display_name": "Land-Use Allocation Optimizer",
+      "group": "Optimization",
+      "png": "screenshots/landallocation/landallocation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "paretoallocation": {
+      "ok": true,
+      "display_name": "Land-Use Pareto Front",
+      "group": "Optimization",
+      "png": "screenshots/paretoallocation/paretoallocation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "capacitatedsiting": {
+      "ok": true,
+      "display_name": "Capacitated Facility Siting",
+      "group": "Optimization",
+      "png": "screenshots/capacitatedsiting/capacitatedsiting_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "accessequity": {
+      "ok": true,
+      "display_name": "Accessibility Equity (Gini / Theil)",
+      "group": "Equity",
+      "png": "screenshots/accessequity/accessequity_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "inequalitycurves": {
+      "ok": true,
+      "display_name": "Inequality Curves (Lorenz & Atkinson)",
+      "group": "Equity",
+      "png": "screenshots/inequalitycurves/inequalitycurves_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "equitycrosstab": {
+      "ok": true,
+      "display_name": "Demographic Equity Cross-Tabs",
+      "group": "Equity",
+      "png": "screenshots/equitycrosstab/equitycrosstab_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "walkability": {
+      "ok": true,
+      "display_name": "Walkability Audit",
+      "group": "Walkability",
+      "png": "screenshots/walkability/walkability_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "walkingslope": {
+      "ok": true,
+      "display_name": "Walking Slope Comfort",
+      "group": "Walkability",
+      "png": "screenshots/walkingslope/walkingslope_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "streetcomfort": {
+      "ok": true,
+      "display_name": "Street Environment Comfort",
+      "group": "Walkability",
+      "png": "screenshots/streetcomfort/streetcomfort_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "routequality": {
+      "ok": true,
+      "display_name": "Pedestrian Route Quality",
+      "group": "Walkability",
+      "png": "screenshots/routequality/routequality_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "gtfsimport": {
+      "ok": true,
+      "display_name": "GTFS Import and Service Stats",
+      "group": "Transit",
+      "png": "screenshots/gtfsimport/gtfsimport_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "transitfrequency": {
+      "ok": true,
+      "display_name": "Transit Frequency Map",
+      "group": "Transit",
+      "png": "screenshots/transitfrequency/transitfrequency_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "transitaccess": {
+      "ok": true,
+      "display_name": "Transit Travel-Time Access",
+      "group": "Transit",
+      "png": "screenshots/transitaccess/transitaccess_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "viewshed": {
+      "ok": true,
+      "display_name": "Viewshed (DSM)",
+      "group": "Visibility",
+      "png": "screenshots/viewshed/viewshed_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "isovistfield": {
+      "ok": true,
+      "display_name": "Isovist Field",
+      "group": "Visibility",
+      "png": "screenshots/isovistfield/isovistfield_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "visualexposure": {
+      "ok": true,
+      "display_name": "Visual Exposure of Landmarks",
+      "group": "Visibility",
+      "png": "screenshots/visualexposure/visualexposure_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "populationprojection": {
+      "ok": true,
+      "display_name": "Population Projection (Cohort-Component)",
+      "group": "Population and Housing",
+      "png": "screenshots/populationprojection/populationprojection_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "housingneeds": {
+      "ok": true,
+      "display_name": "Housing Needs Assessment",
+      "group": "Population and Housing",
+      "png": "screenshots/housingneeds/housingneeds_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "residentialcapacity": {
+      "ok": true,
+      "display_name": "Residential Capacity",
+      "group": "Population and Housing",
+      "png": "screenshots/residentialcapacity/residentialcapacity_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "popallocate": {
+      "ok": true,
+      "display_name": "Allocate Population Growth",
+      "group": "Population and Housing",
+      "png": "screenshots/popallocate/popallocate_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "greenaccess": {
+      "ok": true,
+      "display_name": "Green Space Access",
+      "group": "Green Infrastructure",
+      "png": "screenshots/greenaccess/greenaccess_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "greenconnectivity": {
+      "ok": true,
+      "display_name": "Urban Green Connectivity",
+      "group": "Green Infrastructure",
+      "png": "screenshots/greenconnectivity/greenconnectivity_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "landcoverchange": {
+      "ok": true,
+      "display_name": "Land-Cover Change Analysis",
+      "group": "Urban Growth",
+      "png": "screenshots/landcoverchange/landcoverchange_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "growthsim": {
+      "ok": true,
+      "display_name": "Urban Growth Simulation (CA)",
+      "group": "Urban Growth",
+      "png": "screenshots/growthsim/growthsim_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "sprawlmetrics": {
+      "ok": true,
+      "display_name": "Urban Sprawl Metrics",
+      "group": "Urban Growth",
+      "png": "screenshots/sprawlmetrics/sprawlmetrics_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "cyclingstress": {
+      "ok": true,
+      "display_name": "Cycling Stress (LTS)",
+      "group": "Cycling",
+      "png": "screenshots/cyclingstress/cyclingstress_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "lowstressislands": {
+      "ok": true,
+      "display_name": "Low-Stress Connectivity",
+      "group": "Cycling",
+      "png": "screenshots/lowstressislands/lowstressislands_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "flowaccumulation": {
+      "ok": true,
+      "display_name": "Flow Accumulation",
+      "group": "Hazard Screening",
+      "png": "screenshots/flowaccumulation/flowaccumulation_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "handindex": {
+      "ok": true,
+      "display_name": "HAND and Inundation",
+      "group": "Hazard Screening",
+      "png": "screenshots/handindex/handindex_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "floodexposure": {
+      "ok": true,
+      "display_name": "Flood Exposure",
+      "group": "Hazard Screening",
+      "png": "screenshots/floodexposure/floodexposure_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "tripgeneration": {
+      "ok": true,
+      "display_name": "Trip Generation",
+      "group": "Travel Demand",
+      "png": "screenshots/tripgeneration/tripgeneration_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "gravitymodel": {
+      "ok": true,
+      "display_name": "Gravity Distribution",
+      "group": "Travel Demand",
+      "png": "screenshots/gravitymodel/gravitymodel_4panel.png",
+      "params": {
+        "ZONES": "C:\\Users\\YE\\Downloads\\planx_nl_data\\out\\zones.gpkg",
+        "ZONE_ID": "cbs_code",
+        "PRODUCTION_FIELD": "production",
+        "ATTRACTION_FIELD": "attraction",
+        "NETWORK": "C:\\Users\\YE\\Downloads\\planx_nl_data\\out\\streets.gpkg",
+        "COST_FIELD": "osm_id",
+        "BETA": 0.1,
+        "KIND": 0,
+        "MAX_ITER": 100,
+        "TOL": 0.001
+      },
+      "seconds": 0.7,
+      "data": "Utrecht NL (open data)"
+    },
+    "modesplit": {
+      "ok": true,
+      "display_name": "Mode Split",
+      "group": "Travel Demand",
+      "png": "screenshots/modesplit/modesplit_4panel.png",
+      "params": {
+        "FLOWS": "C:\\Users\\YE\\PyCharmMiscProject\\qgis_plugins\\planx\\docs\\PRACTICAL_GUIDE\\work_utrecht\\gravitymodel__OUTPUT.gpkg",
+        "FLOW_FIELD": "flow",
+        "MODE_TIMES": "cost,cost",
+        "MODE_BETAS": "-0.05,-0.08",
+        "MODE_ASCS": "0,-0.5",
+        "MODE_NAMES": "car,transit"
+      },
+      "seconds": 0.3,
+      "data": "Utrecht NL (open data)"
+    },
+    "parkingdemand": {
+      "ok": true,
+      "display_name": "Parking Demand Estimator",
+      "group": "Travel Demand",
+      "png": "screenshots/parkingdemand/parkingdemand_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "parkingsupplybalance": {
+      "ok": true,
+      "display_name": "Parking Supply-Demand Balance",
+      "group": "Travel Demand",
+      "png": "screenshots/parkingsupplybalance/parkingsupplybalance_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "groundmotion": {
+      "ok": true,
+      "display_name": "Ground Motion Scenario",
+      "group": "Seismic Risk",
+      "png": "screenshots/groundmotion/groundmotion_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "liquefaction": {
+      "ok": true,
+      "display_name": "Liquefaction Screening",
+      "group": "Seismic Risk",
+      "png": "screenshots/liquefaction/liquefaction_4panel.png",
+      "params": {
+        "MODE": 0,
+        "DEM": "C:\\Users\\YE\\Downloads\\planx_nl_data\\out\\dem5.tif",
+        "TARGET": "C:\\Users\\YE\\Downloads\\planx_nl_data\\out\\demand_terrain.gpkg",
+        "CATEGORY_FIELD": "id",
+        "PGA_G": 0.35,
+        "MAGNITUDE": 7.0,
+        "TECTONIC": 1,
+        "VS30_MS": 300.0,
+        "VS30_FIELD": "id",
+        "GROUNDWATER_M": 5.0
+      },
+      "seconds": 5.8,
+      "data": "Utrecht NL (open data)"
+    },
+    "seismicdebris": {
+      "ok": true,
+      "display_name": "Seismic Collapse and Debris Spread (Monte Carlo)",
+      "group": "Seismic Risk",
+      "png": "screenshots/seismicdebris/seismicdebris_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "seismicimpact": {
+      "ok": true,
+      "display_name": "Seismic Human Impact (Casualties and Shelter)",
+      "group": "Seismic Risk",
+      "png": "screenshots/seismicimpact/seismicimpact_4panel.png",
+      "data": "Utrecht NL (open data)",
+      "resumed": true
+    },
+    "coseismiclandslide": {
+      "ok": true,
+      "display_name": "Coseismic Landslide Screening",
+      "group": "Seismic Risk",
+      "png": "screenshots/coseismiclandslide/coseismiclandslide_4panel.png",
+      "params": {
+        "AC_SOURCE": 1,
+        "TARGET": "C:\\Users\\YE\\Downloads\\planx_nl_data\\out\\demand_ac.gpkg",
+        "TERRAIN": "C:\\Users\\YE\\Downloads\\planx_nl_data\\out\\dem.tif",
+        "AC_FIELD": "ac_g",
+        "GROUP_FIELD": "id",
+        "CATEGORY_FIELD": "id",
+        "MOISTURE": 0,
+        "PGA_G": 0.35,
+        "MAGNITUDE": 7.0
+      },
+      "seconds": 20.8,
+      "data": "Utrecht NL (open data)"
+    },
+    "democity": {
+      "ok": false,
+      "reason": "not applicable to real data"
+    }
+  }
+}
