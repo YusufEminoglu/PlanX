@@ -86,9 +86,10 @@ if __name__ == "__main__":
     print("\n=== rebuild the derived layers on the RD grid ===")
     src = open(OUT.parent / "final_build.py", encoding="utf-8").read()
     src = src.replace('if __name__ == "__main__":\n    thematic()\n    heights_from_ahn()\n    demand_points()', '')
-    exec(src)
-    heights_from_ahn()
-    demand_points()
+    ns = globals()
+    exec(src, ns)
+    ns["heights_from_ahn"]()
+    ns["demand_points"]()
 
     print("\n=== downsample the rasters to 2 m (PlanX raster work is heavy) ===")
     for name in ("dem", "dsm"):

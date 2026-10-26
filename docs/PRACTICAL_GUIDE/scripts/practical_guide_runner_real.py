@@ -257,7 +257,7 @@ def _style_raster(layer):
 
 def _render(layers, extent, size):
     s = QgsMapSettings()
-    s.setLayers([l for l in layers if l is not None and l.isValid()])
+    s.setLayers([lay for lay in layers if lay is not None and lay.isValid()])
     s.setExtent(extent)
     s.setOutputSize(size)
     s.setBackgroundColor(QColor("#ffffff"))
@@ -290,10 +290,10 @@ def capture_4panel(algo_id, display, in_layers, out_layers, param_text, out_png)
     p = QPainter(img)
     p.setRenderHint(QPainter.Antialiasing)
 
-    all_l = [l for l in (in_layers + out_layers) if l is not None and l.isValid()]
+    all_l = [lay for lay in (in_layers + out_layers) if lay is not None and lay.isValid()]
     extent = None
-    for l in all_l:
-        e = l.extent()
+    for lay in all_l:
+        e = lay.extent()
         if e.isEmpty():
             continue
         extent = QgsRectangle(e) if extent is None else extent
@@ -319,18 +319,18 @@ def capture_4panel(algo_id, display, in_layers, out_layers, param_text, out_png)
     draw(PW, HDR, out_layers, "3 - OUTPUT (RAW)", "un-styled result")
 
     styled = []
-    for l in out_layers:
-        if l is None or not l.isValid():
+    for lay in out_layers:
+        if lay is None or not lay.isValid():
             continue
-        if isinstance(l, QgsVectorLayer):
+        if isinstance(lay, QgsVectorLayer):
             try:
-                l.renderer().setOpacity(0.9)
+                lay.renderer().setOpacity(0.9)
             except Exception:
                 pass
-            _style_vector(l)
+            _style_vector(lay)
         else:
-            _style_raster(l)
-        styled.append(l)
+            _style_raster(lay)
+        styled.append(lay)
     draw(0, HDR + PH, styled, "4 - OUTPUT (STYLED)", "graduated / categorized")
     draw(PW, HDR + PH, out_layers, "2 - PARAMETERS", "values used in this run")
 
@@ -956,8 +956,8 @@ def main():
             results[aid] = {'ok': False, 'reason': 'not applicable to real data'}
             continue
         P = resolve(aid, algo, P)
-        O = dest_paths(aid, algo, skip={k for k, v in P.items() if v is None})
-        res = run(aid, P, O)
+        dests = dest_paths(aid, algo, skip={k for k, v in P.items() if v is None})
+        res = run(aid, P, dests)
         if res is None:
             print(f"[{i:2d}/{len(order)}] {aid}: RUN FAILED", flush=True)
             results[aid] = {'ok': False, 'reason': 'run failed'}
