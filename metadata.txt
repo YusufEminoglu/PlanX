@@ -18,7 +18,7 @@ deprecated=False
 qgisMaximumVersion=4.99
 hasProcessingProvider=yes
 plugin_dependencies=
-license=GPL-3
+license=GPL-3.0-or-later
 changelog=
     4.22.1 - English only: the landslide citation now gives its journal under its English title (Pamukkale University Journal of Engineering Sciences) instead of the Turkish one, and the reference manual no longer quotes the Turkish name of the Spatial Plans Regulation. THIRD_PARTY_NOTICES.md credited the article to M. E. Yigit; the author is Adil Yigit, as the record under its DOI states. The practical guide's link to the reference manual no longer returns a 404.
     4.22.0 - Areal Interpolation moves counts and rates between incompatible zone systems - census tracts to plan zones or a hexagon grid - splitting counts by area with the total preserved, averaging rates rather than splitting them, optionally dasymetric over residential land, with the mass balance printed. Jobs-Housing Balance gives every zone its local and commute-shed ratio of jobs to workers on the street network, a balance index, and the area-wide dissimilarity between jobs and workers.
