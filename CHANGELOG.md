@@ -1,5 +1,34 @@
 # Changelog
 
+## [4.21.0] - 2026-10-26
+
+### Added
+- **Landscape Metrics (`planx:landscapemetrics`)** - FRAGSTATS class- and
+  landscape-level pattern metrics on a categorical raster: CA, PLAND, NP, PD,
+  LPI, TE, ED, AREA_MN, SHAPE_MN, TCA and CPLAND at an edge depth, the
+  aggregation index of He, DeZonia & Mladenoff (2000), contagion (Li &
+  Reynolds 1993), SHDI, SHEI, SIDI and patch richness; optional patch-id
+  raster. 8- or 4-neighbour patches, edges only between two valid classes,
+  areas in ground metres, non-integer rasters refused. SciPy labelling with an
+  identical pure-Python fallback.
+- **Least-Cost Corridor (`planx:leastcostcorridor`)** - accumulated cost from a
+  source set over a resistance raster (Dijkstra on the cell grid, trapezoid
+  step costs, 8 or 4 directions, nodata as barrier), the least-cost path to the
+  cheapest target with its ground length and effective resistance, and the
+  normalised least-cost corridor (Linkage Mapper) with its area at a slack.
+  Overlapping source and target sets are reported rather than silently joined.
+
+### Verification
+- Engine suite: 835 checks (19 new: hand-computed class areas, edges, AI,
+  CONTAG, shape and core area; SciPy and pure labelling identical; rook,
+  diagonal and trapezoid step costs; barriers; SciPy and pure cost distance
+  identical; corridor minimum equal to the path cost).
+- Runtime matrix: both tools re-derived from the fixtures - class areas and
+  shares re-counted from the land-cover raster at the fixture latitude's
+  ground cell area, SHDI from its own shares, and the corridor's cost ratio
+  inside the octile bound on a uniform resistance; both checks were falsified
+  by removing the ground conversion (CA 1.76x, cost ratio 1.328).
+
 ## [4.20.0] - 2026-10-26
 
 ### Added

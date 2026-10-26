@@ -313,6 +313,8 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <ul class="toc-algs">
 <li><a href="#greenaccess" data-name="greenaccess" data-display="green space access"><img src="icons/tool_greenaccess.png" alt="" class="alg-icon">Green Space Access</a></li>
 <li><a href="#greenconnectivity" data-name="greenconnectivity" data-display="urban green connectivity"><img src="icons/tool_greenconnectivity.png" alt="" class="alg-icon">Urban Green Connectivity</a></li>
+<li><a href="#landscapemetrics" data-name="landscapemetrics" data-display="landscape metrics (fragstats)"><img src="icons/tool_landscapemetrics.png" alt="" class="alg-icon">Landscape Metrics (FRAGSTATS)</a></li>
+<li><a href="#leastcostcorridor" data-name="leastcostcorridor" data-display="least-cost corridor"><img src="icons/tool_leastcostcorridor.png" alt="" class="alg-icon">Least-Cost Corridor</a></li>
 </ul></li>
 <li class="toc-group">
 <button class="toc-group-btn" aria-expanded="true" style="border-left:4px solid #f9a825; background: linear-gradient(90deg, #f9a82518 0%, transparent 100%)">
@@ -381,7 +383,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.20.0 &middot; 80 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.21.0 &middot; 82 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -406,14 +408,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.20.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.21.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 80 algorithms is documented to an identical eight-section
+<p>Every one of the 82 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -456,7 +458,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 80 algorithms span the
+platform delivered as a QGIS Processing provider. Its 82 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -4744,7 +4746,7 @@ capacity and competition enter the answer.</p>
 <li><strong>Nearest amenity of each category:</strong> the tool finds the minimum travel time to any amenity in a category. It does not allocate demand to capacity — for that, use <strong>Facility Adequacy</strong>.</li>
 <li><strong>Snapping tolerance:</strong> origins and amenities are snapped to the nearest network node. If an origin is 200 m from the nearest network edge, its travel times will be overestimated by that approach distance.</li>
 <li><strong>Edge cost = length:</strong> all edges are assumed walkable at uniform speed. The tool does not model pedestrian crossing delays, gradient, footpath quality, or safety.</li>
-<li><strong>Ground metres:</strong> since v4.20.0 walking minutes are the edge's <em>ground</em> length over the speed, converted from the layer's coordinate units through its CRS and ellipsoid. Before, the raw coordinate length was used, which on EPSG:3857 at 41°N made every walk 1.33&times; too long and every threshold correspondingly too strict.</li>
+<li><strong>Ground metres:</strong> since release 4.20 walking minutes are the edge's <em>ground</em> length over the speed, converted from the layer's coordinate units through its CRS and ellipsoid. Before, the raw coordinate length was used, which on EPSG:3857 at 41°N made every walk 1.33&times; too long and every threshold correspondingly too strict.</li>
 <li><strong>2x threshold reporting limit:</strong> times beyond double the threshold are reported as -1 (unreachable) to bound the Dijkstra search radius.</li>
 </ul>
 
@@ -9622,7 +9624,7 @@ fast enough (~seconds) and avoids the complexity of route-pattern indexing.</p>
 <p><strong>Access walk.</strong> For origin nodes $\mathcal{O}$, walking speed
 $v$ (m/s), and street-network edge walking times $w_{\text{sec}}(e) = \ell_e / v$,
 where $\ell_e$ is the edge's <em>ground</em> length in metres (converted from
-the layer's coordinate units through its CRS and ellipsoid since v4.20.0; the
+the layer's coordinate units through its CRS and ellipsoid since release 4.20; the
 snapping offsets and the stop-to-stop transfer distances are converted the same
 way):</p>
 $$t_{\text{access}}(stop_i) = \min_{o \in \mathcal{O}} \left[ d_{\text{walk}}(o, node(stop_i)) + \frac{\|stop_i - node(stop_i)\|_2}{v} \right] \tag{5}$$
@@ -11560,8 +11562,13 @@ in downstream metrics than a large change allocated identically.</p>
 <p>The Green Infrastructure group evaluates urban green space from two
 complementary perspectives: <strong>access</strong> (can people reach green
 spaces of adequate size?) and <strong>connectivity</strong> (do green patches
-form a functional ecological network?). The two tools are designed to be
-used together: Green Space Access answers the planning-standard question
+form a functional ecological network?), and adds the landscape-ecology
+toolkit behind the second: <strong>Landscape Metrics</strong> measures the
+pattern of a land-cover raster in FRAGSTATS's vocabulary — area, patches, edge,
+shape, core area, aggregation, diversity — and <strong>Least-Cost
+Corridor</strong> finds the cheapest route and the band of near-optimal routes
+across a resistance surface between two habitat sets. The access and
+connectivity tools are designed to be used together: Green Space Access answers the planning-standard question
 ("does every resident have a park within X metres?"), while Urban Green
 Connectivity answers the ecological question ("which patches are critical to
 keeping the green network whole?"). A site that scores well on access but
@@ -12005,6 +12012,339 @@ constraint (protect top-dPC patches from development allocation).</li>
 <p class="ref">Benedict, M.A. &amp; McMahon, E.T. (2006). <em>Green Infrastructure: Linking Landscapes and Communities</em>. Island Press. </p>
 
 <p class="ref">Kong, F., Yin, H., Nakagoshi, N. &amp; Zong, Y. (2010). "Urban green space network development for biodiversity conservation: Identification based on graph theory and gravity modeling." <em>Landscape and Urban Planning</em>, 95(1-2), 16-27. DOI: <a href="https://doi.org/10.1016/j.landurbplan.2009.11.001">10.1016/j.landurbplan.2009.11.001</a> <span class="check">verified</span></p>
+
+<div class="page-break"></div>
+<h2 id="landscapemetrics">Landscape Metrics (FRAGSTATS)</h2>
+<p><strong>Processing ID:</strong> <code>planx:landscapemetrics</code>
+&middot; <strong>Engine:</strong> <code>engine/landscape.py</code>
+&middot; <strong>Group:</strong> Green Infrastructure (14)</p>
+
+<h3>Overview</h3>
+<p>Describes the <strong>pattern</strong> of a categorical raster — land
+cover, habitat, green against grey — in the vocabulary of FRAGSTATS, so the
+numbers can be set beside the landscape-ecology literature. For every class it
+reports how much there is (class area, share of the landscape), how it is
+broken up (number of patches, patch density, largest patch, mean patch area),
+how much of it is edge (total edge, edge density, core area at a chosen edge
+depth), how compact its patches are (mean shape index) and how clumped it is
+(aggregation index). For the landscape as a whole it adds patch richness,
+Shannon and Simpson diversity and contagion. Areas and lengths are ground
+metres, so the result does not depend on the raster's projection.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>Landscape ecology rests on the observation that pattern drives process —
+dispersal, edge effects, local extinction — and that pattern has to be
+measured to be compared. McGarigal and Marks
+(1995) gathered the measures into FRAGSTATS, whose definitions became the
+discipline's shared vocabulary. Li and Reynolds (1993) defined the contagion
+index used here; He, DeZonia and Mladenoff (2000) the aggregation index, which
+— unlike contagion — is computed per class and corrected for the class's
+area, so a small class is not penalised for being small. Shannon's (1948)
+entropy gives the diversity measures. Wu (2004) showed systematically how
+every one of these metrics moves with grain and extent, which is why the tool
+reports the cell size it used and why comparisons are only meaningful at one
+resolution.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>A patch is a connected set of same-class cells</strong> under the
+8-neighbour rule (FRAGSTATS's default) or the 4-neighbour rule.</li>
+<li><strong>Edge is only between two valid cells of different
+classes.</strong> The landscape boundary and edges against nodata are not
+counted ("no boundary" in FRAGSTATS's terms); the shape index, by contrast,
+counts every side of a patch, as its definition requires.</li>
+<li><strong>Core area</strong> is what remains of a patch after removing every
+cell within the edge depth of a cell outside it, by 8-neighbour erosion, the
+depth rounded up to whole cells.</li>
+<li><strong>Nodata cells are outside the landscape</strong> and every share is
+of the valid cells only.</li>
+<li><strong>The raster must be categorical</strong>: integer values, one per
+class. A continuous raster is refused rather than binned.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> to compare two land-cover years, or a baseline
+with an Urban Growth scenario, on the same grid: the change in LPI, ED,
+CPLAND and AI for the green classes is the fragmentation story in four
+numbers.</li>
+<li><strong>Use Green Connectivity instead</strong> when the question is how
+patches link to each other across gaps; this tool measures the patches
+themselves.</li>
+<li><strong>Do not compare</strong> metrics computed at different cell sizes or
+extents, and do not read a single metric alone: many are correlated, and a
+class can lose area while gaining aggregation.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>Let $a$ be the ground area of one cell, $N$ the number of valid cells and
+$A = N a$ the landscape area. For class $i$ with $n_i$ cells in patches
+$j = 1 \ldots NP_i$ of $a_{ij}$ cells and perimeter $p_{ij}$ cell edges:</p>
+<div class="eq">
+$$CA_i = n_i a, \qquad PLAND_i = 100 \frac{n_i}{N}, \qquad PD_i = 100 \frac{NP_i}{A_{ha}}, \qquad LPI_i = 100 \frac{\max_j a_{ij}}{N} \tag{1}$$
+</div>
+<div class="eq">
+$$ED_i = \frac{e_i\, \sqrt{a}}{A_{ha}}, \qquad SHAPE_{ij} = \frac{0.25\, p_{ij}}{\sqrt{a_{ij}}} \tag{2}$$
+</div>
+<p>where $e_i$ counts cell edges between class $i$ and another valid class.
+With $g_{ii}$ the like adjacencies of class $i$ counted once, and
+$\max g_{ii}$ the most that $n_i$ cells can have (He et al. 2000) — with
+$m = n_i - \lfloor\sqrt{n_i}\rfloor^2$ and $n = \lfloor\sqrt{n_i}\rfloor$ it
+is $2n(n-1)$ when $m = 0$, $2n(n-1) + 2m - 1$ when $m \le n$, and
+$2n(n-1) + 2m - 2$ otherwise:</p>
+<div class="eq">
+$$AI_i = 100 \frac{g_{ii}}{\max g_{ii}}, \qquad AI = \sum_i AI_i\, P_i \tag{3}$$
+</div>
+<p>With $P_i$ the class share and $g_{ik}$ the adjacencies between classes $i$
+and $k$ counted from both cells, over $m$ classes:</p>
+<div class="eq">
+$$CONTAG = 100 \left[ 1 + \frac{\sum_i \sum_k P_i \frac{g_{ik}}{\sum_k g_{ik}} \ln\!\left( P_i \frac{g_{ik}}{\sum_k g_{ik}} \right)}{2 \ln m} \right] \tag{4}$$
+</div>
+<div class="eq">
+$$SHDI = -\sum_i P_i \ln P_i, \qquad SHEI = \frac{SHDI}{\ln m}, \qquad SIDI = 1 - \sum_i P_i^2 \tag{5}$$
+</div>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Categorical raster</td><td>Raster</td><td>Yes</td><td>Projected CRS; integer class values; nodata outside the study area. At most 255 classes.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>LANDCOVER</code></td><td>Raster</td><td>—</td><td>Categorical raster.</td></tr>
+<tr><td><code>RULE</code></td><td>Enum</td><td>8-neighbour</td><td>Patch neighbour rule.</td></tr>
+<tr><td><code>EDGE_DEPTH</code></td><td>Double</td><td>30 m</td><td>Edge depth for core area, rounded up to whole cells; 0 makes every cell core.</td></tr>
+<tr><td><code>OUT_CLASS</code></td><td>Table</td><td>—</td><td>One row per class.</td></tr>
+<tr><td><code>OUT_LANDSCAPE</code></td><td>Table</td><td>—</td><td>Metric/value/unit rows.</td></tr>
+<tr><td><code>OUT_PATCHES</code></td><td>Raster</td><td>optional</td><td>Patch id per cell (−1 outside), numbered in row-major order.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>class</code></td><td>Integer</td><td>Class value</td></tr>
+<tr><td><code>CA_ha</code>, <code>PLAND</code></td><td>Double</td><td>Class area (ha) and percentage of landscape</td></tr>
+<tr><td><code>NP</code>, <code>PD</code></td><td>Integer, Double</td><td>Number of patches; patches per 100 ha</td></tr>
+<tr><td><code>LPI</code></td><td>Double</td><td>Largest patch, percent of landscape</td></tr>
+<tr><td><code>TE_m</code>, <code>ED</code></td><td>Double</td><td>Total edge (m) and edge density (m/ha)</td></tr>
+<tr><td><code>AREA_MN</code>, <code>SHAPE_MN</code></td><td>Double</td><td>Mean patch area (ha) and mean shape index</td></tr>
+<tr><td><code>TCA_ha</code>, <code>CPLAND</code></td><td>Double</td><td>Total core area (ha) and core area percentage of landscape</td></tr>
+<tr><td><code>AI</code></td><td>Double</td><td>Aggregation index, percent</td></tr>
+</table>
+<p>The landscape table carries <code>TA</code>, <code>NP</code>,
+<code>PD</code>, <code>LPI</code>, <code>TE</code>, <code>ED</code>,
+<code>PR</code>, <code>SHDI</code>, <code>SHEI</code>, <code>SIDI</code>,
+<code>CONTAG</code>, <code>AI</code> and <code>TCA</code>, each with its
+unit; SHEI and CONTAG are undefined for a one-class landscape.</p>
+
+<h3>Symbolic Representation</h3>
+<p>The tables are the result; chart PLAND, LPI and CPLAND per class side by
+side for two dates. The optional patch raster styled with random colours shows
+what the tool counted as one patch — the quickest check that the neighbour
+rule is the one intended.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong>PLAND says how much; NP, PD, LPI and AREA_MN say how it is broken
+up.</strong> A green class whose PLAND holds while LPI falls is
+fragmenting.</li>
+<li><strong>CPLAND against PLAND is the edge effect</strong>: a habitat class
+that is 30 percent of the landscape but 5 percent core is mostly edge at the
+chosen depth.</li>
+<li><strong>AI near 100</strong> means the class is as clumped as its area
+allows; <strong>CONTAG</strong> is the landscape-wide counterpart — high for a
+few large uniform blocks, low for a fine-grained mosaic.</li>
+<li><strong>SHAPE_MN of 1</strong> is a square patch; values above 2 are
+elongated or convoluted patches, which carry more edge per unit area.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">He, H.S., DeZonia, B.E. &amp; Mladenoff, D.J. (2000). "An
+aggregation index (AI) to quantify spatial patterns of landscapes."
+<em>Landscape Ecology</em>, 15(7), 591–601.
+DOI: <a href="https://doi.org/10.1023/A:1008102521322">10.1023/A:1008102521322</a>
+</p>
+<p class="ref">Li, H. &amp; Reynolds, J.F. (1993). "A new contagion index to
+quantify spatial patterns of landscapes." <em>Landscape Ecology</em>, 8(3),
+155–162.
+DOI: <a href="https://doi.org/10.1007/BF00125347">10.1007/BF00125347</a>
+</p>
+<p class="ref">McGarigal, K. &amp; Marks, B.J. (1995). <em>FRAGSTATS: spatial
+pattern analysis program for quantifying landscape structure</em>. General
+Technical Report PNW-GTR-351, USDA Forest Service, Pacific Northwest Research
+Station, Portland, OR.
+DOI: <a href="https://doi.org/10.2737/PNW-GTR-351">10.2737/PNW-GTR-351</a>
+</p>
+<p class="ref">Shannon, C.E. (1948). "A Mathematical Theory of
+Communication." <em>Bell System Technical Journal</em>, 27(3), 379–423.
+DOI: <a href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x">10.1002/j.1538-7305.1948.tb01338.x</a>
+</p>
+<p class="ref">Wu, J. (2004). "Effects of changing scale on landscape pattern
+analysis: scaling relations." <em>Landscape Ecology</em>, 19(2), 125–138.
+DOI: <a href="https://doi.org/10.1023/B:LAND.0000021711.40074.ae">10.1023/B:LAND.0000021711.40074.ae</a>
+</p>
+
+<div class="page-break"></div>
+<h2 id="leastcostcorridor">Least-Cost Corridor</h2>
+<p><strong>Processing ID:</strong> <code>planx:leastcostcorridor</code>
+&middot; <strong>Engine:</strong> <code>engine/costdistance.py</code>
+&middot; <strong>Group:</strong> Green Infrastructure (14)</p>
+
+<h3>Overview</h3>
+<p>Finds the cheapest way across a <strong>resistance surface</strong> between
+two sets of places — two habitat patches for a wildlife corridor, two ends of a
+greenway, the endpoints of a pipeline — and the band of near-optimal routes
+around it. The resistance raster says how hard each cell is to cross per metre;
+the tool spreads accumulated cost from the sources, traces the least-cost path
+to the cheapest target, and builds the normalised least-cost corridor: zero
+along the best route and, everywhere else, how much dearer a route through that
+cell would be. Thresholding the corridor at a slack turns a single line into
+the strip of land a plan can actually protect.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>The accumulated-cost surface is Dijkstra's (1959) shortest-path algorithm
+run on the cell grid. Adriaensen et al. (2003) gave it its ecological reading —
+the effective distance an animal experiences, as opposed to the Euclidean one —
+and Etherington (2016) reviews the choices that decide what the result means:
+the neighbourhood, the cost of a step, and the resistance values themselves.
+Beier, Majka and Spencer (2008) set out the procedure for designing wildland
+linkages from least-cost corridors rather than single paths, and Linkage Mapper
+(McRae &amp; Kavanagh 2011) made the normalised corridor — the sum of two
+cost-distance surfaces less the path cost — the standard planning product.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Resistance is a cost per metre</strong> of crossing a cell: 1 is
+easy, 10 is ten times harder. Nodata is a barrier; negative values are refused,
+since shortest paths are undefined with negative costs.</li>
+<li><strong>A step is charged by the trapezoid rule</strong>: half the
+resistance of the cell left plus half of the cell entered, times the ground
+length of the step — the cell size for a rook move, $\sqrt{2}$ times it for a
+diagonal under the 8-direction rule.</li>
+<li><strong>Sources and targets are rasterised</strong> with every cell they
+touch; the path ends at the cheapest target cell. Sets that share a cell are
+joined at zero cost, and the tool warns.</li>
+<li><strong>Ground metres</strong>: the cell size is converted from the
+raster's CRS units once, at the extent's centre, and the path's length is
+measured on the ellipsoid.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> to locate a corridor between two habitat cores,
+route a greenway or utility around hostile ground, or measure how much harder a
+development scenario makes a link (path cost before and after).</li>
+<li><strong>Do not read the path as the route animals take</strong>: it is the
+single optimum under the stated resistances. The corridor at a slack is the
+robust product.</li>
+<li><strong>Do not use it</strong> where movement is diffuse across many
+routes — circuit-theory methods (Circuitscape) model that, and are out of
+scope for the plugin.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>With resistance $r$ per metre, cell size $\Delta$ in ground metres and a
+move between neighbouring cells $u$ and $v$:</p>
+<div class="eq">
+$$w(u, v) = \frac{r_u + r_v}{2}\, \Delta\, \lambda(u, v), \qquad \lambda = \begin{cases} 1 & \text{rook move} \\ \sqrt{2} & \text{diagonal move} \end{cases} \tag{1}$$
+</div>
+<p>The cost distance from a source set $S$ is the shortest-path cost over
+these weights, computed by Dijkstra's algorithm:</p>
+<div class="eq">
+$$CD_S(x) = \min_{\pi:\, S \to x} \sum_{(u,v) \in \pi} w(u, v) \tag{2}$$
+</div>
+<p>The normalised corridor between sets $A$ and $B$ and the least-cost path
+cost $C^{*}$ are</p>
+<div class="eq">
+$$NLCC(x) = CD_A(x) + CD_B(x) - C^{*}, \qquad C^{*} = \min_x \left[ CD_A(x) + CD_B(x) \right] = \min_{b \in B} CD_A(b) \tag{3}$$
+</div>
+<p>so $NLCC = 0$ exactly on the least-cost path, and the corridor at slack
+$s$ (percent) is $\{ x : NLCC(x) \le s\, C^{*} / 100 \}$. The path's cost
+ratio $C^{*}/d$, with $d$ the straight ground distance between its end cells,
+is 1 on a uniform resistance of 1 for a straight rook or diagonal line and at
+most $\cos 22.5° + (\sqrt{2} - 1)\sin 22.5° = 1.0824$ for any grid path —
+the octile bound the runtime check holds the tool to.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Resistance raster</td><td>Raster</td><td>Yes</td><td>Projected CRS; cost per metre, ≥ 0; nodata = barrier.</td></tr>
+<tr><td>Sources, targets</td><td>Any geometry</td><td>Yes</td><td>Habitat cores, endpoints; reprojected to the raster's CRS.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>RESISTANCE</code></td><td>Raster</td><td>—</td><td>Resistance surface.</td></tr>
+<tr><td><code>SOURCES</code>, <code>TARGETS</code></td><td>Vector</td><td>—</td><td>The two sets to connect.</td></tr>
+<tr><td><code>RULE</code></td><td>Enum</td><td>8 directions</td><td>Queen (8) or rook (4) moves.</td></tr>
+<tr><td><code>SLACK</code></td><td>Double</td><td>10 percent</td><td>Corridor width as a share of the path cost; reported as an area in the log and on the path.</td></tr>
+<tr><td><code>OUT_COST</code></td><td>Raster</td><td>—</td><td>$CD_A$, Equation (2).</td></tr>
+<tr><td><code>OUT_CORRIDOR</code></td><td>Raster</td><td>—</td><td>$NLCC$, Equation (3).</td></tr>
+<tr><td><code>OUT_PATH</code></td><td>Vector (Line)</td><td>—</td><td>The least-cost path.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>path_cost</code></td><td>Double</td><td>$C^{*}$ in resistance × metres</td></tr>
+<tr><td><code>length_m</code></td><td>Double</td><td>Ground length of the path</td></tr>
+<tr><td><code>straight_m</code></td><td>Double</td><td>Straight ground distance between its end cells</td></tr>
+<tr><td><code>cost_ratio</code></td><td>Double</td><td>$C^{*}$ over the straight distance: the effective resistance of the link</td></tr>
+<tr><td><code>cells</code></td><td>Integer</td><td>Cells on the path</td></tr>
+<tr><td><code>corridor_ha</code></td><td>Double</td><td>Area of the corridor at the chosen slack</td></tr>
+</table>
+
+<h3>Symbolic Representation</h3>
+<p>Style the corridor raster with a single-band pseudocolour ramp from 0 (dark
+green) to the slack (pale), transparent above; draw the path on top. The cost
+raster with a contour every few hundred cost units shows the effective-distance
+rings around the sources, stretched where resistance is low and crowded where
+it is high.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong><code>cost_ratio</code></strong> near 1 means the link crosses easy
+ground on a near-straight line; 3 means the route is as costly as three times
+its length on the easiest ground — through, or around, resistance.</li>
+<li><strong>A corridor that narrows to a waist</strong> at a given slack is a
+pinch point, where one barrier would cut the link; a wide corridor has many
+near-equal routes.</li>
+<li><strong>A path bending round a block</strong> is the tool locating the
+barrier: lower that block's resistance (a green bridge, a culvert) and rerun
+to see what the crossing would buy.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Adriaensen, F., Chardon, J.P., De Blust, G., Swinnen, E.,
+Villalba, S., Gulinck, H. &amp; Matthysen, E. (2003). "The application of
+'least-cost' modelling as a functional landscape model." <em>Landscape and
+Urban Planning</em>, 64(4), 233–247.
+DOI: <a href="https://doi.org/10.1016/S0169-2046(02)00242-6">10.1016/S0169-2046(02)00242-6</a>
+</p>
+<p class="ref">Beier, P., Majka, D.R. &amp; Spencer, W.D. (2008). "Forks in
+the Road: Choices in Procedures for Designing Wildland Linkages."
+<em>Conservation Biology</em>, 22(4), 836–851.
+DOI: <a href="https://doi.org/10.1111/j.1523-1739.2008.00942.x">10.1111/j.1523-1739.2008.00942.x</a>
+</p>
+<p class="ref">Dijkstra, E.W. (1959). "A note on two problems in connexion
+with graphs." <em>Numerische Mathematik</em>, 1(1), 269–271.
+DOI: <a href="https://doi.org/10.1007/BF01386390">10.1007/BF01386390</a>
+</p>
+<p class="ref">Etherington, T.R. (2016). "Least-Cost Modelling and Landscape
+Ecology: Concepts, Applications, and Opportunities." <em>Current Landscape
+Ecology Reports</em>, 1(1), 40–53.
+DOI: <a href="https://doi.org/10.1007/s40823-016-0006-9">10.1007/s40823-016-0006-9</a>
+</p>
+<p class="ref">McRae, B.H. &amp; Kavanagh, D.M. (2011). <em>Linkage Mapper
+Connectivity Analysis Software</em>. The Nature Conservancy, Seattle, WA.
+</p>
 
 <div class="page-break"></div>
 
@@ -14557,7 +14897,7 @@ assignment (Step 4, <strong>Traffic Assignment</strong>). For uncongested networ
 non-motorway urban streets at daily, not peak-hour, resolution), this is
 acceptable.</li>
 <li><strong>Unreachable pairs exchange nothing.</strong> A zone pair with no
-network path gets a deterrence of exactly zero under both forms. Before v4.20.0
+network path gets a deterrence of exactly zero under both forms. Before release 4.20
 such pairs were given a stand-in cost of $10^9$, which the exponential form does
 send to zero but the power form does not: $(10^9)^{-0.1} = 0.126$, a quarter of
 the deterrence of a 1 km trip, so disconnected zones traded trips.</li>
@@ -18352,7 +18692,7 @@ Available at: <a href="https://pubs.usgs.gov/of/1998/ofr-98-113/">pubs.usgs.gov/
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.20.0 &middot; 80 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
+  Covering PlanX v4.21.0 &middot; 82 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
 </p>
 
 

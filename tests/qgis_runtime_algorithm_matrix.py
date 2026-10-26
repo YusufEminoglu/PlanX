@@ -115,7 +115,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 80
+MIN_EXPECTED_CASE_COUNT = 82
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -605,6 +605,13 @@ LAYER_OVERRIDES = {
     # share and its conservation check mean something; POIs would hand every
     # opportunity the same weight of one.
     ("planx:gravityaccess", "OPPORTUNITIES"): "facilities",
+    # leastcostcorridor joins two point sets inside the city, so every one
+    # lands on a passable cell of the uniform resistance fixture. Not the
+    # green polygons: a facility sits inside one of them, the two sets then
+    # share a cell, and the least-cost "path" between them is honestly zero
+    # long - a run that tests nothing but the overlap warning.
+    ("planx:leastcostcorridor", "SOURCES"): "facilities",
+    ("planx:leastcostcorridor", "TARGETS"): "pois",
 }
 
 # Field parameters whose global name-hint would bind the wrong column, keyed
@@ -791,6 +798,14 @@ RASTER_BY_PARAM = (
     # slope is a plausible number in the right units, so the run would go green
     # with a landslide legend on a raster of buildings. See the terrain fixture.
     ("TERRAIN", "terrain"),
+    # A uniform resistance of 1 per metre: the least-cost path is then the
+    # shortest grid path, whose cost over the straight distance is bounded by
+    # the octile ratio - which is what makes the corridor check falsifiable.
+    ("RESISTANCE", "resistance"),
+    # The categorical land-cover raster, for the landscape metrics. Falling
+    # through to the DSM would hand the tool heights, which it refuses as
+    # non-categorical - a refusal proved by the fixture, not by the tool.
+    ("LANDCOVER", "landcover_t1"),
     ("DEM", "dem"),
     ("DSM", "dsm"),
 )
@@ -874,6 +889,10 @@ RUN_FIRST = (
     # assignment reads the calibrated extra run of the gravity case.
     "planx:gravitymodel",
 )
+
+#: The land-cover fixture the landscape-metrics check re-counts, set by
+#: build_fixtures.
+_LANDCOVER_FIXTURE = {}
 
 #: Mean interzonal trip cost the gravity extra run calibrates beta to, in the
 #: fixture network's cost unit (its `cost` column is the length in metres).
@@ -1569,6 +1588,10 @@ def build_fixtures(processing, work_dir, transform_context):
                                             classes_t1, template)
     rasters["landcover_t2"] = _write_raster(fix_dir / "landcover_t2.tif",
                                             classes_t2, template)
+    _LANDCOVER_FIXTURE["path"] = str(rasters["landcover_t1"])
+    rasters["resistance"] = _write_raster(
+        fix_dir / "resistance.tif",
+        np.where(np.isfinite(dsm), 1.0, -9999.0), template)
 
     # A terrain surface built for one tool, and for once not the city DSM.
     # Every other tool here that wants a DEM wants *elevation*, and the city
@@ -3906,6 +3929,100 @@ def _expect_robustness_deadend(path):
     return None
 
 
+def _landcover_counts():
+    import numpy as np
+    from osgeo import gdal
+    path = _LANDCOVER_FIXTURE.get("path")
+    if not path:
+        return None, None, "the land-cover fixture path was never recorded"
+    ds = gdal.Open(path)
+    band = ds.GetRasterBand(1)
+    arr = band.ReadAsArray().astype(float)
+    nodata = band.GetNoDataValue()
+    gt = ds.GetGeoTransform()
+    ds = None
+    valid = np.isfinite(arr) & (arr != nodata)
+    values, counts = np.unique(arr[valid], return_counts=True)
+    pixel = (abs(gt[1]) + abs(gt[5])) / 2.0
+    return dict(zip(values.astype(int).tolist(), counts.tolist())), pixel, None
+
+
+def _expect_landscape_classes(path):
+    """Class area and share re-counted from the fixture raster itself.
+
+    The cell area is the fixture's pixel times cos(41) squared - the ground
+    a 3857 cell covers at the fixture's latitude - so a tool that reported the
+    raster's own units would be 1.76x too large here and fail on every row.
+    """
+    counts, pixel, complaint = _landcover_counts()
+    if complaint:
+        return complaint
+    names, rows, complaint = _read_gpkg(path, aspatial=True)
+    if complaint:
+        return complaint
+    total = float(sum(counts.values()))
+    cell_ha = (pixel * GROUND_PER_UNIT_NORTH) ** 2 / 10000.0
+    if sorted(int(r["class"]) for r in rows) != sorted(counts):
+        return f"classes {sorted(int(r['class']) for r in rows)} are not the raster's {sorted(counts)}"
+    for r in rows:
+        n = counts[int(r["class"])]
+        if abs(float(r["PLAND"]) - 100.0 * n / total) > 1e-4:
+            return f"class {r['class']}: PLAND {r['PLAND']} is not {100.0 * n / total:.6f}"
+        if abs(float(r["CA_ha"]) - n * cell_ha) > 0.01 * n * cell_ha:
+            return (f"class {r['class']}: CA {r['CA_ha']} ha is not {n} cells of "
+                    f"{cell_ha:.6g} ground ha")
+        if int(r["NP"]) < 1 or not (0.0 <= float(r["AI"]) <= 100.0 + 1e-9):
+            return f"class {r['class']}: NP {r['NP']} or AI {r['AI']} out of range"
+        if float(r["CPLAND"]) > float(r["PLAND"]) + 1e-9:
+            return f"class {r['class']}: core share exceeds the class share"
+    return None
+
+
+def _expect_landscape_summary(path):
+    import numpy as np
+    counts, _pixel, complaint = _landcover_counts()
+    if complaint:
+        return complaint
+    values, complaint = _summary_values(path)
+    if complaint:
+        return complaint
+    p = np.asarray(list(counts.values()), dtype=float)
+    p = p / p.sum()
+    shdi = float(-np.sum(p * np.log(p)))
+    if int(values.get("PR", -1)) != len(counts):
+        return f"PR {values.get('PR')} is not the raster's {len(counts)} classes"
+    if abs(values.get("SHDI", -1.0) - shdi) > 1e-5:
+        return f"SHDI {values.get('SHDI')} is not {shdi:.6f} from the raster's own shares"
+    if not 0.0 <= values.get("CONTAG", -1.0) <= 100.0:
+        return f"CONTAG {values.get('CONTAG')} is outside 0..100"
+    return None
+
+
+def _expect_corridor_path(path):
+    """On a uniform resistance of 1 the path cost is a grid path length: at
+    least the straight distance between its end cells and at most the octile
+    bound, 1.0824x it. A cost that ignored the ground conversion would read
+    1.325x the straight ground distance at the fixture's latitude."""
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    if len(rows) != 1:
+        return f"{len(rows)} path rows where one least-cost path was asked for"
+    r = rows[0]
+    ratio = r["cost_ratio"]
+    if ratio is None:
+        return "cost_ratio is empty - the path has no length"
+    # The octile bound: a grid path's length over the straight line peaks at
+    # 22.5 degrees, cos(22.5) + (sqrt 2 - 1) sin(22.5) = 1.08239.
+    theta = math.pi / 8.0
+    upper = math.cos(theta) + (math.sqrt(2.0) - 1.0) * math.sin(theta) + 0.01
+    if not (0.995 <= float(ratio) <= upper):
+        return f"cost_ratio {ratio} is outside 1..{upper:.4f} on a uniform resistance of 1"
+    if int(r["cells"]) < 2 or float(r["corridor_ha"]) <= 0.0:
+        return f"a path of {r['cells']} cells with a corridor of {r['corridor_ha']} ha"
+    return None
+
+
 #: Value expectations for an extra run, keyed (algorithm id, extra label).
 #: An extra run exists because it takes a branch the primary case never
 #: reaches, and a branch that writes the right number of rows with the wrong
@@ -4020,6 +4137,11 @@ VALUE_EXPECTATIONS = {
     "planx:gravityaccess": {"OUTPUT": _expect_gravityaccess},
     "planx:ptal": {"OUTPUT": _expect_ptal},
     "planx:networkrobustness": {"OUT_SUMMARY": _expect_robustness_city},
+    "planx:landscapemetrics": {
+        "OUT_CLASS": _expect_landscape_classes,
+        "OUT_LANDSCAPE": _expect_landscape_summary,
+    },
+    "planx:leastcostcorridor": {"OUT_PATH": _expect_corridor_path},
 }
 
 

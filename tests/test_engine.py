@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, accessibility, air, allocate, assignment, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, landslide as lsl, liquefaction as liq, morphology,
+    HAS_SCIPY, accessibility, air, allocate, assignment, costdistance, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, landscape, landslide as lsl, liquefaction as liq, morphology,
     optimize, parking, paths, provenance, ptal, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
@@ -3957,6 +3957,97 @@ check("critical fraction: below 0.6 after 1 of 3 removals, never below 0.5 until
       and close(robustness.critical_fraction(_curve, 0.5), 1.0))
 check("global efficiency: unit path of 3 nodes == 5/6",
       close(robustness.global_efficiency(g.indptr, g.adj_node, g.adj_cost, g.num_nodes), 5.0 / 6.0))
+
+# --------------------------------------------------------------------------- #
+# Landscape metrics (engine/landscape.py)
+# --------------------------------------------------------------------------- #
+_half = np.array([[1, 1, 2, 2]] * 4)
+_rows, _land, _patch = landscape.metrics(_half, np.ones_like(_half, dtype=bool), 10.0)
+_c1 = _rows[0]
+check("landscape: two halves of 8 cells at 10 m -> CA 0.08 ha, PLAND 50, one patch each",
+      close(_c1["CA"], 0.08) and close(_c1["PLAND"], 50.0) and _c1["NP"] == 1)
+check("landscape: TE = the four cell edges between the halves = 40 m, ED = 250 m/ha",
+      close(_land["TE"], 40.0) and close(_land["ED"], 250.0) and close(_c1["TE"], 40.0))
+check("landscape: a 2 x 4 block has the most like adjacencies 8 cells can have -> AI 100",
+      close(_c1["AI"], 100.0))
+check("landscape: SHDI ln 2, SHEI 1, SIDI 0.5, PR 2",
+      close(_land["SHDI"], math.log(2.0)) and close(_land["SHEI"], 1.0)
+      and close(_land["SIDI"], 0.5) and _land["PR"] == 2)
+_q_like, _q_unlike = 0.5 * 20.0 / 24.0, 0.5 * 4.0 / 24.0
+_contag = 100.0 * (1.0 + 2.0 * (_q_like * math.log(_q_like) + _q_unlike * math.log(_q_unlike))
+                   / (2.0 * math.log(2.0)))
+check(f"landscape: CONTAG by hand from the double-counted adjacencies = {_contag:.4f}",
+      close(_land["CONTAG"], _contag, 1e-9))
+check("landscape: shape index of a 2 x 4 patch = 0.25 * 12 / sqrt(8)",
+      close(float(_patch["shape"][0]), 0.25 * 12.0 / math.sqrt(8.0)))
+check("landscape: a two-cell-wide patch has no core one cell deep",
+      close(landscape.metrics(_half, np.ones_like(_half, dtype=bool), 10.0,
+                              edge_depth_m=10.0)[0][0]["TCA"], 0.0))
+_one = np.ones((6, 6), dtype=int)
+check("landscape: a 6 x 6 patch keeps a 4 x 4 core at one cell of edge depth",
+      close(landscape.metrics(_one, np.ones_like(_one, dtype=bool), 1.0,
+                              edge_depth_m=1.0)[1]["TCA"], 16.0 / 10000.0))
+check("landscape: He et al. maximum like adjacencies for 1, 4, 5, 8 cells",
+      [landscape.max_like_adjacencies(k) for k in (1, 4, 5, 8)] == [0, 4, 5, 10])
+_diag = np.array([[1, 0], [0, 1]])
+check("landscape: the 8-neighbour rule joins diagonal cells, the 4-neighbour rule does not",
+      landscape.metrics(_diag, np.ones((2, 2), dtype=bool), 1.0, rule=8)[0][1]["NP"] == 1
+      and landscape.metrics(_diag, np.ones((2, 2), dtype=bool), 1.0, rule=4)[0][1]["NP"] == 2)
+_rng_l = np.random.default_rng(7)
+_rand = _rng_l.integers(0, 4, size=(40, 37))
+_valid_r = _rng_l.random((40, 37)) > 0.1
+_ls, _cs, _ns = landscape.label_patches(_rand, _valid_r, 8, use_scipy=True)
+_lp, _cp, _np = landscape.label_patches(_rand, _valid_r, 8, use_scipy=False)
+check("landscape: SciPy and pure patch labelling are identical",
+      np.array_equal(_ls, _lp) and np.array_equal(_cs, _cp) and np.array_equal(_ns, _np))
+_nod = np.array([[1, 1, 2], [1, 1, 2]])
+_nv = np.array([[True, True, False], [True, True, True]])
+_r_nod = landscape.metrics(_nod, _nv, 1.0)
+check("landscape: an edge against nodata is not edge; the remaining one is",
+      close(_r_nod[1]["TE"], 1.0))
+
+# --------------------------------------------------------------------------- #
+# Cost distance and corridors (engine/costdistance.py)
+# --------------------------------------------------------------------------- #
+_res = np.ones((3, 3))
+_src = np.zeros((3, 3), dtype=bool)
+_src[1, 1] = True
+_cd8, _ = costdistance.cost_distance(_res, _src, 10.0, rule=8)
+_cd4, _ = costdistance.cost_distance(_res, _src, 10.0, rule=4)
+check("cost distance: rook step = cell, diagonal step = cell * sqrt 2 (8 rule)",
+      close(_cd8[1, 2], 10.0) and close(_cd8[0, 0], 10.0 * math.sqrt(2.0)))
+check("cost distance: the 4 rule reaches a corner in two rook steps",
+      close(_cd4[0, 0], 20.0))
+_res2 = np.array([[1.0, 3.0]])
+_cd2, _ = costdistance.cost_distance(_res2, np.array([[True, False]]), 1.0)
+check("cost distance: the trapezoid rule charges half of each cell, (1 + 3) / 2",
+      close(_cd2[0, 1], 2.0))
+_wall = np.ones((3, 3))
+_wall[:, 1] = np.nan
+_cdw, _ = costdistance.cost_distance(_wall, _src.copy() | np.array([[0, 0, 0], [1, 0, 0], [0, 0, 0]], bool), 1.0)
+check("cost distance: a nodata column is a barrier - the far side stays unreachable",
+      np.isinf(_cdw[1, 2]) and close(_cdw[0, 0], 1.0))
+_rng_c = np.random.default_rng(3)
+_resr = _rng_c.uniform(1.0, 9.0, (25, 30))
+_resr[_rng_c.random((25, 30)) > 0.93] = np.nan
+_srcr = np.zeros((25, 30), dtype=bool)
+_srcr[2, 3] = _srcr[20, 25] = True
+_fast, _pf = costdistance.cost_distance(_resr, _srcr, 5.0, use_scipy=True)
+_slow, _ps = costdistance.cost_distance(_resr, _srcr, 5.0, use_scipy=False)
+check("cost distance: SciPy and pure-Python costs are identical",
+      np.allclose(np.where(np.isfinite(_fast), _fast, -1), np.where(np.isfinite(_slow), _slow, -1)))
+_a = np.zeros((1, 5), dtype=bool)
+_a[0, 0] = True
+_b = np.zeros((1, 5), dtype=bool)
+_b[0, 4] = True
+_line = np.array([[1.0, 2.0, 1.0, 2.0, 1.0]])
+_ca, _pa = costdistance.cost_distance(_line, _a, 1.0)
+_cb, _ = costdistance.cost_distance(_line, _b, 1.0)
+_corr, _best = costdistance.corridor(_ca, _cb)
+check("corridor: the least-cost path cost is the sum of the four half-cell steps = 6",
+      close(_best, 6.0) and np.allclose(_corr, 0.0))
+check("least-cost path: traced back from the target, in travel order",
+      costdistance.trace_path(_pa, 4) == [0, 1, 2, 3, 4])
 
 # --------------------------------------------------------------------------- #
 def _failures():

@@ -237,6 +237,25 @@ as cycling islands, sums island length, and optionally counts origin
 population whose snapped node lies in a destination island.
 ## Green Infrastructure
 
+Landscape metrics follow FRAGSTATS (McGarigal & Marks 1995) on a categorical
+raster: patches are 8-neighbour (or 4-neighbour) components labelled with
+`scipy.ndimage.label` or an identical pure-Python flood fill, renumbered in
+row-major order; edges count only between two valid cells of different classes
+(no landscape boundary, no nodata); the shape index `0.25 p / sqrt(a)` counts
+every side of a patch; core area is 8-neighbour erosion by the edge depth in
+whole cells; the aggregation index is He et al.'s (2000) like adjacencies over
+their maximum for that many cells; contagion is Li & Reynolds (1993) with
+adjacencies counted from both cells. The cell area is the ground area, from
+the raster's CRS and ellipsoid at the extent's centre.
+
+Least-cost corridors run Dijkstra on the cell grid with the trapezoid step
+cost `(r_u + r_v) / 2 * step`, step the ground cell size (times sqrt 2 on a
+diagonal); nodata cells are barriers and negative resistances are refused. The
+normalised corridor is `CD_A + CD_B - min(CD_A + CD_B)` (McRae & Kavanagh
+2011), zero on the least-cost path; the path is traced back from the cheapest
+target cell. SciPy's `csgraph.dijkstra` and the pure heap give identical
+costs (unit-asserted).
+
 Park hierarchies as a `min_ha = max_dist` ladder tested on network
 distances (green snap offsets ride as initial Dijkstra costs).
 Connectivity: patches linked within a crossable gap; the binary
