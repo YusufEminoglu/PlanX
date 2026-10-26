@@ -512,7 +512,7 @@ page_html = f"""<!DOCTYPE html>
 <div id="search-wrap"><input type="text" id="search" placeholder="Search algorithms…" autocomplete="off"></div>
 <ul id="toc"></ul>
 <div id="sidebar-footer">
-<a href="PLANX_REFERENCE_MANUAL.html">&larr; Reference Manual (Theory)</a>
+<a href="../PLANX_REFERENCE_MANUAL.html">&larr; Reference Manual (Theory)</a>
 <a href="https://geophilo.com/planx/">geophilo.com/planx</a>
 </div>
 </nav>
