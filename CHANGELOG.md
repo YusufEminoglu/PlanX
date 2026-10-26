@@ -1,5 +1,40 @@
 # Changelog
 
+## [4.22.0] - 2026-10-26
+
+### Added
+- **Areal Interpolation (`planx:arealinterpolation`)** - counts and rates
+  between incompatible zone systems. Counts are split by shared area (volume
+  preserved: the log prints the target total against the total the method must
+  reproduce), rates are area-weighted means over the covered part of each
+  target and are never split, and an optional ancillary layer makes the
+  weights dasymetric (binary, after Mennis 2003), with sources holding no
+  ancillary land falling back to area and counted. Targets keep their fields
+  and gain `<field>_est`, `cover_share` and `n_sources`; ground areas.
+- **Jobs-Housing Balance (`planx:jobshousing`)** - local and commute-shed
+  ratios of jobs to workers on the street network, the balance index
+  `1 - |J - W| / (J + W)` for both, and the area-wide Duncan index of
+  dissimilarity between jobs and workers; a worker ratio converts a residents
+  or dwellings field.
+
+### Fixed
+- The Theil index evaluated `log(0)` on every run with a zero value (NumPy's
+  `where` computes both branches) and raised a RuntimeWarning, although the
+  result was already right; the log is now taken only where it is defined.
+
+### Verification
+- Engine suite: 848 checks (13 new, hand-computed: area and dasymetric splits,
+  rate averaging, partial cover, missing values; balance, ratio, dissimilarity
+  and commute-shed sums).
+- Runtime matrix: the interpolation check moves the land-use polygons' own
+  planar area onto building footprints, where the right answer is each
+  target's covered area, and a constant FAR must stay 1.5. **The first pairing
+  (green polygons as targets) could not fail**: each green polygon is itself a
+  land-use polygon, every share was 1, and a mutation that split the rate like
+  a count stayed green. Re-paired onto buildings, the same mutation fails
+  (far_est 0.18). The jobs-housing check re-derives every ratio from the
+  fixture's own jobs and population and was falsified by shrinking the budget.
+
 ## [4.21.0] - 2026-10-26
 
 ### Added

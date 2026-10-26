@@ -140,7 +140,10 @@ def theil_t(x, w=None):
     if mu <= 0:
         return 0.0
     r = x / mu
-    term = np.where(r > 0, r * np.log(r), 0.0)
+    # 0 * log(0) is taken as its limit, 0. The log is only evaluated where r > 0:
+    # np.where computes both branches, so log(0) used to raise a RuntimeWarning
+    # on every run with a zero value even though the result was already right.
+    term = np.where(r > 0, r * np.log(np.where(r > 0, r, 1.0)), 0.0)
     return float((w * term).sum() / total)
 
 

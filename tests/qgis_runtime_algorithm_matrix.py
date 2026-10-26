@@ -115,7 +115,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 82
+MIN_EXPECTED_CASE_COUNT = 84
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -612,6 +612,15 @@ LAYER_OVERRIDES = {
     # long - a run that tests nothing but the overlap warning.
     ("planx:leastcostcorridor", "SOURCES"): "facilities",
     ("planx:leastcostcorridor", "TARGETS"): "pois",
+    # arealinterpolation moves the land-use polygons' own planar area onto the
+    # building footprints. Interpolating a polygon's area by area shares is the
+    # one variable whose right answer is known without the tool: each target
+    # must receive exactly the planar area of land use it overlaps. Not the
+    # green polygons: each of those IS a land-use polygon, every share is 1,
+    # and a rate split like a count (the defect the FAR check exists for) came
+    # out unchanged - the mutation went green on that pairing.
+    ("planx:arealinterpolation", "SOURCE"): "landuse",
+    ("planx:arealinterpolation", "TARGET"): "buildings",
 }
 
 # Field parameters whose global name-hint would bind the wrong column, keyed
@@ -633,6 +642,9 @@ FIELD_OVERRIDES = {
     # names because no other tool calls them that.
     ("planx:trafficassignment", "ORIGIN_FIELD"): "origin_id",
     ("planx:trafficassignment", "DEST_FIELD"): "dest_id",
+    # jobshousing's worker side: the demand layer's residents. A worker ratio
+    # of 1 (the default) makes the expected ratios plain jobs / pop.
+    ("planx:jobshousing", "WORKERS_FIELD"): "pop",
 }
 
 #: Optional field parameters left unset for ONE tool, where the global name hint
@@ -649,6 +661,8 @@ SKIP_FIELDS = {
     # capacity path; the fixture has no time or capacity column to bind.
     ("planx:trafficassignment", "TIME_FIELD"),
     ("planx:trafficassignment", "CAPACITY_FIELD"),
+    # Same reason as gravityaccess: `cost` is a length in metres, not minutes.
+    ("planx:jobshousing", "COST_FIELD"),
 }
 
 # Enum parameters whose declared default is not the option this bundle can
@@ -780,6 +794,11 @@ FIELD_BY_PARAM = {
 # A few field parameters take several fields at once.
 FIELD_LIST_OVERRIDES = {
     "SUIT_FIELDS": ["s_residential", "s_commercial", "s_green"],
+    # arealinterpolation: the planar area as the count (its answer is known)
+    # and FAR as the rate (constant 1.5 on the fixture, so any covered target
+    # must come out at exactly 1.5 - a rate split by area would not).
+    "EXTENSIVE": ["area_m2"],
+    "INTENSIVE": ["far"],
 }
 
 # Rasters, by parameter name.
@@ -929,6 +948,11 @@ EXTRA_RUNS = {
     ),
     # The hand-worked dead-end network: a square with a two-segment stem, so
     # exactly two bridges carrying 100 of 500 units of length.
+    # The dasymetric branch: the green polygons as the ancillary mask, which
+    # also drives the fallback path - most land-use polygons hold no green.
+    "planx:arealinterpolation": (
+        ("dasymetric", "OUTPUT", {"ANCILLARY": "fixture:green"}),
+    ),
     "planx:networkrobustness": (
         ("robust_deadend", "OUT_SUMMARY", {"NETWORK": "fixture:network_deadend",
                                            "COST_FIELD": ""}),
@@ -4023,12 +4047,78 @@ def _expect_corridor_path(path):
     return None
 
 
+def _expect_interpolated_area(path, dasymetric=False):
+    """Each target receives the planar land-use area it overlaps; FAR stays 1.5.
+
+    The source count is each land-use polygon's own planar area, so area
+    weighting must hand every target exactly its covered planar area:
+    ``area_m2_est = planar_area(target) * cover_share``. Under dasymetric
+    weighting the count follows the buildings instead, so only the rate and
+    the total can be checked: FAR is a constant 1.5, and a rate that was split
+    by area (the extensive rule applied to an intensive field) would not be.
+    """
+    crs, rows, complaint = _read_gpkg_geometries(path)
+    if complaint:
+        return complaint
+    covered_any = False
+    for i, r in enumerate(rows, 1):
+        share = float(r["cover_share"])
+        if not 0.0 <= share <= 1.0 + 1e-9:
+            return f"row {i}: cover_share {share} outside 0..1"
+        if share > 0:
+            covered_any = True
+            if r["far_est"] is None or abs(float(r["far_est"]) - 1.5) > 1e-6:
+                return f"row {i}: far_est {r['far_est']} - a constant rate of 1.5 must stay 1.5"
+            if not dasymetric:
+                want = r["geometry"].area() * share
+                got = float(r["area_m2_est"])
+                if abs(got - want) > 0.005 * max(want, 1e-9):
+                    return (f"row {i}: area_m2_est {got:.3f} is not the {want:.3f} planar "
+                            f"land-use area the target overlaps")
+        elif r["far_est"] is not None:
+            return f"row {i}: an uncovered target carries a rate {r['far_est']}"
+    if not covered_any:
+        return "no target overlaps any source - the fixture pairing tested nothing"
+    return None
+
+
+def _expect_interpolated_dasymetric(path):
+    return _expect_interpolated_area(path, dasymetric=True)
+
+
+def _expect_jobs_housing(path):
+    """Local ratios from the fixture's own jobs and pop; the 30-minute shed at
+    20 km/h covers the whole 750 m city, so every zone's shed is the city."""
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    jobs = [max(0.0, float(r["jobs"] or 0)) for r in rows]
+    pop = [max(0.0, float(r["pop"] or 0)) for r in rows]
+    J, W = sum(jobs), sum(pop)
+    for i, r in enumerate(rows, 1):
+        j, w = jobs[i - 1], pop[i - 1]
+        if abs(float(r["jh_jobs"]) - j) > 1e-3 or abs(float(r["jh_workers"]) - w) > 1e-3:
+            return f"row {i}: jh_jobs/jh_workers {r['jh_jobs']}/{r['jh_workers']} are not {j}/{w}"
+        if w > 0 and abs(float(r["jhr_local"]) - j / w) > 1e-3:
+            return f"row {i}: jhr_local {r['jhr_local']} is not {j}/{w}"
+        if j + w > 0 and abs(float(r["bal_local"]) - (1 - abs(j - w) / (j + w))) > 1e-3:
+            return f"row {i}: bal_local {r['bal_local']} is not 1 - |J-W|/(J+W)"
+        if abs(float(r["jobs_shed"]) - J) > 1e-2 * max(J, 1.0):
+            return f"row {i}: jobs_shed {r['jobs_shed']} is not the whole city's {J}"
+        if abs(float(r["jhr_shed"]) - J / W) > 1e-3:
+            return f"row {i}: jhr_shed {r['jhr_shed']} is not the area-wide {J / W:.4f}"
+    return None
+
+
 #: Value expectations for an extra run, keyed (algorithm id, extra label).
 #: An extra run exists because it takes a branch the primary case never
 #: reaches, and a branch that writes the right number of rows with the wrong
 #: numbers passes every count-based check there is - including the primary
 #: case's own value check, which says nothing about it.
 EXTRA_VALUE_EXPECTATIONS = {
+    ("planx:arealinterpolation", "dasymetric"): {
+        "OUTPUT": _expect_interpolated_dasymetric,
+    },
     ("planx:gravitymodel", "gravity_calibrated"): {
         "OUTPUT": _expect_gravity_calibrated_mean,
     },
@@ -4142,6 +4232,8 @@ VALUE_EXPECTATIONS = {
         "OUT_LANDSCAPE": _expect_landscape_summary,
     },
     "planx:leastcostcorridor": {"OUT_PATH": _expect_corridor_path},
+    "planx:arealinterpolation": {"OUTPUT": _expect_interpolated_area},
+    "planx:jobshousing": {"OUTPUT": _expect_jobs_housing},
 }
 
 

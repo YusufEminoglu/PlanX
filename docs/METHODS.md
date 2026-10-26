@@ -217,6 +217,15 @@ catchment, dasymetric density grids by area share.
 
 ## Population & Housing
 
+Areal interpolation works on the intersection table of source and target
+polygons (spatial index, GEOS intersection after `makeValid`, ground areas):
+counts take `v_s * A_st / A_s` (Goodchild & Lam 1980), rates
+`sum v_s A_st / sum A_st` over the covered part of the target, and with an
+ancillary mask both areas are replaced by mask areas (binary dasymetric,
+Mennis 2003); a source with no mask area falls back to plain area. The log
+compares the target total of every count with the total the method must
+reproduce - the source totals times the covered share of each source.
+
 Cohort-component projection as a Leslie (1945) matrix: first row
 fertility, subdiagonal survival, the last diagonal keeps the open-ended
 group; net migration adds after each step. Housing needs: `households ×

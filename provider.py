@@ -80,9 +80,11 @@ from .algorithms.alg_trip_generation import TripGenerationAlgorithm
 from .algorithms.alg_gravity_model import GravityModelAlgorithm
 from .algorithms.alg_mode_split import ModeSplitAlgorithm
 from .algorithms.alg_traffic_assignment import TrafficAssignmentAlgorithm
+from .algorithms.alg_jobs_housing import JobsHousingBalanceAlgorithm
 from .algorithms.alg_parking_demand import ParkingDemandAlgorithm
 from .algorithms.alg_parking_balance import ParkingSupplyBalanceAlgorithm
 from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
+from .algorithms.alg_areal_interpolation import ArealInterpolationAlgorithm
 from .algorithms.alg_scenario_pipeline import ScenarioPipelineAlgorithm
 from .algorithms.alg_coseismic_landslide import CoseismicLandslideAlgorithm
 from .algorithms.alg_ground_motion import GroundMotionAlgorithm
@@ -181,6 +183,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(HousingNeedsAlgorithm())
         self.addAlgorithm(ResidentialCapacityAlgorithm())
         self.addAlgorithm(PopAllocateAlgorithm())
+        self.addAlgorithm(ArealInterpolationAlgorithm())
         # 14 | Green Infrastructure
         self.addAlgorithm(GreenAccessAlgorithm())
         self.addAlgorithm(GreenConnectivityAlgorithm())
@@ -202,6 +205,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(GravityModelAlgorithm())
         self.addAlgorithm(ModeSplitAlgorithm())
         self.addAlgorithm(TrafficAssignmentAlgorithm())
+        self.addAlgorithm(JobsHousingBalanceAlgorithm())
         self.addAlgorithm(ParkingDemandAlgorithm())
         self.addAlgorithm(ParkingSupplyBalanceAlgorithm())
         # 19 | Seismic Risk

@@ -303,6 +303,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <ul class="toc-algs">
 <li><a href="#housingneeds" data-name="housingneeds" data-display="housing needs assessment"><img src="icons/tool_housingneeds.png" alt="" class="alg-icon">Housing Needs Assessment</a></li>
 <li><a href="#popallocate" data-name="popallocate" data-display="allocate population growth"><img src="icons/tool_popallocate.png" alt="" class="alg-icon">Allocate Population Growth</a></li>
+<li><a href="#arealinterpolation" data-name="arealinterpolation" data-display="areal interpolation (area-weighted and dasymetric)"><img src="icons/tool_arealinterpolation.png" alt="" class="alg-icon">Areal Interpolation (Area-Weighted and Dasymetric)</a></li>
 <li><a href="#populationprojection" data-name="populationprojection" data-display="population projection (cohort-component)"><img src="icons/tool_populationprojection.png" alt="" class="alg-icon">Population Projection (Cohort-Component)</a></li>
 <li><a href="#residentialcapacity" data-name="residentialcapacity" data-display="residential capacity"><img src="icons/tool_residentialcapacity.png" alt="" class="alg-icon">Residential Capacity</a></li>
 </ul></li>
@@ -348,6 +349,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 </button>
 <ul class="toc-algs">
 <li><a href="#gravitymodel" data-name="gravitymodel" data-display="gravity distribution"><img src="icons/tool_gravitymodel.png" alt="" class="alg-icon">Gravity Distribution</a></li>
+<li><a href="#jobshousing" data-name="jobshousing" data-display="jobs-housing balance"><img src="icons/tool_jobshousing.png" alt="" class="alg-icon">Jobs-Housing Balance</a></li>
 <li><a href="#modesplit" data-name="modesplit" data-display="mode split"><img src="icons/tool_modesplit.png" alt="" class="alg-icon">Mode Split</a></li>
 <li><a href="#parkingdemand" data-name="parkingdemand" data-display="parking demand estimator"><img src="icons/tool_parkingdemand.png" alt="" class="alg-icon">Parking Demand Estimator</a></li>
 <li><a href="#parkingsupplybalance" data-name="parkingsupplybalance" data-display="parking supply-demand balance"><img src="icons/tool_parkingsupplybalance.png" alt="" class="alg-icon">Parking Supply-Demand Balance</a></li>
@@ -383,7 +385,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.21.0 &middot; 82 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.22.0 &middot; 84 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -408,14 +410,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.21.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.22.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 82 algorithms is documented to an identical eight-section
+<p>Every one of the 84 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -458,7 +460,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 82 algorithms span the
+platform delivered as a QGIS Processing provider. Its 84 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -10667,14 +10669,16 @@ DOI: <a href="https://doi.org/10.1080/00438240601136496">10.1080/004382406011364
 <h2 id="group13" class="group-header">13. Population and Housing</h2>
 
 <p>The Population and Housing group translates demographic projections into
-spatial planning targets. Its four algorithms form a pipeline: <strong>Population
+spatial planning targets. Four of its algorithms form a pipeline: <strong>Population
 Projection</strong> produces the horizon-year population; <strong>Housing Needs
 Assessment</strong> converts population into required dwellings; <strong>Residential
 Capacity</strong> tests whether current zoning can physically deliver those
 dwellings; and <strong>Allocate Population Growth</strong> distributes the
 increment across parcels so that downstream demand-driven tools (Facility
 Adequacy, Green Access, Transit Access) have spatial population surfaces to
-consume. Every algorithm is a screening tool -- the mathematics is
+consume. <strong>Areal Interpolation</strong> moves counts and rates from the
+zones the data arrive on (census tracts) to the zones the plan uses, by area or
+dasymetrically over residential land. Every algorithm is a screening tool -- the mathematics is
 deterministic and fully auditable, but the assumptions (migration rates,
 household size, vacancy targets, zoning discount factors) are policy choices
 that must be documented and scenario-tested.</p>
@@ -11550,6 +11554,134 @@ in downstream metrics than a large change allocated identically.</p>
 <p class="ref">Schuster, K., Pukelsheim, F., Drton, M. &amp; Draper, N.R. (2003). "Seat biases of apportionment methods for proportional representation." <em>Electoral Studies</em>, 22, 651-676. DOI: <a href="https://doi.org/10.1016/S0261-3794(02)00027-6">10.1016/S0261-3794(02)00027-6</a> <span class="check">verified</span></p>
 
 <p class="ref">Kohler, U. &amp; Zeh, J. (2012). "Apportionment Methods." <em>The Stata Journal</em>, 12(3), 375-392. DOI: <a href="https://doi.org/10.1177/1536867X1201200303">10.1177/1536867X1201200303</a> <span class="check">verified</span></p>
+
+<div class="page-break"></div>
+<h2 id="arealinterpolation">Areal Interpolation (Area-Weighted and Dasymetric)</h2>
+<p><strong>Processing ID:</strong> <code>planx:arealinterpolation</code>
+&middot; <strong>Engine:</strong> <code>engine/interpolation.py</code>
+&middot; <strong>Group:</strong> Population and Housing (13)</p>
+
+<h3>Overview</h3>
+<p>Moves counts and rates from one set of polygons to another that does not
+line up with it — census tracts to planning zones, neighbourhoods to school
+catchments, any zones to a hexagon grid. Counts (population, jobs, dwellings)
+are split by the area each source shares with each target, so totals are
+preserved; rates (densities, shares, averages) are averaged over the covered
+part of each target, so they are never split. With an ancillary layer —
+residential land, building footprints — the weights become the ancillary area
+inside each piece instead, the dasymetric refinement that puts people where
+they can live.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>Goodchild and Lam (1980) framed areal interpolation as a problem in its own
+right and set out the area-weighting method with its defining property: the
+volume of each source is preserved. Tobler (1979) proposed the pycnophylactic
+alternative, a smooth surface that also preserves each source's volume; it is
+not implemented here. Mennis (2003) showed how much an ancillary land-cover
+layer improves the estimate by excluding parts of a source where the variable
+cannot occur, and binary dasymetric mapping — the variable lives only on the
+mask — is the form this tool applies.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Homogeneity.</strong> Area weighting assumes a count is spread
+evenly over its source; dasymetric weighting assumes it is spread evenly over
+the source's ancillary land. That assumption is the method's error.</li>
+<li><strong>Counts are extensive, rates intensive.</strong> The user decides
+which field is which: a density interpolated as a count would be split by area
+and come out wrong by the covered share.</li>
+<li><strong>Uncovered parts.</strong> A target partly outside every source gets
+the counts of its covered part only; <code>cover_share</code> says how much is
+covered, and its rates describe that part.</li>
+<li><strong>Fallback.</strong> A source with no ancillary land at all is spread
+by plain area rather than losing its count, and is counted in the log.</li>
+<li><strong>Ground areas</strong> from the target layer's CRS and ellipsoid;
+invalid geometries are repaired before intersection.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> before Trip Generation, Housing Needs or Facility
+Adequacy whenever the data arrive on zones the plan does not use.</li>
+<li><strong>Do not use it</strong> to disaggregate below the scale of the
+ancillary data: interpolating a tract onto individual parcels without building
+or dwelling data invents precision the source never had.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>For source $s$ with area $A_s$ and value $v_s$, target $t$ and their
+shared area $A_{st}$:</p>
+<div class="eq">
+$$\hat{v}^{ext}_t = \sum_s v_s \frac{A_{st}}{A_s}, \qquad \hat{v}^{int}_t = \frac{\sum_s v_s\, A_{st}}{\sum_s A_{st}} \tag{1}$$
+</div>
+<p>With an ancillary mask $M$ the areas are replaced by mask areas,
+$A_{st} \to |s \cap t \cap M|$ and $A_s \to |s \cap M|$, for every source with
+$|s \cap M| \gt 0$. The extensive estimates preserve volume:</p>
+<div class="eq">
+$$\sum_t \hat{v}^{ext}_t = \sum_s v_s\, \frac{\sum_t A_{st}}{A_s} \tag{2}$$
+</div>
+<p>which equals $\sum_s v_s$ when the targets cover every source. The tool
+prints both sides of (2), or of its dasymetric form, for every count field.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Source zones</td><td>Polygons</td><td>Yes</td><td>The data, as numeric fields.</td></tr>
+<tr><td>Target zones</td><td>Polygons</td><td>Yes</td><td>Projected CRS; the output keeps their fields.</td></tr>
+<tr><td>Ancillary mask</td><td>Polygons</td><td>No</td><td>Residential land, buildings — where the counted variable can be.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>SOURCE</code>, <code>TARGET</code></td><td>Vector (Polygon)</td><td>—</td><td>From and to.</td></tr>
+<tr><td><code>EXTENSIVE</code></td><td>Fields</td><td>—</td><td>Counts, split by area (Equation 1, left).</td></tr>
+<tr><td><code>INTENSIVE</code></td><td>Fields</td><td>—</td><td>Rates, area-weighted mean (Equation 1, right). At least one field overall.</td></tr>
+<tr><td><code>ANCILLARY</code></td><td>Vector (Polygon)</td><td>optional</td><td>Dasymetric mask.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector (Polygon)</td><td>—</td><td>Targets with estimates.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>&lt;field&gt;_est</code></td><td>Double</td><td>Estimate for each interpolated field; empty for a rate on an uncovered target</td></tr>
+<tr><td><code>cover_share</code></td><td>Double</td><td>Share of the target's area covered by sources (default renderer)</td></tr>
+<tr><td><code>n_sources</code></td><td>Integer</td><td>Source zones contributing</td></tr>
+</table>
+
+<h3>Symbolic Representation</h3>
+<p>Map a count estimate as a density (divide by area) rather than as a raw
+count, so large targets do not dominate; outline targets with
+<code>cover_share</code> below 0.95 to flag understated counts.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong>Check the log's mass balance</strong> first: the two totals agree
+unless a geometry was broken.</li>
+<li><strong>Compare area-weighted and dasymetric runs</strong>: where they
+differ most is where the homogeneity assumption was doing the most damage.</li>
+<li><strong><code>n_sources</code> of 1</strong> means the target simply
+inherits a share of one source; many sources mean the estimate is a blend, and
+its error is the mix of their errors.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Goodchild, M.F. &amp; Lam, N.S.-N. (1980). "Areal interpolation:
+a variant of the traditional spatial problem." <em>Geo-Processing</em>, 1,
+297–312.
+</p>
+<p class="ref">Mennis, J. (2003). "Generating Surface Models of Population
+Using Dasymetric Mapping." <em>The Professional Geographer</em>, 55(1),
+31–42.
+DOI: <a href="https://doi.org/10.1111/0033-0124.10042">10.1111/0033-0124.10042</a>
+</p>
+<p class="ref">Tobler, W.R. (1979). "Smooth Pycnophylactic Interpolation for
+Geographical Regions." <em>Journal of the American Statistical
+Association</em>, 74(367), 519–530.
+DOI: <a href="https://doi.org/10.1080/01621459.1979.10481647">10.1080/01621459.1979.10481647</a>
+</p>
 
 <div class="page-break"></div>
 
@@ -14487,7 +14619,8 @@ splitting the total flow into mode-specific shares based on travel time
 differences and alternative-specific constants. Traffic Assignment closes the
 chain: it loads the OD table onto the network and solves Wardrop's user
 equilibrium with BPR volume-delay functions, reporting the relative gap of
-every iteration.</p>
+every iteration. Jobs-Housing Balance reads the land-use side of the same
+question: whether jobs and workers are in the same commute sheds.</p>
 
 <p>These are <strong>aggregate, zone-based models</strong> — they predict trips
 between zones, not individual traveller choices. They are "screening-quality"
@@ -15678,6 +15811,130 @@ Englewood Cliffs, NJ.
 research." <em>Proceedings of the Institution of Civil Engineers</em>, 1(3),
 325–362.
 DOI: <a href="https://doi.org/10.1680/ipeds.1952.11259">10.1680/ipeds.1952.11259</a>
+</p>
+
+<div class="page-break"></div>
+<h2 id="jobshousing">Jobs-Housing Balance</h2>
+<p><strong>Processing ID:</strong> <code>planx:jobshousing</code>
+&middot; <strong>Engine:</strong> <code>engine/jobshousing.py</code>
+&middot; <strong>Group:</strong> Travel Demand (18)</p>
+
+<h3>Overview</h3>
+<p>Asks whether jobs and the workers who could fill them are in the same
+places — the land-use side of commuting. For every zone it reports the local
+ratio of jobs to resident workers and the <strong>commute-shed</strong> ratio:
+jobs over workers in every zone within a network travel budget, which is the
+balance a resident actually experiences and depends far less on where the zone
+boundaries fall. Both come with a balance index between 0 and 1, and the log
+adds the area-wide ratio and Duncan's index of dissimilarity between the two
+distributions.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>Cervero (1989) made the case that suburban job growth without housing
+nearby lengthened commutes regardless of the transport network, and revisited
+it with Bay Area evidence (Cervero 1996): balance is associated with shorter
+commutes, but workers do not simply take the nearest job. Giuliano (1991)
+argued the opposite emphasis — that balance is a weak lever on travel — which
+is why this tool reports balance as a condition to be read, not a forecast of
+commute length. Duncan and Duncan (1955) gave the dissimilarity index used for
+the area-wide summary, here applied to jobs and workers rather than to two
+population groups.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Workers</strong> are the workers field times the worker ratio — a
+residents or dwellings field converts with it.</li>
+<li><strong>The commute shed</strong> of a zone is every zone whose network node
+lies within the travel budget of its own, the zone itself included; travel time
+is a cost field in minutes or ground length over the speed.</li>
+<li><strong>Jobs and workers are interchangeable within the shed</strong>: no
+skills match, no wage match, no two-worker households.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> to locate dormitory areas and job centres, and to
+compare plans by how far they bring jobs and homes together.</li>
+<li><strong>Do not use it</strong> as a commute forecast — use the four-step
+chain (Gravity Distribution and Traffic Assignment) for flows.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>With jobs $J_i$ and workers $W_i$ in zone $i$, and $R(i)$ the zones within
+the budget of $i$:</p>
+<div class="eq">
+$$JHR_i = \frac{J_i}{W_i}, \qquad J^{shed}_i = \sum_{k \in R(i)} J_k, \qquad W^{shed}_i = \sum_{k \in R(i)} W_k \tag{1}$$
+</div>
+<div class="eq">
+$$B = 1 - \frac{|J - W|}{J + W} \in [0, 1], \qquad D = \frac{1}{2} \sum_i \left| \frac{J_i}{\sum_k J_k} - \frac{W_i}{\sum_k W_k} \right| \tag{2}$$
+</div>
+<p>$B$ is computed on both the local and the shed totals; $D$ is the share of
+jobs (equivalently of workers) that would have to move zone for the two
+distributions to coincide.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Zones</td><td>Points or polygons</td><td>Yes</td><td>Jobs and workers (or residents, dwellings) fields.</td></tr>
+<tr><td>Street network</td><td>Vector lines</td><td>Yes</td><td>Projected CRS; optional travel-time field in minutes.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>ZONES</code>, <code>JOBS_FIELD</code>, <code>WORKERS_FIELD</code></td><td>Vector, Fields</td><td>—</td><td>The zone table.</td></tr>
+<tr><td><code>WORKER_RATIO</code></td><td>Double</td><td>1.0</td><td>Workers per unit of the workers field.</td></tr>
+<tr><td><code>NETWORK</code>, <code>COST_FIELD</code></td><td>Vector, Field</td><td>—</td><td>Network and optional time field.</td></tr>
+<tr><td><code>SPEED</code></td><td>Double</td><td>20 km/h</td><td>Commute speed when no time field is given.</td></tr>
+<tr><td><code>BUDGET</code></td><td>Double</td><td>30 min</td><td>Commute-shed travel budget.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector</td><td>—</td><td>Zones with the balance fields.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>jh_jobs</code>, <code>jh_workers</code></td><td>Double</td><td>Jobs and workers used (after the worker ratio)</td></tr>
+<tr><td><code>jhr_local</code>, <code>bal_local</code></td><td>Double</td><td>Local ratio and balance index</td></tr>
+<tr><td><code>jobs_shed</code>, <code>workers_shed</code></td><td>Double</td><td>Totals within the commute shed</td></tr>
+<tr><td><code>jhr_shed</code>, <code>bal_shed</code></td><td>Double</td><td>Shed ratio and balance index (default renderer)</td></tr>
+</table>
+
+<h3>Symbolic Representation</h3>
+<p>Map <code>jhr_shed</code> on a diverging ramp centred on the area-wide ratio
+the log prints — job centres one colour, dormitory areas the other — and
+<code>bal_shed</code> on a sequential ramp.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong>Read ratios against the area-wide ratio</strong>, not against 1:
+a region with fewer jobs than workers overall cannot be balanced everywhere.</li>
+<li><strong>Unbalanced locally, balanced in the shed</strong> is normal at
+neighbourhood scale; unbalanced at both is where mixed-use change would
+shorten commutes.</li>
+<li><strong>Dissimilarity</strong> is the one-number comparison between plans:
+lower is closer.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Cervero, R. (1989). "Jobs-Housing Balancing and Regional
+Mobility." <em>Journal of the American Planning Association</em>, 55(2),
+136–150.
+DOI: <a href="https://doi.org/10.1080/01944368908976014">10.1080/01944368908976014</a>
+</p>
+<p class="ref">Cervero, R. (1996). "Jobs-Housing Balance Revisited: Trends and
+Impacts in the San Francisco Bay Area." <em>Journal of the American Planning
+Association</em>, 62(4), 492–511.
+DOI: <a href="https://doi.org/10.1080/01944369608975714">10.1080/01944369608975714</a>
+</p>
+<p class="ref">Duncan, O.D. &amp; Duncan, B. (1955). "A Methodological
+Analysis of Segregation Indexes." <em>American Sociological Review</em>,
+20(2), 210–217.
+DOI: <a href="https://doi.org/10.2307/2088328">10.2307/2088328</a>
+</p>
+<p class="ref">Giuliano, G. (1991). "Is Jobs-Housing Balance a Transportation
+Issue?" <em>Transportation Research Record</em>, 1305, 305–312.
 </p>
 
 <div class="page-break"></div>
@@ -18692,7 +18949,7 @@ Available at: <a href="https://pubs.usgs.gov/of/1998/ofr-98-113/">pubs.usgs.gov/
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.21.0 &middot; 82 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
+  Covering PlanX v4.22.0 &middot; 84 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
 </p>
 
 

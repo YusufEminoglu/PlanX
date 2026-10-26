@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, accessibility, air, allocate, assignment, costdistance, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, landscape, landslide as lsl, liquefaction as liq, morphology,
+    HAS_SCIPY, accessibility, air, allocate, assignment, costdistance, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, interpolation, isochrone, jobshousing, landscape, landslide as lsl, liquefaction as liq, morphology,
     optimize, parking, paths, provenance, ptal, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
@@ -4048,6 +4048,53 @@ check("corridor: the least-cost path cost is the sum of the four half-cell steps
       close(_best, 6.0) and np.allclose(_corr, 0.0))
 check("least-cost path: traced back from the target, in travel order",
       costdistance.trace_path(_pa, 4) == [0, 1, 2, 3, 4])
+
+# --------------------------------------------------------------------------- #
+# Areal interpolation (engine/interpolation.py)
+# --------------------------------------------------------------------------- #
+_pairs = [(0, 0, 50.0), (0, 1, 50.0), (1, 1, 100.0)]
+_ext, _info = interpolation.interpolate(_pairs, [50.0, 30.0], 2, [100.0, 100.0])
+check("areal interpolation: a count splits by area - [25, 25 + 30]",
+      np.allclose(_ext, [25.0, 55.0]))
+check("areal interpolation: full coverage preserves the total exactly",
+      close(float(_ext.sum()), 80.0) and np.allclose(_info["covered_share"], [1.0, 1.0]))
+_int, _ = interpolation.interpolate(_pairs, [0.4, 0.2], 2, [100.0, 100.0], kind="intensive")
+check("areal interpolation: a rate is an area-weighted mean, not split - [0.4, 40/150]",
+      np.allclose(_int, [0.4, 40.0 / 150.0]))
+_part, _pinfo = interpolation.interpolate([(0, 0, 40.0)], [50.0], 1, [100.0])
+check("areal interpolation: partial cover keeps the covered share of the count",
+      close(float(_part[0]), 20.0) and close(float(_pinfo["covered_share"][0]), 0.4)
+      and close(interpolation.expected_total([50.0], _pinfo["covered_share"]), 20.0))
+_dasy, _dinfo = interpolation.interpolate(_pairs, [50.0, 30.0], 2, [100.0, 100.0],
+                                          weight_area=[0.0, 20.0, 0.0],
+                                          source_weight=[20.0, 0.0])
+check("dasymetric: all of source 0's residential land lies in target 1, so all 50 go there",
+      np.allclose(_dasy, [0.0, 80.0]))
+check("dasymetric: a source with no ancillary land falls back to area and is reported",
+      _dinfo["fallback"] == [1])
+_miss, _ = interpolation.interpolate(_pairs, [np.nan, 30.0], 2, [100.0, 100.0])
+check("areal interpolation: a missing source value is skipped, not read as zero",
+      np.allclose(_miss, [0.0, 30.0]))
+_emptyint, _ = interpolation.interpolate([], [0.3], 1, [10.0], kind="intensive")
+check("areal interpolation: a target no source covers has no rate (NaN), not 0",
+      bool(np.isnan(_emptyint[0])))
+
+# --------------------------------------------------------------------------- #
+# Jobs-housing balance (engine/jobshousing.py)
+# --------------------------------------------------------------------------- #
+check("jobs-housing: balance index 1 when equal, 0 when one side is absent, 0.5 at 3:1",
+      np.allclose(jobshousing.balance_index([10, 10, 30], [10, 0, 10]), [1.0, 0.0, 0.5]))
+check("jobs-housing: balance index is undefined with neither jobs nor workers",
+      bool(np.isnan(jobshousing.balance_index([0], [0])[0])))
+check("jobs-housing: ratio J/W, undefined with no workers",
+      np.allclose(jobshousing.ratio([30], [10]), [3.0]) and bool(np.isnan(jobshousing.ratio([5], [0])[0])))
+check("jobs-housing: Duncan dissimilarity 1 for complete separation, 0 for identical shares, 0.2 by hand",
+      close(jobshousing.dissimilarity([10, 0], [0, 10]), 1.0)
+      and close(jobshousing.dissimilarity([2, 2], [5, 5]), 0.0)
+      and close(jobshousing.dissimilarity([6, 4], [4, 6]), 0.2))
+_shed_j, _shed_w = jobshousing.commute_shed(np.array([[1, 1], [0, 1]], bool), [5, 7], [3, 4])
+check("jobs-housing: commute shed sums the zones in reach, its own included",
+      np.allclose(_shed_j, [12, 7]) and np.allclose(_shed_w, [7, 4]))
 
 # --------------------------------------------------------------------------- #
 def _failures():
