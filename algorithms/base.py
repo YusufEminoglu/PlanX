@@ -245,9 +245,7 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
             return
         colors = ("#e8f5e9", "#a5d6a7", "#fff59d", "#ffb74d", "#d32f2f")
         ranges = []
-        for index, color in enumerate(colors):
-            lo = values[int(index * (len(values) - 1) / len(colors))]
-            hi = values[int((index + 1) * (len(values) - 1) / len(colors))]
+        for lo, hi, color in PlanXAlgorithm._quantile_classes(values, colors):
             symbol = QgsSymbol.defaultSymbol(layer.geometryType())
             if symbol is None:
                 return
@@ -255,6 +253,33 @@ class PlanXAlgorithm(QgsProcessingAlgorithm):
             ranges.append(QgsRendererRange(lo, hi, symbol, f"{lo:.3g} – {hi:.3g}"))
         layer.setRenderer(QgsGraduatedSymbolRenderer(field_name, ranges))
         layer.triggerRepaint()
+
+    @staticmethod
+    def _quantile_classes(values, colors):
+        """Quantile class limits over sorted ``values``, one colour per class.
+
+        Equal-count positions on a column with many tied values - zeros on a
+        volume layer, a band index - repeat the same limit, and the renderer
+        then carried several identical ``0 - 0`` classes, each painting the
+        first matching range and leaving the legend with duplicate entries.
+        Repeated limits are merged here, so a column with three distinct
+        quantiles gets three classes, coloured from the ends of the ramp
+        inward so the lowest and highest classes keep the extreme colours.
+        """
+        n = len(colors)
+        limits = [values[int(index * (len(values) - 1) / n)] for index in range(n + 1)]
+        unique = []
+        for limit in limits:
+            if not unique or limit > unique[-1]:
+                unique.append(limit)
+        classes = len(unique) - 1
+        if classes < 1:
+            return []
+        if classes == 1:
+            picks = [n - 1]
+        else:
+            picks = [int(round(i * (n - 1) / (classes - 1))) for i in range(classes)]
+        return [(unique[i], unique[i + 1], colors[picks[i]]) for i in range(classes)]
 
     # ------------------------------------------------------------------ #
     # Geometry helpers

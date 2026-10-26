@@ -152,3 +152,171 @@ def edge_criticality(indptr, adj_node, adj_edge, adj_cost, num_nodes, num_edges,
         "n_pairs": int(n_pairs),
         "n_reachable": n_reachable,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Structural robustness: bridges, percolation and efficiency
+# --------------------------------------------------------------------------- #
+# Link criticality above answers "which link costs the most to lose for THIS
+# demand". The functions below answer the demand-free structural questions
+# that come before it: which links are the network's only connection between
+# two parts (bridges), how fast the network falls apart as links fail at
+# random or under attack (percolation), and how efficiently it carries
+# movement at all (global efficiency, Latora & Marchiori 2001).
+
+
+def _undirected_pairs(edge_from, edge_to):
+    """Edge endpoint arrays with self-loops flagged (they never connect)."""
+    edge_from = np.asarray(edge_from, dtype=np.int64)
+    edge_to = np.asarray(edge_to, dtype=np.int64)
+    return edge_from, edge_to, edge_from == edge_to
+
+
+def bridges(num_nodes, edge_from, edge_to):
+    """Boolean per edge: True when removing it disconnects its two ends.
+
+    Tarjan's (1974) low-link test on the undirected multigraph, iteratively
+    (a recursive DFS overflows Python's stack on a long street). Parallel
+    edges are handled by remembering the *edge* the DFS arrived on rather
+    than the parent node, so a doubled street is correctly not a bridge.
+    """
+    edge_from, edge_to, loop = _undirected_pairs(edge_from, edge_to)
+    m = len(edge_from)
+    adj = [[] for _ in range(num_nodes)]
+    for e in range(m):
+        if loop[e]:
+            continue
+        adj[edge_from[e]].append((edge_to[e], e))
+        adj[edge_to[e]].append((edge_from[e], e))
+    disc = np.full(num_nodes, -1, dtype=np.int64)
+    low = np.zeros(num_nodes, dtype=np.int64)
+    is_bridge = np.zeros(m, dtype=bool)
+    timer = 0
+    for root in range(num_nodes):
+        if disc[root] >= 0:
+            continue
+        disc[root] = low[root] = timer
+        timer += 1
+        stack = [(root, -1, 0)]
+        while stack:
+            u, in_edge, i = stack[-1]
+            if i < len(adj[u]):
+                stack[-1] = (u, in_edge, i + 1)
+                v, e = adj[u][i]
+                if e == in_edge:
+                    continue
+                if disc[v] < 0:
+                    disc[v] = low[v] = timer
+                    timer += 1
+                    stack.append((v, e, 0))
+                else:
+                    low[u] = min(low[u], disc[v])
+            else:
+                stack.pop()
+                if stack:
+                    p = stack[-1][0]
+                    low[p] = min(low[p], low[u])
+                    if low[u] > disc[p]:
+                        is_bridge[in_edge] = True
+    return is_bridge
+
+
+class _DisjointSet:
+    __slots__ = ("parent", "size", "largest")
+
+    def __init__(self, n):
+        self.parent = np.arange(n, dtype=np.int64)
+        self.size = np.ones(n, dtype=np.int64)
+        self.largest = 1 if n else 0
+
+    def find(self, x):
+        parent = self.parent
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != root:
+            parent[x], x = root, parent[x]
+        return root
+
+    def union(self, a, b):
+        ra, rb = self.find(a), self.find(b)
+        if ra == rb:
+            return
+        if self.size[ra] < self.size[rb]:
+            ra, rb = rb, ra
+        self.parent[rb] = ra
+        self.size[ra] += self.size[rb]
+        if self.size[ra] > self.largest:
+            self.largest = int(self.size[ra])
+
+
+def giant_component_curve(num_nodes, edge_from, edge_to, removal_order):
+    """Largest-component share after removing the first k edges of an order.
+
+    Returns an array ``g`` of length ``E + 1``: ``g[k]`` is the share of nodes
+    in the largest connected component once the first ``k`` edges of
+    ``removal_order`` are gone. Computed in reverse - start empty and add the
+    edges back last-removed first - so one union-find pass gives the whole
+    curve in near-linear time instead of one component search per step.
+    """
+    edge_from, edge_to, loop = _undirected_pairs(edge_from, edge_to)
+    order = np.asarray(removal_order, dtype=np.int64)
+    m = len(order)
+    out = np.zeros(m + 1, dtype=np.float64)
+    if num_nodes == 0:
+        return out
+    ds = _DisjointSet(num_nodes)
+    out[m] = ds.largest / num_nodes
+    for k in range(m - 1, -1, -1):
+        e = order[k]
+        if not loop[e]:
+            ds.union(int(edge_from[e]), int(edge_to[e]))
+        out[k] = ds.largest / num_nodes
+    return out
+
+
+def robustness_index(curve):
+    """Schneider et al. (2011) R: the mean largest-component share over the
+    removal sequence (excluding the intact state). 0.5 is the ceiling a
+    simple path approaches; a well-meshed grid holds R well above that
+    against random failure and falls toward it under targeted attack."""
+    curve = np.asarray(curve, dtype=np.float64)
+    if len(curve) < 2:
+        return 0.0
+    return float(curve[1:].mean())
+
+
+def critical_fraction(curve, threshold=0.5):
+    """Smallest removed-edge share at which the largest component falls
+    below ``threshold`` of the nodes (1.0 if it never does)."""
+    curve = np.asarray(curve, dtype=np.float64)
+    m = len(curve) - 1
+    below = np.nonzero(curve < threshold)[0]
+    if not len(below) or m <= 0:
+        return 1.0
+    return float(below[0]) / m
+
+
+def global_efficiency(indptr, adj, weights, n, sources=None, cancel=None):
+    """Latora & Marchiori (2001) global efficiency, weighted by cost.
+
+    ``E = 1 / (n (n - 1)) * sum_{i != j} 1 / d_ij`` with unreachable pairs
+    contributing zero - which is what makes it usable on a fragmented
+    network where average path length is undefined. With ``sources`` a
+    seeded subset is used and the mean is taken over those rows only.
+    Returns the efficiency in inverse cost units (1/m for a length graph).
+    """
+    from . import paths
+    if n < 2:
+        return 0.0
+    src = np.arange(n) if sources is None else np.asarray(sources, dtype=np.int64)
+    total = 0.0
+    for chunk_start in range(0, len(src), 256):
+        if cancel is not None and cancel():
+            break
+        chunk = src[chunk_start:chunk_start + 256]
+        dist = paths.many_to_many(indptr, adj, weights, n, chunk)
+        with np.errstate(divide="ignore"):
+            inv = np.where(np.isfinite(dist) & (dist > 0), 1.0 / dist, 0.0)
+        total += float(inv.sum())
+    return total / (len(src) * (n - 1))

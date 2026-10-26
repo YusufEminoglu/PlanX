@@ -69,7 +69,13 @@ class SpaceSyntaxAlgorithm(PlanXAlgorithm):
             "only locally = a neighbourhood centre.\n"
             "- NC / TD / MD are diagnostics: MD is the mean angular depth "
             "of the catchment (low = straight, continuous routes), NC is "
-            "how much network the radius actually reaches.\n\n"
+            "how much network the radius actually reaches.\n"
+            "- The log closes with two whole-map summaries: intelligibility "
+            "(r2 of connectivity against the widest-radius NAIN - can a "
+            "walker read the whole from what is in sight?) and synergy (r2 "
+            "of the smallest against the widest radius - do local centres "
+            "sit on the city's through routes?). Computed on segments, so "
+            "not comparable with axial-map values in older papers.\n\n"
             "Using the results: style NACH and NAIN with quantile classes "
             "and read the top 5-10% as the structure. Rules of thumb from "
             "the Hillier, Yang and Turner 50-city study: city mean NACH "
@@ -142,6 +148,23 @@ class SpaceSyntaxAlgorithm(PlanXAlgorithm):
                           float(res["choice"][s]), float(res["nach"][s])]
             f.setAttributes(attrs)
             sink.addFeature(f, QgsFeatureSink.Flag.FastInsert)
+
+        if len(results) == len(radii):
+            summary = syntax.intelligibility_synergy(
+                seg_graph.connectivity, {r: res["nain"] for r, res in zip(radii, results)})
+
+            def fmt(value):
+                return "undefined" if value is None else f"{value:.3f}"
+
+            feedback.pushInfo(self.tr(
+                f"Intelligibility (r2 of connectivity vs NAIN_"
+                f"{syntax.radius_label(summary['global_radius'])}): "
+                f"{fmt(summary['intelligibility'])}"))
+            if summary["synergy"] is not None or len(radii) > 1:
+                feedback.pushInfo(self.tr(
+                    f"Synergy (r2 of NAIN_{syntax.radius_label(summary['local_radius'])} vs "
+                    f"NAIN_{syntax.radius_label(summary['global_radius'])}): "
+                    f"{fmt(summary['synergy'])}"))
         return {self.OUTPUT: dest}
 
     def createInstance(self):

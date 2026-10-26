@@ -17,8 +17,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from planx.engine import (  # noqa: E402
-    HAS_SCIPY, air, allocate, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, landslide as lsl, liquefaction as liq, morphology,
-    optimize, parking, paths, provenance, report, robustness, scenario, seismic, solar,
+    HAS_SCIPY, accessibility, air, allocate, assignment, centrality, cycling, comfort, demand, demo, equity, gmpe, graphs, hydro, impact, isochrone, landslide as lsl, liquefaction as liq, morphology,
+    optimize, parking, paths, provenance, ptal, report, robustness, scenario, seismic, solar,
     standards, syntax, transit, uncertainty, walkability, weather,
 )
 
@@ -1704,6 +1704,34 @@ check("demand: gravity totals conserved to 1e-9",
 T_beta0, _, _ = demand.gravity(np.array([100.0, 200.0]), np.array([150.0, 150.0]), cost_grav, beta=0.0)
 check("demand: beta=0 gives cost-independent proportionality",
       T_beta0.tolist() == [[50.0, 50.0], [100.0, 100.0]])
+
+# Unreachable pairs exchange no trips, under either deterrence form. The
+# power form used to be fed a 1e9 stand-in cost, whose deterrence 1e9**-0.1
+# = 0.126 is far from zero.
+cost_cut = np.array([[1.0, 500.0, np.inf], [500.0, 1.0, np.inf], [np.inf, np.inf, 1.0]])
+for kind_cut in ("exp", "power"):
+    T_cut, _, _ = demand.gravity(np.array([100.0, 100.0, 50.0]), np.array([100.0, 100.0, 50.0]),
+                                 cost_cut, beta=0.1, kind=kind_cut, max_iter=500, tol=1e-10)
+    check(f"demand: {kind_cut} deterrence sends nothing across a disconnected pair",
+          float(T_cut[0, 2] + T_cut[1, 2] + T_cut[2, 0] + T_cut[2, 1]) == 0.0)
+check("demand: the stand-in large cost the old wrapper used was NOT negligible under power",
+      (1e9 ** -0.1) > 0.1)
+
+# Beta calibration to a target mean trip cost.
+cost_cal = np.array([[2.0, 6.0, 11.0], [6.0, 2.0, 7.0], [11.0, 7.0, 2.0]])
+P_cal = np.array([300.0, 200.0, 100.0])
+A_cal = np.array([150.0, 250.0, 200.0])
+beta_cal, mean_cal, _, ok_cal = demand.calibrate_beta(P_cal, A_cal, cost_cal, 7.0, "exp",
+                                                      max_iter=500, tol=1e-10)
+T_cal, _, _ = demand.gravity(P_cal, A_cal, cost_cal, beta_cal, "exp", 500, 1e-10)
+check(f"demand: calibrated beta {beta_cal:.5f} reproduces a 7.0 mean interzonal cost",
+      ok_cal and abs(demand.mean_trip_cost(T_cal, cost_cal) - 7.0) < 1e-4)
+_, mean_bad, _, ok_bad = demand.calibrate_beta(P_cal, A_cal, cost_cal, 50.0, "exp")
+check("demand: an unreachable target mean is reported infeasible, not faked",
+      (not ok_bad) and mean_bad < 50.0)
+check("demand: mean trip cost leaves the diagonal out",
+      close(demand.mean_trip_cost(np.array([[5.0, 1.0], [1.0, 5.0]]),
+                                  np.array([[0.0, 4.0], [4.0, 0.0]])), 4.0))
 
 # Logit mode split
 times_split = [np.array([[15.0]]), np.array([[25.0]])]
@@ -3698,6 +3726,237 @@ check("weak component count: the SciPy path and the pure walk agree",
       graphs.weak_component_count(culdesac) == graphs.weak_components(culdesac)[1] == 1
       and graphs.weak_component_count(solo) == 1
       and graphs.weak_component_count(loop_only) == 1)
+
+# --------------------------------------------------------------------------- #
+# Space syntax whole-map summaries
+# --------------------------------------------------------------------------- #
+_conn = np.array([1.0, 2.0, 3.0, 4.0])
+_glob = np.array([2.0, 4.0, 6.0, 8.0])
+_loc = np.array([4.0, 3.0, 2.0, 1.0])
+_ints = syntax.intelligibility_synergy(_conn, {400.0: _loc, None: _glob})
+check("intelligibility: connectivity exactly linear in global NAIN -> r2 = 1",
+      close(_ints["intelligibility"], 1.0))
+check("synergy: a perfectly inverse local ranking is still r2 = 1 (r = -1)",
+      close(_ints["synergy"], 1.0) and _ints["local_radius"] == 400.0
+      and _ints["global_radius"] is None)
+_ints2 = syntax.intelligibility_synergy(np.array([1.0, 2.0, 3.0, 4.0]),
+                                        {800.0: np.array([1.0, 3.0, 2.0, 4.0])})
+check("intelligibility on one radius, the widest finite one, hand value 0.64",
+      close(_ints2["intelligibility"], 0.64) and _ints2["synergy"] is None)
+check("intelligibility is undefined, not zero, on a constant column",
+      syntax.intelligibility_synergy(np.ones(4), {None: _glob})["intelligibility"] is None)
+
+# --------------------------------------------------------------------------- #
+# Traffic assignment (engine/assignment.py)
+# --------------------------------------------------------------------------- #
+check("BPR: t(v = c) == 1.15 t0", close(float(assignment.bpr_time(10.0, 100.0, 100.0)), 11.5))
+_h = 1e-4
+_num = (float(assignment.bpr_integral(10.0, 150.0 + _h, 100.0))
+        - float(assignment.bpr_integral(10.0, 150.0 - _h, 100.0))) / (2 * _h)
+check("BPR integral: its derivative is the BPR time",
+      close(_num, float(assignment.bpr_time(10.0, 150.0, 100.0)), 1e-5))
+
+# Two routes O -> D: O-A-D (2 x 5 min) and O-B-D (2 x 7.5 min), each arc 100
+# veh/h, one-way in coordinate order. 300 veh/h from O to D.
+_two = [np.array([[0.0, 0.0], [1.0, 1.0]]), np.array([[1.0, 1.0], [2.0, 0.0]]),
+        np.array([[0.0, 0.0], [1.0, -1.0]]), np.array([[1.0, -1.0], [2.0, 0.0]])]
+_tg = graphs.build_node_graph(_two, costs=[5.0, 5.0, 7.5, 7.5], directions=[1, 1, 1, 1])
+_tnet = assignment.ArcNetwork(_tg.indptr, _tg.adj_node, _tg.num_nodes, _tg.adj_cost)
+_t0 = _tg.adj_cost.copy()
+_cap = np.full(_tnet.num_arcs, 100.0)
+_o = graphs.nearest_nodes(_tg, np.array([[0.0, 0.0]]))
+_d = graphs.nearest_nodes(_tg, np.array([[2.0, 0.0]]))
+_dem = np.array([[300.0]])
+_upper = np.array([_tg.node_xy[_tnet.arc_to[a], 1] > 0.5 or _tg.node_xy[_tnet.arc_from[a], 1] > 0.5
+                   for a in range(_tnet.num_arcs)])
+
+
+def _route1_flow(res):
+    arc = int(np.nonzero((_tnet.arc_from == _o[0]) & _upper)[0][0])
+    return float(res["volume"][arc])
+
+
+# The equilibrium split, by bisection on the route-time difference.
+_lo, _hi = 0.0, 300.0
+for _ in range(200):
+    _x = 0.5 * (_lo + _hi)
+    _diff = 10.0 * (1 + 0.15 * (_x / 100.0) ** 4) - 15.0 * (1 + 0.15 * ((300.0 - _x) / 100.0) ** 4)
+    if _diff > 0:
+        _hi = _x
+    else:
+        _lo = _x
+_x_star = 0.5 * (_lo + _hi)
+
+_aon = assignment.equilibrium(_tnet, _t0, _cap, _o, _d, _dem, method="aon")
+check("AON: all 300 veh/h on the free-flow shortest route", close(_route1_flow(_aon), 300.0))
+_fw = assignment.equilibrium(_tnet, _t0, _cap, _o, _d, _dem, method="fw",
+                             max_iter=200, gap_tol=1e-9)
+check(f"Frank-Wolfe: route-1 flow {_route1_flow(_fw):.3f} == Wardrop split {_x_star:.3f}",
+      abs(_route1_flow(_fw) - _x_star) < 0.05)
+_t_r1 = float(_fw["time"][_upper].sum())
+_t_r2 = float(_fw["time"][~_upper].sum())
+check(f"Frank-Wolfe: route times {_t_r1:.4f} == {_t_r2:.4f} (first principle)",
+      abs(_t_r1 - _t_r2) < 1e-3)
+_gaps = [h["gap"] for h in _fw["history"]]
+check("Frank-Wolfe: the reported relative gap falls from its first value",
+      _gaps[-1] < _gaps[0] and all(gp >= 0 for gp in _gaps))
+_obj = [h["objective"] for h in _fw["history"]]
+check("Frank-Wolfe: Beckmann objective never increases",
+      all(_obj[i + 1] <= _obj[i] + 1e-9 for i in range(len(_obj) - 1)))
+_cfw = assignment.equilibrium(_tnet, _t0, _cap, _o, _d, _dem, method="cfw",
+                              max_iter=200, gap_tol=1e-9)
+check(f"Conjugate FW: route-1 flow {_route1_flow(_cfw):.3f} == Wardrop split",
+      abs(_route1_flow(_cfw) - _x_star) < 0.05)
+_h_num = (float(assignment.bpr_time(10.0, 150.0 + _h, 100.0))
+          - float(assignment.bpr_time(10.0, 150.0 - _h, 100.0))) / (2 * _h)
+check("BPR slope: the analytic derivative matches the numeric one",
+      close(float(assignment.bpr_slope(10.0, 150.0, 100.0)), _h_num, 1e-6))
+# A congested 6x6 grid, every node sending to every other: CFW must reach a
+# smaller gap than plain FW in the same number of iterations.
+_grid6 = []
+for _i in range(6):
+    for _j in range(6):
+        if _i < 5:
+            _grid6.append(np.array([[_i, _j], [_i + 1, _j]], dtype=float))
+        if _j < 5:
+            _grid6.append(np.array([[_i, _j], [_i, _j + 1]], dtype=float))
+_g6 = graphs.build_node_graph(_grid6, costs=np.linspace(1.0, 2.0, len(_grid6)))
+_n6 = assignment.ArcNetwork(_g6.indptr, _g6.adj_node, _g6.num_nodes, _g6.adj_cost)
+_z6 = np.arange(_g6.num_nodes)
+_d6 = np.full((len(_z6), len(_z6)), 4.0)
+np.fill_diagonal(_d6, 0.0)
+_cap6 = np.full(_n6.num_arcs, 60.0)
+_fw6 = assignment.equilibrium(_n6, _g6.adj_cost, _cap6, _z6, _z6, _d6, method="fw",
+                              max_iter=30, gap_tol=1e-12)
+_cfw6 = assignment.equilibrium(_n6, _g6.adj_cost, _cap6, _z6, _z6, _d6, method="cfw",
+                               max_iter=30, gap_tol=1e-12)
+_g_fw, _g_cfw = _fw6["history"][-1]["gap"], _cfw6["history"][-1]["gap"]
+check(f"Conjugate FW: gap {_g_cfw:.2e} below plain FW {_g_fw:.2e} after 30 iterations",
+      _g_cfw < _g_fw)
+check("Conjugate FW: Beckmann objective never increases",
+      all(b["objective"] <= a["objective"] + 1e-9
+          for a, b in zip(_cfw6["history"][:-1], _cfw6["history"][1:])))
+_msa = assignment.equilibrium(_tnet, _t0, _cap, _o, _d, _dem, method="msa",
+                              max_iter=400, gap_tol=1e-12)
+check(f"MSA: route-1 flow {_route1_flow(_msa):.2f} within 1 percent of the split",
+      abs(_route1_flow(_msa) - _x_star) < 3.0)
+check("assignment conserves demand: flow out of the origin == 300",
+      close(float(_fw["volume"][_tnet.arc_from == _o[0]].sum()), 300.0, 1e-6))
+_fw_pure = assignment.equilibrium(_tnet, _t0, _cap, _o, _d, _dem, method="fw",
+                                  max_iter=200, gap_tol=1e-9, use_scipy=False)
+check("assignment: SciPy and pure-Python routing give identical volumes",
+      np.allclose(_fw_pure["volume"], _fw["volume"], atol=1e-9))
+_mixed = assignment.all_or_nothing(_tnet, _t0, np.array([_o[0], _d[0], _o[0]]),
+                                   np.array([_d[0], _o[0], _o[0]]),
+                                   np.diag([10.0, 7.0, 4.0]))
+check("AON: demand against one-way arrows is unreachable, not assigned",
+      close(_mixed["unreachable"], 7.0))
+check("AON: an origin and destination on the same node is intrazonal",
+      close(_mixed["intrazonal"], 4.0) and close(float(_mixed["volume"].sum()), 20.0))
+_dup = graphs.build_node_graph(_two + [np.array([[0.0, 0.0], [1.0, 1.0]])],
+                               costs=[5.0, 5.0, 7.5, 7.5, 9.0], directions=[1, 1, 1, 1, 1])
+_dnet = assignment.ArcNetwork(_dup.indptr, _dup.adj_node, _dup.num_nodes, _dup.adj_cost)
+check("ArcNetwork: a dearer parallel arc is collapsed out of routing",
+      _dnet.parallel == 1 and len(_dnet.route_arc) == 4)
+check("LOS bands: 0.6 -> A, 0.95 -> E, 1.2 -> F",
+      assignment.level_of_service(0.6) == "A" and assignment.level_of_service(0.95) == "E"
+      and assignment.level_of_service(1.2) == "F")
+_refused = False
+try:
+    assignment.equilibrium(_tnet, _t0, np.zeros(_tnet.num_arcs), _o, _d, _dem)
+except ValueError:
+    _refused = True
+check("assignment refuses a zero capacity instead of dividing by it", _refused)
+
+# --------------------------------------------------------------------------- #
+# Accessibility (engine/accessibility.py)
+# --------------------------------------------------------------------------- #
+_c = np.array([0.0, 5.0, 10.0, 10.01, np.inf])
+check("decay cumulative: 1 up to the cutoff, 0 beyond and when unreachable",
+      np.allclose(accessibility.decay(_c, "cumulative", 0, 10.0), [1, 1, 1, 0, 0]))
+check("decay linear: 0.5 at half the cutoff",
+      close(float(accessibility.decay(5.0, "linear", 0, 10.0)), 0.5))
+check("decay exponential: exp(-1) at c = 1/beta",
+      close(float(accessibility.decay(10.0, "exponential", 0.1, 30.0)), math.exp(-1.0)))
+check("decay gaussian: exp(-1/2) at c = sigma",
+      close(float(accessibility.decay(5.0, "gaussian", 5.0, 30.0)), math.exp(-0.5)))
+check("decay power: c below a minute reads as 1, c = 2 -> 2^-2",
+      close(float(accessibility.decay(0.5, "power", 2.0, 30.0)), 1.0)
+      and close(float(accessibility.decay(2.0, "power", 2.0, 30.0)), 0.25))
+check("decay logistic: exactly 0.5 at its half-weight time",
+      close(float(accessibility.decay(8.0, "logistic", 8.0, 30.0)), 0.5))
+check("decay: every kind is 0 beyond the cutoff",
+      all(float(accessibility.decay(31.0, k, 5.0, 30.0)) == 0.0 for k in accessibility.DECAY_KINDS))
+check("half-weight time: exponential beta 0.1 -> ln2/0.1",
+      close(accessibility.half_weight_time("exponential", 0.1, 30.0), math.log(2) / 0.1))
+_cost = np.array([[2.0, 3.0], [4.0, np.inf]])     # 2 facilities x 2 origins
+_A, _R = accessibility.two_step_fca(_cost, [4.0, 2.0], [100.0, 300.0], "cumulative", 0, 10.0)
+check("2SFCA: R = [4/400, 2/100]", np.allclose(_R, [0.01, 0.02]))
+check("2SFCA: A = [0.03, 0.01]", np.allclose(_A, [0.03, 0.01]))
+check("2SFCA conserves supply: sum P_i A_i == total supply",
+      close(float(np.dot([100.0, 300.0], _A)), 6.0))
+check("Hansen cumulative: [6, 4] opportunities",
+      np.allclose(accessibility.hansen(_cost, [4.0, 2.0], "cumulative", 0, 10.0), [6.0, 4.0]))
+_acc = accessibility.AccessAccumulator(2, [100.0, 300.0], "exponential", 0.1, 30.0)
+_acc.add_block(_cost[:1], [4.0])
+_acc.add_block(_cost[1:], [2.0])
+_whole_A, _ = accessibility.two_step_fca(_cost, [4.0, 2.0], [100.0, 300.0], "exponential", 0.1, 30.0)
+check("2SFCA: chunked accumulation == whole-matrix result", np.allclose(_acc.fca, _whole_A))
+check("accessibility: nearest opportunity time per origin", np.allclose(_acc.nearest, [2.0, 3.0]))
+
+# --------------------------------------------------------------------------- #
+# PTAL (engine/ptal.py)
+# --------------------------------------------------------------------------- #
+_routes = {0: {"b1": 12.0, "b2": 6.0}, 1: {"r1": 20.0}, 2: {"b3": 30.0}, 3: {"b1": 12.0}}
+_modes = {"b1": "bus", "b2": "bus", "r1": "rail", "b3": "bus"}
+_one = ptal.accessibility_index({0: 4.0}, {0: {"b1": 12.0}}, _modes)
+check("PTAL: one bus, 4 min walk, 12/h -> EDF 30/8.5", close(_one["ai"], 30.0 / 8.5))
+check("PTAL: that place is band 1b", ptal.band(_one["ai"]) == "1b")
+_full = ptal.accessibility_index({0: 4.0, 1: 10.0, 2: 9.0, 3: 6.0}, _routes, _modes)
+_expect = (30.0 / 8.5 + 0.5 * 30.0 / 11.0) + 30.0 / 12.25
+check(f"PTAL: bus max + half the rest, plus rail -> {_expect:.4f}", close(_full["ai"], _expect))
+check("PTAL: a bus stop at 9 min is outside the 8-min catchment, rail at 10 min inside",
+      _full["n_routes"] == 3 and "rail" in _full["ai_by_mode"])
+check("PTAL: a route is counted once, at its nearest stop", _full["n_saps"] == 2)
+check("PTAL bands: edges of 1a/1b, 6a/6b and 0",
+      ptal.band(0.0) == "0" and ptal.band(2.5) == "1a" and ptal.band(2.51) == "1b"
+      and ptal.band(40.0) == "6a" and ptal.band(40.01) == "6b" and ptal.band(12.0) == "3")
+check("PTAL: band ranks are ordinal", ptal.band_rank("6b") == 8 and ptal.band_rank("1b") == 2)
+check("PTAL: GTFS route types map to mode classes",
+      ptal.mode_class(3) == "bus" and ptal.mode_class(1) == "rail" and ptal.mode_class(0) == "tram"
+      and ptal.mode_class(109) == "rail" and ptal.mode_class(11) == "bus")
+_tram = ptal.accessibility_index({0: 4.0}, {0: {"t": 12.0}}, {"t": "tram"})
+check("PTAL: a tram gets the bus catchment but the rail reliability (0.75 min)",
+      close(_tram["ai"], 30.0 / (4.0 + 2.5 + 0.75)))
+_mini = {"trips": {"t1": ("R", "S"), "t2": ("R", "S"), "t3": ("R", "X")},
+         "stop_times": {"t1": [(29700, 29700, 0), (29800, 29800, 1)],
+                        "t2": [(30600, 30600, 0), (30700, 30700, 1)],
+                        "t3": [(29700, 29700, 0), (29800, 29800, 1)]}}
+_freq = ptal.route_frequencies(_mini, {"S"}, (29700, 33300))
+check("PTAL route frequencies: 2 departures in the hour, last call not counted, other service ignored",
+      close(_freq[0]["R"], 2.0) and 1 not in _freq)
+
+# --------------------------------------------------------------------------- #
+# Structural robustness (engine/robustness.py)
+# --------------------------------------------------------------------------- #
+check("bridges: every edge of a path is a bridge",
+      robustness.bridges(4, [0, 1, 2], [1, 2, 3]).tolist() == [True, True, True])
+check("bridges: a triangle has none, its tail is one",
+      robustness.bridges(4, [0, 1, 2, 2], [1, 2, 0, 3]).tolist() == [False, False, False, True])
+check("bridges: a doubled street is not a bridge",
+      robustness.bridges(2, [0, 0], [1, 1]).tolist() == [False, False])
+check("bridges: a self-loop is never a bridge",
+      robustness.bridges(2, [0, 1], [1, 1]).tolist() == [True, False])
+_curve = robustness.giant_component_curve(4, [0, 1, 2], [1, 2, 3], [1, 0, 2])
+check("giant component: path 0-1-2-3, remove middle first -> [1, .5, .5, .25]",
+      np.allclose(_curve, [1.0, 0.5, 0.5, 0.25]))
+check("robustness index R == mean of the curve after the intact state",
+      close(robustness.robustness_index(_curve), (0.5 + 0.5 + 0.25) / 3.0))
+check("critical fraction: below 0.6 after 1 of 3 removals, never below 0.5 until the end",
+      close(robustness.critical_fraction(_curve, 0.6), 1.0 / 3.0)
+      and close(robustness.critical_fraction(_curve, 0.5), 1.0))
+check("global efficiency: unit path of 3 nodes == 5/6",
+      close(robustness.global_efficiency(g.indptr, g.adj_node, g.adj_cost, g.num_nodes), 5.0 / 6.0))
 
 # --------------------------------------------------------------------------- #
 def _failures():

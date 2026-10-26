@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/github/v/tag/YusufEminoglu/PlanX?label=version&color=blue)](https://gitlab.com/geophilo1/planx/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](LICENSE)
 [![QGIS Plugin Hub](https://img.shields.io/badge/QGIS%20Hub-install-589632?logo=qgis&logoColor=white)](https://plugins.qgis.org/plugins/planx/)
-[![Documentation](https://img.shields.io/badge/📖_Reference_Manual-75_algorithms-13a0a0)](https://geophilo.com/planx/)
+[![Documentation](https://img.shields.io/badge/📖_Reference_Manual-80_algorithms-13a0a0)](https://geophilo.com/planx/)
 
 <img src="docs/hero.png" width="800" alt="PlanX in action"/>
 
@@ -34,11 +34,11 @@ validate against observed shares, and Annual Solar can calibrate clear-sky
 results with an EPW weather file. The Studio adds search, favorites, recents,
 active-layer filtering, presets, and guided workflows.
 
-Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives seventy-six Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
+Urban analysts usually need four or five separate tools — depthmapX for space syntax, a routing plugin for isochrones, momepy for morphology, UMEP for shadows, a server for OD matrices. PlanX embeds real implementations of all of them directly inside QGIS: a NumPy/SciPy analytics engine (with an identical pure-Python fallback) drives eighty Processing algorithms that run locally, batch cleanly, and chain in the model designer. It is the flagship of the 15-plugin PlanX ecosystem.
 
 ## 📖 Documentation
 
-**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 76 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (350 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (410 entries, 311 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
+**[Comprehensive Academic Reference Manual](https://geophilo.com/planx/)** — 80 algorithms, 19 tool groups, 1,000+ pages. Every algorithm documented with theoretical background, mathematical formulation (366 numbered display equations), complete parameter tables, output field descriptions, QGIS symbolization guidance, interpretation guides, and academic references (434 entries, 330 with DOIs). Hosted on Web Documentation with search, collapsible sidebar, dark mode, and per-algorithm deep links accessible directly from the QGIS Processing dialog (Help button) and the PlanX Studio dock.
 
 **[Practical Guide — applied workflows & screenshots](https://yusufeminoglu.github.io/PlanX/PRACTICAL_GUIDE/)** — the companion to the manual above: a **real 4-panel screenshot of every algorithm** (input data, parameters used, raw output, styled output), produced by running the PlanX engine headless in QGIS on **real open data for Utrecht, Netherlands** — OpenStreetMap, the Dutch BAG building register (32,812 buildings with build year), CBS neighbourhood and postcode statistics, the AHN national height model and the national GTFS feed. Each algorithm also gets a step-by-step workflow and interpretation notes.
 
@@ -47,6 +47,10 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Space syntax, embedded** — segment angular analysis (Hillier & Iida): integration, choice, **NACH/NAIN** at any metric radius. No depthmapX, no axial map.
 - **The full centrality family** — degree, closeness (Wasserman–Faust + harmonic), straightness, **eigenvector** and exact **Brandes betweenness** on junctions *and* street segments, radius-limited or sampled for big networks.
 - **Real network accessibility** — OD cost matrices with detour ratios, **exact service-area isochrones** (partial-edge trimming: reach ends mid-street, not at whole segments; street-buffer / concave-hull / convex-hull polygons, per-facility or merged) with straight-line **radius circles and the pedshed ratio** built in, nearest-facility allocation with load summaries and travel path geometries.
+- **The four-step model, end to end** — **Traffic Assignment** loads the Gravity Distribution OD table onto the street network and solves Wardrop's **user equilibrium** with BPR volume-delay functions: **conjugate Frank-Wolfe** (default), Frank-Wolfe, MSA or all-or-nothing, one-way streets honoured, capacity from a field or lanes × per-lane capacity. Every street gets volume per direction, v/c, a screening LOS letter, congested time and vehicle-hours of delay, and a convergence table reports the **relative gap** of every iteration instead of assuming convergence. Gravity Distribution can now **calibrate beta** to an observed mean trip cost.
+- **Accessibility as an instrument** — **Gravity Accessibility** counts opportunities, not just the nearest one: cumulative opportunities ("jobs within 30 minutes"), **Hansen** gravity potential and the **two-step floating catchment area** (E2SFCA) that shares each facility's capacity among everyone who can reach it — over a library of six decay functions (cumulative, linear, exponential, Gaussian, power, logistic), with the supply-conservation check printed after every run.
+- **PTAL** — Transport for London's **Public Transport Accessibility Level** (bands 0–6b) from any GTFS feed and your own street network: walk catchments per mode, the AM-peak window, reliability allowances, every route counted once at its nearest stop, with the index split by bus, tram and rail.
+- **Network robustness** — every **bridge** (a street whose loss alone splits the network), **percolation curves** under seeded random failure and a betweenness attack **recalculated after every batch**, the Schneider robustness index, and **global efficiency** with the share the most central links carry.
 - **Dead ends measured as streets, not points** — walks each cul-de-sac branch from the junction it leaves out to its turning head, so a dead-end street is one object you can measure, rank and map: branch length and depth in segments, the anchor junction, and a dead-end ratio by node count *and* by network length — the share of carriageway that only ever serves local traffic.
 - **15-minute city scores** — walking time to the nearest amenity of every category plus a 0–100 composite, straight from your own layers.
 - **Urban morphology** — momepy-style building form metrics, **morphological tessellation**, Spacematrix **GSI/FSI/OSR/L** with readable class labels, street orientation entropy & meshedness (Boeing).
@@ -65,12 +69,12 @@ Urban analysts usually need four or five separate tools — depthmapX for space 
 - **Environment screening** — a **road noise grid** (RLS-90-style emission, line-calibrated sampling, building screening, population exposure bands — screening, not compliance) and **green infrastructure**: park-hierarchy access on network distances and patch connectivity with per-patch dPC importance.
 - **Cycling** — **Cycling Stress (LTS)** classifies street segments from speed, lanes, AADT and cycling infrastructure, then **Low-Stress Connectivity** maps the LTS-filtered cycling islands and destination-reach population.
 - **Hazard screening** — **Flow Accumulation** (priority-flood fill, D8 flow, flow accumulation), **Height Above Nearest Drainage (HAND)**, **Inundation Mapping** and **Flood Exposure** (overlay with buildings and population to output exposed counts/shares and annotated receiver layers).
-- **Travel demand** — **Trip Generation** (zone productions/attractions from population/employment rates), **Gravity Distribution** (doubly constrained Furness/IPF zone-to-zone flow balancing with exponential/power deterrence over network costs) and **Mode Split** (multinomial logit shares and split flows for K modes).
+- **Travel demand** — **Trip Generation** (zone productions/attractions from population/employment rates), **Gravity Distribution** (doubly constrained Furness/IPF zone-to-zone flow balancing with exponential/power deterrence over network costs, optional beta calibration to an observed mean trip cost), **Mode Split** (multinomial logit shares and split flows for K modes) and **Traffic Assignment** (user equilibrium on the street network).
 - **Urban growth** — **land-cover change** transition matrices, a deterministic **CA growth simulation** (year-of-conversion raster from a suitability surface, land demand and never-build constraints) and **sprawl metrics** around the SDG 11.3.1 LCRPGR ratio.
 - **Batch Plan Auditor** — the whole battery in one run: access, walkability, balance, adequacy, green access and equity chained into a single scenario snapshot + report.
 - **LUTI-lite scenario pipeline** — **Scenario Pipeline** chains cellular-automaton growth, allocates population growth to new development, and evaluates accessibility/walkability changes as a comparable scenario snapshot.
-- **Interpretation built in** — every one of the seventy-six tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
-- **Verified math** — 755 engine unit checks against hand-computed values, plus a runtime matrix that executes every one of the 76 algorithms on real QGIS 3.44 LTR and on real QGIS 4.2 (83 cases, 0 failures on either). Methods and sources: [docs/METHODS.md](docs/METHODS.md).
+- **Interpretation built in** — every one of the eighty tools ends its help with a "How to read the results" section: what each output field means in planning terms, reference values where the literature has them, and what to do with the numbers next.
+- **Verified math** — 816 engine unit checks against hand-computed values, plus a runtime matrix that executes every one of the 80 algorithms on real QGIS 3.44 LTR and on real QGIS 4.2 (87 cases, 0 failures on either). Methods and sources: [docs/METHODS.md](docs/METHODS.md).
 - **PlanX Studio toolbar panel** — click the single PlanX toolbar icon to browse and launch the whole toolset, every tool with its own icon.
 
 ## 🚀 Installation
@@ -100,6 +104,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Network Analysis | Service Areas (Isochrones) | Exact trimmed isochrones (street buffer / concave / convex), straight-line circles + pedshed ratio |
 | Network Analysis | Nearest Facility Allocation | Demand→facility assignment + facility load summary and path routes |
 | Network Analysis | Link Criticality (Network Robustness) | Remove each segment over an OD demand → extra travel forced, demand severed, shortest-path usage; road-network vulnerability map |
+| Network Analysis | Network Robustness (Bridges and Percolation) | Bridges, percolation under random failure and recalculated betweenness attack, robustness index R, global efficiency and its loss |
 | Network Analysis | Dead-End Analysis | Cul-de-sac branches as whole streets: segment-level branch attribution, depth to the junction, dead-end ratios by node count and by network length |
 | Centrality & Space Syntax | Network Centrality | Degree, closeness, harmonic, straightness, eigenvector, Brandes betweenness (nodes + edges) |
 | Centrality & Space Syntax | Space Syntax (Segment Angular) | Angular integration & choice, NACH/NAIN per metric radius |
@@ -108,6 +113,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Urban Morphology | Spacematrix Density | GSI / FSI / OSR / L per block + Spacematrix class |
 | Urban Morphology | Street Network Morphology | Orientation entropy & order, meshedness, junction typology |
 | Accessibility | Multi-Amenity Access Score | 15-minute-city composite over any amenity layers |
+| Accessibility | Gravity Accessibility (Hansen and 2SFCA) | Cumulative opportunities, Hansen potential and E2SFCA supply per resident over six decay functions |
 | Microclimate | Shadow Casting (DSM) | Building/terrain shadows for any date & time, embedded sun position |
 | Microclimate | Sun Hours (DSM) | Hours of direct sun per cell over one day — right-to-light & sun audits |
 | Microclimate | Solar Irradiation (DSM) | Clear-sky daily kWh/m²: shadow-aware beam + SVF-weighted diffuse |
@@ -131,6 +137,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Transit | GTFS Import and Service Stats | Validated feed import: stops with departures/routes + route service summary |
 | Transit | Transit Frequency Map | Departures per hour, mean headway and route counts per stop for a time window |
 | Transit | Transit Travel-Time Access | Door-to-door walk+transit vs walk-only minutes per destination (RAPTOR, transfers) |
+| Transit | Public Transport Accessibility Level (PTAL) | TfL PTAL bands 0–6b from GTFS and the street network, index split by mode |
 | Visibility | Viewshed (DSM) | Line-of-sight sweep from observers: visibility count raster, heights + radius |
 | Visibility | Isovist Field | Benedikt isovist measures on a point grid: area, radials, circularity, occlusivity |
 | Visibility | Visual Exposure of Landmarks | Inverse viewshed of a landmark outline: who can see it, cell by cell |
@@ -154,6 +161,7 @@ Requires QGIS 3.22 or newer. No external Python dependencies.
 | Travel Demand | Trip Generation | Calculates production and attraction trip rates from population and jobs |
 | Travel Demand | Gravity Distribution | Computes doubly constrained zone-to-zone travel demand matrix over network costs |
 | Travel Demand | Mode Split | Splits OD flows into multiple mode shares and flows using a multinomial logit model |
+| Travel Demand | Traffic Assignment (User Equilibrium) | BPR volume-delay, conjugate Frank-Wolfe / Frank-Wolfe / MSA / AON, v/c, LOS, delay, relative gap per iteration |
 | Travel Demand | Parking Demand Estimator | Zone parking spaces from your own per-category rate table (dwelling unit / floor area / seat basis) |
 | Travel Demand | Parking Supply-Demand Balance | Demanded spaces vs the spaces actually in reach (radius or network) → surplus or deficit per zone |
 | Reporting & Dashboard | Batch Plan Auditor | One run chains the standard battery into a scenario snapshot + HTML report |

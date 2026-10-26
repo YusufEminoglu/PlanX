@@ -69,3 +69,52 @@ def segment_angular_analysis(seg_graph, radius=None, cancel=None, progress=None)
     nain = np.nan_to_num(nain, nan=0.0, posinf=0.0, neginf=0.0)
     return {"nc": nc, "td": td, "md": md, "nain": nain,
             "choice": choice, "nach": nach}
+
+
+def _r_squared(x, y):
+    """Squared Pearson correlation over the finite pairs, None when undefined."""
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    ok = np.isfinite(x) & np.isfinite(y)
+    if ok.sum() < 3:
+        return None
+    x, y = x[ok], y[ok]
+    if x.std() == 0.0 or y.std() == 0.0:
+        return None
+    r = float(np.corrcoef(x, y)[0, 1])
+    return r * r
+
+
+def intelligibility_synergy(connectivity, nain_by_radius):
+    """Hillier's two whole-map summaries of a segment analysis.
+
+    ``nain_by_radius`` maps a radius (None = global) to that radius's NAIN.
+
+    * **Intelligibility** (Hillier et al. 1987; Hillier 1996): r-squared of
+      connectivity against integration at the widest radius - how well what
+      a person sees from a segment (its immediate connections) predicts how
+      the segment sits in the whole. A legible grid scores high; a labyrinth
+      of similar-looking junctions scores low.
+    * **Synergy**: r-squared of local integration (the smallest radius)
+      against the widest - whether the local and the city-wide structure
+      agree, i.e. whether the neighbourhood centres lie on the city's
+      through routes.
+
+    Returns ``{"intelligibility": float|None, "synergy": float|None,
+    "global_radius": r, "local_radius": r}``; synergy is None with fewer than
+    two radii. Computed on segments, so the values are not comparable with
+    axial-map figures from the older literature.
+    """
+    if not nain_by_radius:
+        return {"intelligibility": None, "synergy": None,
+                "global_radius": None, "local_radius": None}
+    radii = list(nain_by_radius)
+    finite = sorted(r for r in radii if r is not None)
+    widest = None if None in radii else finite[-1]
+    smallest = finite[0] if finite else None
+    out = {"global_radius": widest, "local_radius": smallest,
+           "intelligibility": _r_squared(connectivity, nain_by_radius[widest]),
+           "synergy": None}
+    if len(radii) >= 2 and smallest is not None and smallest != widest:
+        out["synergy"] = _r_squared(nain_by_radius[smallest], nain_by_radius[widest])
+    return out

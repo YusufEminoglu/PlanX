@@ -1,5 +1,85 @@
 # Changelog
 
+## [4.20.0] - 2026-10-26
+
+### Added
+- **Traffic Assignment (`planx:trafficassignment`) - the four-step model, end
+  to end.** Gravity Distribution wrote an OD matrix that nothing consumed; this
+  tool loads it onto the street network and solves Wardrop's user equilibrium
+  with BPR volume-delay functions. Methods: conjugate Frank-Wolfe (default;
+  Mitradjieva & Lindberg 2013), Frank-Wolfe with an exact line search, MSA and
+  all-or-nothing. Directed arcs honour Prepare Network's one-way rules; free-flow
+  time comes from a time field or ground length over a speed, capacity from a
+  field or lanes per direction x capacity per lane, and a demand factor turns a
+  daily table into the assignment period. Every street gets `vol_ab`, `vol_ba`,
+  `vol_total`, capacity and v/c per direction, a screening LOS letter,
+  congested times and vehicle-hours of delay; a convergence table reports the
+  relative gap of every iteration, and a run that stops at the iteration limit
+  says it is not an equilibrium. Intrazonal and unreachable demand are reported,
+  never silently dropped.
+- **Gravity Accessibility (`planx:gravityaccess`)** - cumulative opportunities,
+  Hansen potential and the two-step floating catchment area (E2SFCA) over a
+  library of six decay functions, each cut to zero beyond a cutoff. One-way
+  rules are honoured in the origin-to-opportunity direction (searches run over
+  the reversed graph), and the 2SFCA supply-conservation identity is printed
+  after every run. Optional opportunities output with each facility's decayed
+  catchment population and supply ratio.
+- **Public Transport Accessibility Level (`planx:ptal`)** - Transport for
+  London's PTAL bands 0-6b from a GTFS feed and the street network: 8/12-minute
+  walk catchments, the 08:15-09:15 window, 2.0/0.75-minute reliability
+  allowances, each route counted once at its nearest stop, best route in full
+  and the rest at half, index split by bus, tram and rail.
+- **Network Robustness (`planx:networkrobustness`)** - bridges (Tarjan 1974),
+  percolation curves under seeded random failure and a betweenness attack
+  recalculated after every batch (Holme et al. 2002), the Schneider robustness
+  index R, the critical fraction f50, and global efficiency with its loss when
+  the most central links fail. Measured on the demo grid: a static betweenness
+  ranking was less damaging than random failure (R 0.62 against 0.58), which
+  is why the attack is recalculated (R 0.35).
+- Gravity Distribution: **beta calibration** to an observed mean interzonal
+  trip cost (`TARGET_COST`, 0 = off), and a log line with the mean interzonal
+  cost and the intrazonal share, with a warning when more than half of all
+  trips never leave their zone.
+- Space Syntax: the run log now closes with **intelligibility** and
+  **synergy**, the two whole-map summaries of Hillier (1996), computed on the
+  segment map.
+
+### Fixed
+- **Gravity Distribution sent trips between zones with no network path under
+  the power deterrence.** Unreachable pairs were given a stand-in cost of 1e9;
+  `exp(-beta * 1e9)` is zero but `(1e9)^-0.1` is 0.126 - a quarter of the
+  deterrence of a 1 km trip. Unreachable pairs now deter completely under both
+  forms. Exponential results are unchanged.
+- **Multi-Amenity Access Score and Transit Travel-Time Access measured walks
+  in the layer's coordinate units.** On EPSG:3857 at 41 N every walk was 1.33x
+  too long and every threshold correspondingly too strict. Walking minutes are
+  now ground metres over the speed, the same conversion v4.18.0 applied to
+  the area and length columns (transit snapping offsets and transfer distances
+  included).
+- **The default renderer repeated class limits** on columns with many tied
+  values (zeros on a volume layer, band indices), producing several identical
+  "0 - 0" classes and duplicate legend entries. Repeated quantile limits are
+  merged and the remaining classes keep the ramp's end colours.
+- **The reference manual rendered eighteen `===ALGORITHM===` build markers as
+  page text** (the published copy at geophilo.com carried all eighteen), and
+  Dead-End Analysis had a card but no sidebar entry and no icon under
+  `docs/icons`. All fixed, and a new catalog gate fails on any leaked marker
+  and on any algorithm without a sidebar entry.
+
+### Verification
+- Engine suite: 816 checks (61 new: hand-computed Wardrop split for two
+  routes, Frank-Wolfe and conjugate Frank-Wolfe agreeing with it, Beckmann
+  objective monotone, SciPy and pure-Python volumes identical, decay values,
+  2SFCA hand case and conservation, PTAL hand cases including the TfL catchment
+  and tram rules, bridges on paths/triangles/doubled streets, percolation and
+  efficiency on hand graphs, beta calibration, intelligibility and synergy).
+- Runtime matrix: new cases for all four tools, each with a value check that
+  re-derives the output from the fixture (BPR times from the fixture speed and
+  ground length, capacity from lanes, LOS from v/c, the calibrated OD table's
+  mean cost, 2SFCA conservation, the PTAL index range one hourly bus allows,
+  two bridges carrying 100 of 500 units on the dead-end fixture). The checks
+  were falsified with wiring mutations before being trusted.
+
 ## [4.19.0] - 2026-10-14
 
 ### Added

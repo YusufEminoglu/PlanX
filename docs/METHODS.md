@@ -27,6 +27,22 @@ shortest path are re-tested — an edge on none cannot change any shortest
 cost — which both prunes the work and gives `used_by` (shortest paths over
 each segment); edge removal is a CSR adjacency mask, no graph rebuild.
 
+Network robustness is the demand-free counterpart. Bridges come from Tarjan's
+(1974) low-link test, iterative so a long street cannot overflow the stack, and
+keyed on the arriving *edge* so a doubled street is correctly not a bridge.
+The percolation curve `S(k)` - the largest-component share after the first `k`
+removals - is computed for a whole removal order in one reverse union-find
+pass (Newman & Ziff 2000). Random failure averages seeded permutations and
+reports the 10th-90th percentile band; the attack removes the highest edge
+betweenness in batches and **recalculates betweenness after every batch**
+(Holme et al. 2002): on the demo grid a static ranking from the intact network
+gave R = 0.62, *less* damaging than random failure (0.58), while the
+recalculated attack gives 0.35. `R` is the mean of `S(k)` (Schneider et al.
+2011), `f50` the first removed share at which `S` drops below one half, and
+global efficiency the mean of `1/d_ij` with unreachable pairs counting zero
+(Latora & Marchiori 2001), with its loss when the top 5 percent of attack
+links fail against as many random ones.
+
 ## Centrality & Space Syntax
 
 Closeness (Wasserman–Faust normalisation), straightness (euclidean /
@@ -58,7 +74,22 @@ EPSG:3857 layer at 41°N would otherwise report a length wrong by 3.28 or
 
 Multi-amenity 15-minute scores: per category the nearest network time
 from every origin; the score is the share of categories within the
-threshold (0–100), population-weighted summaries optional.
+threshold (0–100), population-weighted summaries optional. Walking minutes are
+ground length over the speed: the graph's edge lengths are converted from the
+layer's coordinate units through its CRS and ellipsoid (since v4.20.0; before,
+EPSG:3857 at 41 N made every walk 1.33x too long).
+
+Gravity accessibility searches outward from every opportunity node over the
+*reversed* graph, so a one-way street is costed in the origin-to-opportunity
+direction, in batches of 128 destinations so the cost matrix is never held
+whole. Six decays (cumulative, linear, exponential, Gaussian, power capped at
+1 below a minute, logistic with its half weight at `p`) are all cut to zero
+beyond the cutoff. Cumulative opportunities and Hansen (1959) potential are
+supply-weighted sums; 2SFCA (Luo & Wang 2003, decayed catchments after Luo &
+Qi 2009) divides each facility's supply by the decayed population that can
+reach it, `R_j = S_j / sum_k P_k f(c_kj)`, then sums `R_j f(c_ij)`. The
+identity `sum_i P_i A_i = supply reachable by anyone` is printed after every
+run and asserted by the runtime matrix.
 
 ## Transit (GTFS)
 
@@ -70,7 +101,20 @@ run RAPTOR (Delling et al. 2012) rounds over patterns grouped by route
 and stop sequence — board the earliest catchable trip, up to N
 re-boardings; walking legs use the street network before and after
 (offset multi-source Dijkstra for the egress). Overtaking trips are
-treated FIFO — the screening simplification.
+treated FIFO — the screening simplification. Transit access walks are
+ground metres, converted like the access score's (edge lengths, snapping
+offsets and stop-to-stop transfer distances alike).
+
+PTAL follows Transport for London (2015): service access points within 8
+minutes' walk (640 m at 80 m/min) for bus and tram and 12 minutes for rail and
+metro, measured on the street network in ground metres; every route counted
+once at its nearest stop with its departures in the window (default
+08:15-09:15); `AWT = 0.5 * 60 / f + K` with `K` 2.0 min for bus and 0.75 for
+rail and tram; `EDF = 30 / (walk + AWT)`; per mode the best EDF plus half the
+rest; modes summed into AI and banded 0, 1a, 1b, 2, 3, 4, 5, 6a, 6b at 0, 2.5,
+5, 10, 15, 20, 25 and 40. Mode comes from GTFS `route_type`; direction is not
+distinguished (the nearest stop of a two-way corridor is usually one side of
+the street).
 
 ## Walkability
 
@@ -131,7 +175,31 @@ Wang & Liu (2006) deterministic priority-flood depression filling using a priori
 
 ## Travel Demand
 
-Linear trip generation: `P = pop * p_rate` and `A = jobs * a_rate`. Doubly constrained gravity distribution using Furness/IPF balancing with exponential `exp(-beta * cost)` or power `cost^-beta` deterrence functions over network costs computed via Dijkstra many-to-many shortest paths. Mode split: multinomial logit shares `P_k = exp(U_k) / sum(exp(U_m))` and split flows based on mode travel times, time coefficients (betas), and constants (ASCs). Parking demand: a zone takes the first rate row whose category keyword it contains, and its size column is read in that row's own basis — `unit` = spaces per dwelling unit, `sqm` = `rate · size / 1000` (per 1000 m² gross floor area), `seat` = spaces per seat. A zone whose category matches no row demands zero and is reported as an uncovered category instead of being folded into the total, so a rate table that does not reach a category reads as a coverage gap and not as a zone with no parking problem. Parking balance: supply is the spaces of every inventory feature at or below the radius from the zone — street-network distance when a network is given, straight-line otherwise — and `balance_spaces = supply − demand`, which is NULL rather than negative where the inventory never surveyed the zone: `supply_status` is `counted`, `zero supply found` (surveyed, nothing in range — a real deficit) or `supply data absent` (not surveyed at all), in that precedence order.
+Linear trip generation: `P = pop * p_rate` and `A = jobs * a_rate`. Doubly constrained gravity distribution using Furness/IPF balancing with exponential `exp(-beta * cost)` or power `cost^-beta` deterrence functions over network costs computed via Dijkstra many-to-many shortest paths. Mode split: multinomial logit shares `P_k = exp(U_k) / sum(exp(U_m))` and split flows based on mode travel times, time coefficients (betas), and constants (ASCs). Since v4.20.0 a zone pair with no network path has a
+deterrence of exactly zero under both forms - the previous stand-in cost of
+1e9 sent the exponential form to zero but left the power form at
+`(1e9)^-0.1 = 0.126`, so disconnected zones traded trips - and beta can be
+calibrated so that the modelled mean *interzonal* trip cost equals an observed
+one, by bisection on `log beta` in `[1e-8, 50]` (the mean falls monotonically
+as beta rises; an unreachable target is reported as infeasible with the
+closest mean reached).
+
+Traffic assignment solves Beckmann's program for Wardrop user equilibrium on
+directed arcs with BPR volume-delay `t = t0 (1 + 0.15 (v/c)^4)`. Each
+iteration is an all-or-nothing assignment at current costs (shortest-path
+trees from every origin node, demand pushed back along the tree farthest node
+first); Frank-Wolfe takes the exact step by bisection on the directional
+derivative, MSA the step `1/(k+1)`, and conjugate Frank-Wolfe (Mitradjieva &
+Lindberg 2013, the default) a target mixed from the new auxiliary flow and the
+previous target so consecutive directions are conjugate under the diagonal
+Hessian. Convergence is the relative gap
+`(sum t v - sum_od q u) / sum t v` reported for every iteration (Boyce et al.
+2004). Measured on a 6 x 6 grid loaded far beyond capacity: after 30
+iterations conjugate FW reached a gap of 1.05e-2 against plain FW's 3.46e-2;
+on the runtime matrix's moderately congested fixture conjugate FW converges to
+1e-4 in 19 iterations. Parallel arcs between one ordered node pair are
+collapsed to the cheapest for routing, which makes the SciPy and pure-Python
+paths route over the identical arc set (unit-asserted equal volumes). Parking demand: a zone takes the first rate row whose category keyword it contains, and its size column is read in that row's own basis — `unit` = spaces per dwelling unit, `sqm` = `rate · size / 1000` (per 1000 m² gross floor area), `seat` = spaces per seat. A zone whose category matches no row demands zero and is reported as an uncovered category instead of being folded into the total, so a rate table that does not reach a category reads as a coverage gap and not as a zone with no parking problem. Parking balance: supply is the spaces of every inventory feature at or below the radius from the zone — street-network distance when a network is given, straight-line otherwise — and `balance_spaces = supply − demand`, which is NULL rather than negative where the inventory never surveyed the zone: `supply_status` is `counted`, `zero supply found` (surveyed, nothing in range — a real deficit) or `supply data absent` (not surveyed at all), in that precedence order.
 
 
 ## Scenario Pipeline & Population Allocation

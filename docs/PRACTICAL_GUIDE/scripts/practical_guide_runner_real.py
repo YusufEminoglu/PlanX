@@ -274,13 +274,13 @@ def _render(layers, extent, size):
 def _panel_label(p, x, y, w, text, sub=""):
     p.fillRect(QRectF(x, y, w, 34), QColor(19, 160, 160, 240))
     p.setPen(QColor("#ffffff"))
-    p.setFont(QFont("Segoe UI", 10, QFont.Bold))
-    p.drawText(QRectF(x + 10, y + 4, w - 20, 26), Qt.AlignLeft | Qt.AlignVCenter, text)
+    p.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+    p.drawText(QRectF(x + 10, y + 4, w - 20, 26), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, text)
     if sub:
         p.setPen(QColor("#0d3b3b"))
         p.setFont(QFont("Segoe UI", 8))
         p.fillRect(QRectF(x, y + 34, w, 19), QColor(255, 255, 255, 228))
-        p.drawText(QRectF(x + 10, y + 34, w - 20, 19), Qt.AlignLeft | Qt.AlignVCenter, sub)
+        p.drawText(QRectF(x + 10, y + 34, w - 20, 19), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, sub)
 
 
 def capture_4panel(algo_id, display, in_layers, out_layers, param_text, out_png):
@@ -308,7 +308,7 @@ def capture_4panel(algo_id, display, in_layers, out_layers, param_text, out_png)
             p.fillRect(QRectF(x, y, PW, PH), QColor("#f4f6f6"))
             p.setPen(QColor("#99a5a5"))
             p.setFont(QFont("Segoe UI", 13))
-            p.drawText(QRectF(x, y, PW, PH), Qt.AlignCenter, "no layer for this panel")
+            p.drawText(QRectF(x, y, PW, PH), Qt.AlignmentFlag.AlignCenter, "no layer for this panel")
         else:
             im = _render(layers, extent, QSize(PW, PH))
             if not im.isNull():
@@ -349,7 +349,7 @@ def capture_4panel(algo_id, display, in_layers, out_layers, param_text, out_png)
 
     p.fillRect(QRectF(0, 0, PW * 2, HDR), QColor("#0d2a2a"))
     p.setPen(QColor("#7fe3e3"))
-    p.setFont(QFont("Segoe UI", 12, QFont.Bold))
+    p.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
     p.drawText(12, 21, f"PlanX - {display}  ({algo_id})")
     p.setPen(QColor("#9fd6d6"))
     p.setFont(QFont("Segoe UI", 8))

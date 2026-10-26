@@ -23,6 +23,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
+from . import _units
 from .base import DOUBLE, GROUP_ACCESS, INT, PlanXAlgorithm
 from ..engine import graphs, paths
 
@@ -152,6 +153,13 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
 
         graph, polylines, _ = self.network_graph(network, use_prepared_costs=False)
         crs = network.sourceCrs()
+        # Walking minutes are ground metres over a speed. The graph's edge
+        # lengths are in the layer's own units, which are ground metres only
+        # on a CRS whose scale is 1 there - EPSG:3857 at 41 N makes every walk
+        # 1.33x too long and every threshold 1.33x too strict.
+        per_unit = _units.GroundUnits(crs, context.transformContext()).scale(
+            network.sourceExtent())
+        walk_m = graph.adj_cost / per_unit
         o_xy, o_feats = self.source_points(origins, crs, context.transformContext())
         o_nodes = graphs.nearest_nodes(graph, o_xy)
 
@@ -169,7 +177,7 @@ class MultiAmenityAccessAlgorithm(PlanXAlgorithm):
             a_nodes = np.unique(graphs.nearest_nodes(graph, a_xy))
             feedback.pushInfo(self.tr(
                 f"Category '{layer.name()}': {len(a_xy)} amenities"))
-            dist, _ = paths.multi_source(graph.indptr, graph.adj_node, graph.adj_cost,
+            dist, _ = paths.multi_source(graph.indptr, graph.adj_node, walk_m,
                                          graph.num_nodes, a_nodes, cutoff=cutoff_m)
             node_min = dist[o_nodes]
             ok = np.isfinite(node_min)

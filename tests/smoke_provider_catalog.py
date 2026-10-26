@@ -35,7 +35,7 @@ STUDIO_DOCK = ROOT / "studio_dock.py"
 MANUAL = ROOT / "docs" / "PLANX_REFERENCE_MANUAL.html"
 
 #: The count may only go up. A drop means algorithms were dropped by accident.
-MIN_EXPECTED_ALGORITHM_COUNT = 76
+MIN_EXPECTED_ALGORITHM_COUNT = 80
 
 #: GROUP_* slugs in the order algorithms/base.py declares them. The manual
 #: numbers its group sections 1..N in this same order, so a reorder here
@@ -389,6 +389,25 @@ def test_manual_has_balanced_div_tags() -> None:
     assert not unbalanced, f"Manual sections with unbalanced <div> nesting: {unbalanced}"
 
 
+def test_manual_has_no_leaked_build_markers() -> None:
+    """Eighteen ``===ALGORITHM===`` lines - a splice marker from the script that
+    assembled the later groups - sat between cards from v4.x until v4.20.0,
+    rendered as visible text on the published page (geophilo.com carried all
+    eighteen). No other gate looks at text outside the tags, so a marker of any
+    kind, or a sidebar entry naming a card that is not there, could ship again
+    unseen. The sidebar half is the same class of omission: Dead-End Analysis
+    shipped in v4.19.0 with a card and no sidebar entry."""
+    text = _manual_text()
+    leaked = sorted(set(re.findall(r"^\s*(={3,}[A-Z _]+={3,})\s*$", text, re.M)))
+    assert not leaked, f"Build markers rendered as page text: {leaked}"
+
+    sidebar = set(re.findall(r'data-name="([^"]+)"', text))
+    catalog = {meta["name"] for meta in _algorithm_catalog().values()}
+    assert catalog <= sidebar, f"Algorithms with no sidebar entry: {sorted(catalog - sidebar)}"
+    orphans = sorted(sidebar - catalog)
+    assert not orphans, f"Sidebar entries naming no algorithm: {orphans}"
+
+
 def test_manual_has_no_angle_brackets_the_parser_would_read_as_tags() -> None:
     """A bare '<' followed by a letter is read as the start of a tag. Inside
     LaTeX that silently destroys the formula, because MathJax never receives
@@ -552,6 +571,7 @@ GATES = (
     test_algorithm_ids_match_manual_anchors_one_to_one,
     test_manual_processing_id_lines_match_their_anchor,
     test_manual_has_balanced_div_tags,
+    test_manual_has_no_leaked_build_markers,
     test_manual_has_no_angle_brackets_the_parser_would_read_as_tags,
     test_manual_version_matches_plugin_version,
     test_help_url_host_matches_metadata_homepage,

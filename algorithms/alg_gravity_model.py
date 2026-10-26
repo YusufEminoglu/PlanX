@@ -35,6 +35,7 @@ class GravityModelAlgorithm(PlanXAlgorithm):
     KIND = "KIND"
     MAX_ITER = "MAX_ITER"
     TOL = "TOL"
+    TARGET_COST = "TARGET_COST"
     OUTPUT = "OUTPUT"
     LINES = "LINES"
 
@@ -53,7 +54,13 @@ class GravityModelAlgorithm(PlanXAlgorithm):
             "attractions, and a travel cost matrix computed over the street network. "
             "Deterrence functions include exponential exp(-beta * cost) and power cost^(-beta).\n\n"
             "Outputs an OD flow table and optional desire lines styled by flow, with the "
-            "top 10 flows logged.\n\n"
+            "top 10 flows logged. The log also reports the mean interzonal trip cost "
+            "and the share of trips that stay inside their own zone.\n\n"
+            "Calibration: give a target mean trip cost (e.g. the mean trip length "
+            "of a travel survey, in the network's cost units) and beta is solved "
+            "for so that the modelled mean interzonal cost matches it; the beta "
+            "parameter is then ignored. 0 = no calibration. Zone pairs with no "
+            "network path exchange no trips.\n\n"
             "How to read the results\n"
             "- Each flow value is 'trips from i to j' implied by the "
             "land-use pattern and travel costs. Style the desire lines "
@@ -63,7 +70,8 @@ class GravityModelAlgorithm(PlanXAlgorithm):
             "stay local (short trips dominate), lower beta = distance "
             "barely deters. Calibrate it so the modelled mean trip "
             "cost matches an observed one - or run 2-3 betas and treat "
-            "the spread as uncertainty.\n"
+            "the spread as uncertainty - or let the target mean trip cost "
+            "calibrate it.\n"
             "- Doubly constrained means row/column totals are honoured "
             "by construction - the model distributes trips, it never "
             "creates them; watch the log's balancing error to confirm "
@@ -107,6 +115,9 @@ class GravityModelAlgorithm(PlanXAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(
             self.TOL, self.tr("Convergence tolerance"),
             QgsProcessingParameterNumber.Type.Double, defaultValue=1e-4, minValue=1e-12))
+        self.addParameter(QgsProcessingParameterNumber(
+            self.TARGET_COST, self.tr("Calibrate beta to this mean trip cost (0 = use beta as given)"),
+            QgsProcessingParameterNumber.Type.Double, defaultValue=0.0, minValue=0.0))
         self.addParameter(QgsProcessingParameterFeatureSink(
             self.OUTPUT, self.tr("OD matrix (table)"),
             type=QgsProcessing.SourceType.TypeVector))
@@ -126,6 +137,7 @@ class GravityModelAlgorithm(PlanXAlgorithm):
         kind = "exp" if kind_idx == 0 else "power"
         max_iter = self.parameterAsInt(parameters, self.MAX_ITER, context)
         tol = self.parameterAsDouble(parameters, self.TOL, context)
+        target_cost = self.parameterAsDouble(parameters, self.TARGET_COST, context)
 
         self.require_projected(network, "Street network")
         crs = network.sourceCrs()
@@ -160,16 +172,44 @@ class GravityModelAlgorithm(PlanXAlgorithm):
         cost_matrix = paths.many_to_many(graph.indptr, graph.adj_node, graph.adj_cost,
                                          graph.num_nodes, o_nodes, cancel=feedback.isCanceled)
         cost_matrix = cost_matrix[:, o_nodes]
-        cost_matrix[~np.isfinite(cost_matrix)] = 1e9
+        n_unreachable = int((~np.isfinite(cost_matrix)).sum())
+        if n_unreachable:
+            feedback.pushWarning(self.tr(
+                f"{n_unreachable} ordered zone pair(s) have no network path and "
+                "exchange no trips."))
+
+        P_arr = np.array(P, dtype=np.float64)
+        A_arr = np.array(A, dtype=np.float64)
+        if target_cost > 0:
+            beta, achieved, evaluations, feasible = demand.calibrate_beta(
+                P_arr, A_arr, cost_matrix, target_cost, kind, max_iter, tol)
+            if feasible:
+                feedback.pushInfo(self.tr(
+                    f"Calibrated beta = {beta:.6g} ({evaluations} model runs): mean "
+                    f"interzonal cost {achieved:.4g} against the target {target_cost:g}."))
+            else:
+                feedback.pushWarning(self.tr(
+                    f"No beta reproduces a mean trip cost of {target_cost:g}: the "
+                    f"closest reachable mean is {achieved:.4g} (beta = {beta:.6g}). "
+                    "Check that the target is in the network's cost units."))
 
         T, iterations, error = demand.gravity(
-            np.array(P, dtype=np.float64),
-            np.array(A, dtype=np.float64),
-            cost_matrix, beta, kind, max_iter, tol
+            P_arr, A_arr, cost_matrix, beta, kind, max_iter, tol
         )
 
         feedback.pushInfo(self.tr(
             f"Gravity balancing: {iterations} iterations, max error: {error:.6f}"))
+        total_trips = float(T.sum())
+        if total_trips > 0:
+            intrazonal = float(np.trace(T)) / total_trips
+            feedback.pushInfo(self.tr(
+                f"Mean interzonal trip cost {demand.mean_trip_cost(T, cost_matrix):.4g}; "
+                f"intrazonal share {intrazonal:.1%} (not written to the OD table)."))
+            if intrazonal > 0.5:
+                feedback.pushWarning(self.tr(
+                    "More than half of all trips stay inside their own zone: beta is "
+                    "probably too large for the cost units (a beta of 0.1 suits costs "
+                    "in minutes, not metres). Calibrate it with a target mean trip cost."))
 
         fields = self.make_fields(
             ("origin_id", STRING),

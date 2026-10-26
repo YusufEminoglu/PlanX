@@ -115,7 +115,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant  # noqa: E402
 # (smoke_provider_catalog.MIN_EXPECTED_ALGORITHM_COUNT) already guards the
 # registry; this one guards that the matrix actually swept it, so a run cannot
 # report a clean sweep while quietly covering fewer tools.
-MIN_EXPECTED_CASE_COUNT = 76
+MIN_EXPECTED_CASE_COUNT = 80
 
 # Fixture city. Large enough that the tools' default catchments (300-500 m) and
 # service-area breaks (250/500/1000 m) land on real geometry rather than on
@@ -600,6 +600,11 @@ LAYER_OVERRIDES = {
     # fixture it needs is a layer those columns were put on. See the
     # seismic_units fixture.
     ("planx:coseismiclandslide", "TARGET"): "seismic_units",
+    # gravityaccess's OPPORTUNITIES matches no role token. The facilities layer
+    # carries a real `capacity` column, which is what makes the 2SFCA supply
+    # share and its conservation check mean something; POIs would hand every
+    # opportunity the same weight of one.
+    ("planx:gravityaccess", "OPPORTUNITIES"): "facilities",
 }
 
 # Field parameters whose global name-hint would bind the wrong column, keyed
@@ -616,6 +621,27 @@ FIELD_OVERRIDES = {
     ("planx:coseismiclandslide", "AC_FIELD"): "hazus_ac_g",
     ("planx:coseismiclandslide", "GROUP_FIELD"): "hazus_group",
     ("planx:coseismiclandslide", "CATEGORY_FIELD"): "hazus_category",
+    # trafficassignment reads the gravity tool's OD table, whose zone columns are
+    # origin_id / dest_id; FIELD_BY_PARAM has no hint under these parameter
+    # names because no other tool calls them that.
+    ("planx:trafficassignment", "ORIGIN_FIELD"): "origin_id",
+    ("planx:trafficassignment", "DEST_FIELD"): "dest_id",
+}
+
+#: Optional field parameters left unset for ONE tool, where the global name hint
+#: would bind a column that exists but means something else here. SKIP_OPTIONAL
+#: is by name across every tool; these are not.
+SKIP_FIELDS = {
+    # The network fixture's `cost` column is its length in metres. Read as the
+    # minutes this parameter asks for, every opportunity in the city would sit
+    # hundreds of "minutes" away and outside the 30-minute cutoff - an all-zero
+    # answer from a correct tool. The length / speed path is the primary run.
+    ("planx:gravityaccess", "COST_FIELD"),
+    # Free-flow time and capacity come from speed and lanes in the primary run,
+    # which exercises the ground-length conversion and the lanes x per-lane
+    # capacity path; the fixture has no time or capacity column to bind.
+    ("planx:trafficassignment", "TIME_FIELD"),
+    ("planx:trafficassignment", "CAPACITY_FIELD"),
 }
 
 # Enum parameters whose declared default is not the option this bundle can
@@ -674,6 +700,8 @@ NUMBER_OVERRIDES = {
     # low shaking level, it is a division by zero - and the tool refuses it
     # rather than reading it as "no shaking, nothing moves".
     ("planx:coseismiclandslide", "PGA_G"): 0.35,
+    # Congestion on purpose - see _LANE_CAPACITY.
+    ("planx:trafficassignment", "LANE_CAPACITY"): 200.0,
 }
 
 # A `MultipleLayers` parameter takes a list, not a single role.
@@ -842,7 +870,14 @@ RUN_FIRST = (
     # so the chain is declared here rather than left to depend on registration
     # order holding.
     "planx:parkingdemand",
+    # gravitymodel -> trafficassignment: the four-step chain end to end. The
+    # assignment reads the calibrated extra run of the gravity case.
+    "planx:gravitymodel",
 )
+
+#: Mean interzonal trip cost the gravity extra run calibrates beta to, in the
+#: fixture network's cost unit (its `cost` column is the length in metres).
+_GRAVITY_TARGET_COST = 250.0
 
 # A second, differently-parameterised run of an algorithm, so that tools needing
 # two comparable artefacts (compare A with B, rank several) get real files.
@@ -862,6 +897,23 @@ RUN_FIRST = (
 # default therefore cannot distinguish two scenarios of the same city; speed and
 # threshold are the knobs that can, and speed moves the result hardest.
 EXTRA_RUNS = {
+    # The calibration branch: beta solved for a 250 m mean interzonal trip on the
+    # 750 m city. Its value check re-derives that mean from the OD rows written.
+    "planx:gravitymodel": (
+        ("gravity_calibrated", "OUTPUT", {"TARGET_COST": _GRAVITY_TARGET_COST}),
+    ),
+    # Plain Frank-Wolfe and MSA on the same demand: the two solution methods
+    # whose step rules the primary conjugate run never takes.
+    "planx:trafficassignment": (
+        ("assignment_fw", "CONVERGENCE", {"METHOD": 1, "MAX_ITER": 30}),
+        ("assignment_msa", "CONVERGENCE", {"METHOD": 2, "MAX_ITER": 30}),
+    ),
+    # The hand-worked dead-end network: a square with a two-segment stem, so
+    # exactly two bridges carrying 100 of 500 units of length.
+    "planx:networkrobustness": (
+        ("robust_deadend", "OUT_SUMMARY", {"NETWORK": "fixture:network_deadend",
+                                           "COST_FIELD": ""}),
+    ),
     "planx:accessscore": (
         ("access_b", "OUTPUT", {"SPEED": 1.0}),
     ),
@@ -972,6 +1024,12 @@ VALUE_OVERRIDES = {
     # _deadend_network for why the tool gets its own fixture rather than an
     # entry in CONDITIONAL_OUTPUTS.
     ("planx:deadends", "NETWORK"): "fixture:network_deadend",
+    # The documented workflow: Gravity Distribution's OD table, calibrated to a
+    # plausible mean trip length, loaded onto the same network. The uncalibrated
+    # primary gravity run uses beta 0.1 against a cost in metres and keeps almost
+    # every trip intrazonal, which would load next to nothing.
+    ("planx:trafficassignment", "OD"): "art:extra/gravity_calibrated",
+    ("planx:ptal", "FILE"): "fixture:gtfs",
 }
 
 # Timestamps the sun tools can actually compute a position for: a solstice noon.
@@ -1749,7 +1807,7 @@ def build_inputs(algorithm, bundle, tables, rasters, artifacts, out_dir, result)
             continue
 
         if isinstance(definition, QgsProcessingParameterField):
-            if optional and name in SKIP_OPTIONAL:
+            if optional and (name in SKIP_OPTIONAL or (algorithm_id, name) in SKIP_FIELDS):
                 result.choices[name] = "skipped(optional)"
                 continue
             parent_role = result.choices.get(
@@ -3609,12 +3667,263 @@ def _expect_deadend_summary(path):
     return None
 
 
+# --------------------------------------------------------------------------
+# v4.20.0: assignment, gravity accessibility, PTAL, robustness
+# --------------------------------------------------------------------------
+
+
+def _expect_gravity_calibrated_mean(path):
+    """The calibrated OD table's own flow-weighted mean cost is the target.
+
+    Re-derived from the rows written, not from the log line: the diagonal is
+    never written, so the table's mean IS the mean interzonal cost the search
+    matched - and a beta that was solved but never handed to the final model
+    run would leave a table whose mean is the uncalibrated one.
+    """
+    names, rows, complaint = _read_gpkg(path, aspatial=True)
+    if complaint:
+        return complaint
+    flow = sum(float(r["flow"]) for r in rows)
+    if flow <= 0:
+        return "the calibrated OD table carries no flow"
+    mean = sum(float(r["flow"]) * float(r["cost"]) for r in rows) / flow
+    if abs(mean - _GRAVITY_TARGET_COST) > 0.01 * _GRAVITY_TARGET_COST:
+        return (f"the flow-weighted mean cost is {mean:.3f}, not the "
+                f"{_GRAVITY_TARGET_COST:g} beta was calibrated to")
+    return None
+
+
+#: Fixture values the assignment check re-derives from (see _network_attrs).
+_FIXTURE_SPEED_KMH = 50.0
+_FIXTURE_LANES = 2.0
+#: Pinned well below the tool's 900 default so the fixture's demand congests the
+#: city: at 900 per lane every street ran below v/c 0.2 and Frank-Wolfe stopped
+#: after two iterations, which left the line search and the BPR curve's steep
+#: part unexercised.
+_LANE_CAPACITY = 200.0
+
+
+def _los(vc):
+    for limit, letter in ((0.60, "A"), (0.70, "B"), (0.80, "C"), (0.90, "D"), (1.00, "E")):
+        if vc <= limit:
+            return letter
+    return "F"
+
+
+def _expect_assignment_links(path):
+    """Every loaded street re-derived from its own row.
+
+    Free-flow minutes from the ground length at the fixture's 50 km/h, capacity
+    from its two lanes x 900, v/c from the two, the congested time from the BPR
+    curve at the defaults, the LOS letter from v/c. A tool that read the wrong
+    speed, multiplied lanes the wrong way, swapped directions or wrote the
+    free-flow time into the congested column fails one of these on a named row.
+    """
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    loaded = 0.0
+    for i, r in enumerate(rows, 1):
+        length = float(r["link_m"])
+        t0 = length / 1000.0 / _FIXTURE_SPEED_KMH * 60.0
+        if abs(float(r["t0_min"]) - t0) > 1e-4 + 1e-3 * t0:
+            return f"row {i}: t0_min {r['t0_min']} where {length} ground m at 50 km/h is {t0:.5f}"
+        vols, vcs = [], []
+        for side in ("ab", "ba"):
+            cap = r[f"cap_{side}"]
+            if cap is None:
+                continue
+            if abs(float(cap) - _FIXTURE_LANES * _LANE_CAPACITY) > 0.05:
+                return f"row {i}: cap_{side} {cap} is not 2 lanes x {_LANE_CAPACITY:g}"
+            vol = float(r[f"vol_{side}"])
+            vc = vol / float(cap)
+            if abs(float(r[f"vc_{side}"]) - vc) > 2e-3:
+                return f"row {i}: vc_{side} {r[f'vc_{side}']} is not {vol}/{cap}"
+            tc = t0 * (1.0 + 0.15 * vc ** 4)
+            if abs(float(r[f"tc_{side}_min"]) - tc) > 1e-3 + 1e-3 * tc:
+                return f"row {i}: tc_{side}_min {r[f'tc_{side}_min']} is not BPR({vc:.4f}) = {tc:.5f}"
+            vols.append(vol)
+            vcs.append(vc)
+        if abs(float(r["vol_total"]) - sum(vols)) > 0.02:
+            return f"row {i}: vol_total {r['vol_total']} is not the sum of its directions {sum(vols)}"
+        if vcs:
+            if abs(float(r["vc_max"]) - max(vcs)) > 2e-3:
+                return f"row {i}: vc_max {r['vc_max']} is not the larger direction"
+            # The letter is taken from the unrounded ratio; vc_max is written to
+            # three decimals, so a ratio within rounding of a band edge may
+            # legitimately carry the letter on either side of it.
+            allowed = {_los(max(vcs) + shift) for shift in (-2e-3, 0.0, 2e-3)}
+            if r["los"] not in allowed:
+                return f"row {i}: los {r['los']} disagrees with vc_max {r['vc_max']}"
+        loaded += sum(vols)
+    if loaded <= 0:
+        return "no vehicle reached any street - the OD chain loaded nothing"
+    return None
+
+
+def _expect_assignment_convergence(path, require_converged=True):
+    names, rows, complaint = _read_gpkg(path, aspatial=True)
+    if complaint:
+        return complaint
+    if not rows:
+        return "the convergence table is empty"
+    its = [int(r["iteration"]) for r in rows]
+    if its != list(range(1, len(rows) + 1)):
+        return f"iterations are not 1..{len(rows)}: {its[:6]}"
+    gaps = [float(r["rel_gap"]) for r in rows]
+    if min(gaps) < 0:
+        return "a relative gap is negative"
+    if require_converged and gaps[-1] > 1e-4 and len(rows) < 100:
+        return f"stopped at iteration {len(rows)} with gap {gaps[-1]:.3g} above the 1e-4 target"
+    if gaps[-1] > gaps[0] + 1e-12:
+        return f"the gap rose from {gaps[0]:.4g} to {gaps[-1]:.4g}"
+    return None
+
+
+def _expect_assignment_msa(path):
+    return _expect_assignment_convergence(path, require_converged=False)
+
+
+def _expect_gravityaccess(path):
+    """Index, share and 2SFCA conservation, against the sibling outputs.
+
+    In a 750 m city every facility is inside a 30-minute walk of every origin,
+    so the cumulative count is the total supply everywhere, and the population-
+    weighted 2SFCA values must add back up to exactly that supply - the
+    property that makes 2SFCA a share rather than a count.
+    """
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    opp_path = str(path).replace("_OUTPUT.gpkg", "_OUT_OPPORTUNITIES.gpkg")
+    _onames, orows, ocomplaint = _read_gpkg(opp_path)
+    if ocomplaint:
+        return f"opportunities output: {ocomplaint}"
+    supply = sum(float(r["supply"]) for r in orows)
+    best = max(float(r["acc_hansen"]) for r in rows)
+    weighted = 0.0
+    for i, r in enumerate(rows, 1):
+        if abs(float(r["acc_cum"]) - supply) > 1e-3 * supply:
+            return f"row {i}: acc_cum {r['acc_cum']} is not the whole supply {supply}"
+        if float(r["acc_hansen"]) > float(r["acc_cum"]) + 1e-6:
+            return f"row {i}: Hansen {r['acc_hansen']} exceeds the cumulative count"
+        if abs(float(r["acc_share"]) - float(r["acc_hansen"]) / supply) > 1e-5:
+            return f"row {i}: acc_share is not acc_hansen / supply"
+        if abs(float(r["acc_index"]) - 100.0 * float(r["acc_hansen"]) / best) > 2e-3:
+            return f"row {i}: acc_index is not 100 x acc_hansen / max"
+        if r["fca"] is None:
+            return f"row {i}: fca is empty although a population field was given"
+        weighted += float(r["pop"] or 0.0) * float(r["fca"]) / 1000.0
+    if abs(weighted - supply) > 1e-3 * supply:
+        return f"2SFCA does not conserve supply: sum(pop x fca) = {weighted:.4f}, supply {supply:.4f}"
+    return None
+
+
+def _expect_ptal(path):
+    """Band and rank from the index, and the index from the fixture timetable.
+
+    The fixture feed runs ONE bus trip; inside the 08:15-09:15 window it leaves
+    four stops once each, so every served place has one route at 1 per hour:
+    wait 30 + 2 = 32 minutes, and an index between 30/(8+32) and 30/32.
+    """
+    from planx.engine import ptal as engine_ptal
+    names, rows, complaint = _read_gpkg(path)
+    if complaint:
+        return complaint
+    served = 0
+    for i, r in enumerate(rows, 1):
+        ai = float(r["ptal_ai"])
+        if r["ptal"] != engine_ptal.band(ai):
+            return f"row {i}: band {r['ptal']} does not hold index {ai}"
+        if int(r["ptal_rank"]) != engine_ptal.band_rank(r["ptal"]):
+            return f"row {i}: rank {r['ptal_rank']} is not band {r['ptal']}'s"
+        parts = float(r["ai_bus"]) + float(r["ai_tram"]) + float(r["ai_rail"])
+        if abs(parts - ai) > 2e-3:
+            return f"row {i}: modes add to {parts}, not {ai}"
+        if ai > 0:
+            served += 1
+            if not (30.0 / 40.0 - 1e-3 <= ai <= 30.0 / 32.0 + 1e-3):
+                return (f"row {i}: index {ai} is outside 30/40..30/32, the range one "
+                        "hourly bus within 8 minutes allows")
+            if int(r["n_routes"]) != 1:
+                return f"row {i}: {r['n_routes']} routes counted where the feed has one"
+    if not served:
+        return "no place is served although four fixture stops depart in the window"
+    return None
+
+
+def _summary_values(path):
+    names, rows, complaint = _read_gpkg(path, aspatial=True)
+    if complaint:
+        return None, complaint
+    return {str(r["metric"]): float(r["value"]) for r in rows}, None
+
+
+def _expect_robustness_city(path):
+    """The demo city is one meshed component with no bridge, and losing its most
+    central links costs more efficiency than losing as many random ones.
+
+    The connectivity curves are deliberately NOT ranked against each other: on
+    a regular grid a static betweenness attack measured R 0.618 against random
+    failure's 0.584 - a grid has no spine to cut - so asserting "attack is
+    worse" there would test the fixture's geometry, not the tool. Efficiency is
+    where betweenness is the right target, and that ordering is asserted.
+    """
+    values, complaint = _summary_values(path)
+    if complaint:
+        return complaint
+    for key in ("R_random", "R_attack", "efficiency", "giant_share", "bridges",
+                "eff_loss_attack", "eff_loss_random", "f50_random", "f50_attack"):
+        if key not in values:
+            return f"the summary has no {key} row"
+    if values["giant_share"] != 1.0 or values["bridges"] != 0:
+        return (f"the meshed demo city reads giant_share {values['giant_share']} and "
+                f"{values['bridges']:g} bridges")
+    for key in ("R_random", "R_attack", "f50_random", "f50_attack"):
+        if not 0.0 < values[key] <= 1.0:
+            return f"{key} = {values[key]} is outside (0, 1]"
+    if values["efficiency"] <= 0:
+        return "global efficiency is not positive on a connected city"
+    if values["eff_loss_attack"] <= values["eff_loss_random"]:
+        return (f"losing the most central links cost {values['eff_loss_attack']:.4f} of "
+                f"the efficiency, no more than random links ({values['eff_loss_random']:.4f})")
+    return None
+
+
+def _expect_robustness_deadend(path):
+    """The square with a two-segment stem: two bridges, 100 of 500 units."""
+    values, complaint = _summary_values(path)
+    if complaint:
+        return complaint
+    want = {"junctions": _DEADEND_NODES, "links": len(_DEADEND_SHAPE), "components": 1,
+            "giant_share": 1.0, "bridges": 2,
+            "bridge_length_share": _DEADEND_BRANCH / (4.0 * _DEADEND_SIDE + _DEADEND_BRANCH)}
+    for key, value in want.items():
+        if key not in values:
+            return f"the summary has no {key} row"
+        if abs(values[key] - value) > 1e-6 * max(1.0, abs(value)):
+            return f"{key} is {values[key]:g} where the hand-worked network gives {value:g}"
+    return None
+
+
 #: Value expectations for an extra run, keyed (algorithm id, extra label).
 #: An extra run exists because it takes a branch the primary case never
 #: reaches, and a branch that writes the right number of rows with the wrong
 #: numbers passes every count-based check there is - including the primary
 #: case's own value check, which says nothing about it.
 EXTRA_VALUE_EXPECTATIONS = {
+    ("planx:gravitymodel", "gravity_calibrated"): {
+        "OUTPUT": _expect_gravity_calibrated_mean,
+    },
+    ("planx:trafficassignment", "assignment_fw"): {
+        "CONVERGENCE": _expect_assignment_msa,
+    },
+    ("planx:trafficassignment", "assignment_msa"): {
+        "CONVERGENCE": _expect_assignment_msa,
+    },
+    ("planx:networkrobustness", "robust_deadend"): {
+        "OUT_SUMMARY": _expect_robustness_deadend,
+    },
     ("planx:liquefaction", "susceptibility"): {
         "OUTPUT": _expect_liquefaction_matches_its_hazus_terms,
     },
@@ -3704,6 +4013,13 @@ VALUE_EXPECTATIONS = {
         "DEAD_ENDS": _expect_deadend_points,
         "SUMMARY": _expect_deadend_summary,
     },
+    "planx:trafficassignment": {
+        "OUTPUT": _expect_assignment_links,
+        "CONVERGENCE": _expect_assignment_convergence,
+    },
+    "planx:gravityaccess": {"OUTPUT": _expect_gravityaccess},
+    "planx:ptal": {"OUTPUT": _expect_ptal},
+    "planx:networkrobustness": {"OUT_SUMMARY": _expect_robustness_city},
 }
 
 

@@ -14,6 +14,7 @@ from .algorithms.alg_service_areas import ServiceAreasAlgorithm
 from .algorithms.alg_nearest_facility import NearestFacilityAlgorithm
 from .algorithms.alg_link_criticality import LinkCriticalityAlgorithm
 from .algorithms.alg_dead_ends import DeadEndAnalysisAlgorithm
+from .algorithms.alg_network_robustness import NetworkRobustnessAlgorithm
 from .algorithms.alg_node_centrality import NetworkCentralityAlgorithm
 from .algorithms.alg_space_syntax import SpaceSyntaxAlgorithm
 from .algorithms.alg_building_metrics import BuildingFormMetricsAlgorithm
@@ -21,6 +22,7 @@ from .algorithms.alg_tessellation import MorphologicalTessellationAlgorithm
 from .algorithms.alg_spacematrix import SpacematrixDensityAlgorithm
 from .algorithms.alg_street_morphology import StreetNetworkMorphologyAlgorithm
 from .algorithms.alg_access_score import MultiAmenityAccessAlgorithm
+from .algorithms.alg_gravity_access import GravityAccessibilityAlgorithm
 from .algorithms.alg_shadow_casting import ShadowCastingAlgorithm
 from .algorithms.alg_sky_view_factor import SkyViewFactorAlgorithm
 from .algorithms.alg_frontal_area import FrontalAreaIndexAlgorithm
@@ -50,6 +52,7 @@ from .algorithms.alg_route_quality import RouteQualityAlgorithm
 from .algorithms.alg_gtfs_import import GtfsImportAlgorithm
 from .algorithms.alg_transit_frequency import TransitFrequencyAlgorithm
 from .algorithms.alg_transit_access import TransitAccessAlgorithm
+from .algorithms.alg_ptal import PTALAlgorithm
 from .algorithms.alg_viewshed import ViewshedAlgorithm
 from .algorithms.alg_isovist_field import IsovistFieldAlgorithm
 from .algorithms.alg_visual_exposure import VisualExposureAlgorithm
@@ -74,6 +77,7 @@ from .algorithms.alg_flood_exposure import FloodExposureAlgorithm
 from .algorithms.alg_trip_generation import TripGenerationAlgorithm
 from .algorithms.alg_gravity_model import GravityModelAlgorithm
 from .algorithms.alg_mode_split import ModeSplitAlgorithm
+from .algorithms.alg_traffic_assignment import TrafficAssignmentAlgorithm
 from .algorithms.alg_parking_demand import ParkingDemandAlgorithm
 from .algorithms.alg_parking_balance import ParkingSupplyBalanceAlgorithm
 from .algorithms.alg_pop_allocate import PopAllocateAlgorithm
@@ -111,6 +115,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(NearestFacilityAlgorithm())
         self.addAlgorithm(LinkCriticalityAlgorithm())
         self.addAlgorithm(DeadEndAnalysisAlgorithm())
+        self.addAlgorithm(NetworkRobustnessAlgorithm())
         # 2 | Centrality & Space Syntax
         self.addAlgorithm(NetworkCentralityAlgorithm())
         self.addAlgorithm(SpaceSyntaxAlgorithm())
@@ -121,6 +126,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(StreetNetworkMorphologyAlgorithm())
         # 4 | Accessibility
         self.addAlgorithm(MultiAmenityAccessAlgorithm())
+        self.addAlgorithm(GravityAccessibilityAlgorithm())
         # 5 | Microclimate
         self.addAlgorithm(ShadowCastingAlgorithm())
         self.addAlgorithm(SkyViewFactorAlgorithm())
@@ -163,6 +169,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(GtfsImportAlgorithm())
         self.addAlgorithm(TransitFrequencyAlgorithm())
         self.addAlgorithm(TransitAccessAlgorithm())
+        self.addAlgorithm(PTALAlgorithm())
         # 12 | Visibility
         self.addAlgorithm(ViewshedAlgorithm())
         self.addAlgorithm(IsovistFieldAlgorithm())
@@ -190,6 +197,7 @@ class PlanXProvider(QgsProcessingProvider):
         self.addAlgorithm(TripGenerationAlgorithm())
         self.addAlgorithm(GravityModelAlgorithm())
         self.addAlgorithm(ModeSplitAlgorithm())
+        self.addAlgorithm(TrafficAssignmentAlgorithm())
         self.addAlgorithm(ParkingDemandAlgorithm())
         self.addAlgorithm(ParkingSupplyBalanceAlgorithm())
         # 19 | Seismic Risk

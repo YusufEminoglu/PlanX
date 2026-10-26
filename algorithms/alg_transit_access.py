@@ -21,6 +21,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
+from . import _units
 from .base import DOUBLE, GROUP_TRANSIT, INT, PlanXAlgorithm, STRING
 from .alg_gtfs_import import load_feed
 from ..engine import graphs, paths, transit
@@ -166,10 +167,11 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
 
         graph, polylines, _feats = self.network_graph(
             network, use_prepared_costs=False)
-        w_sec = graph.adj_cost / speed  # walking seconds per CSR entry
-
         crs = network.sourceCrs()
         xform_ctx = context.transformContext()
+        # Ground metres, not layer units: see Multi-Amenity Access Score.
+        per_unit = _units.GroundUnits(crs, xform_ctx).scale(network.sourceExtent())
+        w_sec = graph.adj_cost / per_unit / speed  # walking seconds per CSR entry
         o_xy, _o = self.source_points(origins, crs, xform_ctx)
         d_xy, d_feats = self.source_points(demand, crs, xform_ctx)
         o_nodes = np.unique(graphs.nearest_nodes(graph, o_xy)).astype(np.int64)
@@ -185,7 +187,7 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
         stop_xy = np.asarray(stop_pts)
         stop_nodes = graphs.nearest_nodes(graph, stop_xy)
         snap_off = np.hypot(stop_xy[:, 0] - graph.node_xy[stop_nodes, 0],
-                            stop_xy[:, 1] - graph.node_xy[stop_nodes, 1])
+                            stop_xy[:, 1] - graph.node_xy[stop_nodes, 1]) / per_unit
         far = snap_off > (max_walk_sec * speed)
         if np.all(far):
             raise QgsProcessingException(
@@ -210,7 +212,7 @@ class TransitAccessAlgorithm(PlanXAlgorithm):
             f"{max_transfers} transfer(s)."))
 
         patterns, stop_patterns = transit.compile_day(gtfs, day)
-        transfers = transit.walking_transfers(stop_xy, transfer_walk, speed)
+        transfers = transit.walking_transfers(stop_xy / per_unit, transfer_walk, speed)
         arrivals = transit.earliest_arrival(
             patterns, stop_patterns, len(gtfs["stop_ids"]), access,
             max_transfers=max_transfers, transfers=transfers,

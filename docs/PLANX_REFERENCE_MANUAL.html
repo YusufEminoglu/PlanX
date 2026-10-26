@@ -174,8 +174,10 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <span class="arrow">▼</span> 1. Network Analysis
 </button>
 <ul class="toc-algs">
+<li><a href="#deadends" data-name="deadends" data-display="dead-end analysis"><img src="icons/tool_deadends.png" alt="" class="alg-icon">Dead-End Analysis</a></li>
 <li><a href="#linkcriticality" data-name="linkcriticality" data-display="link criticality (network robustness)"><img src="icons/tool_linkcriticality.png" alt="" class="alg-icon">Link Criticality (Network Robustness)</a></li>
 <li><a href="#nearestfacility" data-name="nearestfacility" data-display="nearest facility allocation"><img src="icons/tool_nearestfacility.png" alt="" class="alg-icon">Nearest Facility Allocation</a></li>
+<li><a href="#networkrobustness" data-name="networkrobustness" data-display="network robustness (bridges and percolation)"><img src="icons/tool_networkrobustness.png" alt="" class="alg-icon">Network Robustness (Bridges and Percolation)</a></li>
 <li><a href="#odmatrix" data-name="odmatrix" data-display="od cost matrix"><img src="icons/tool_odmatrix.png" alt="" class="alg-icon">OD Cost Matrix</a></li>
 <li><a href="#odroutes" data-name="odroutes" data-display="od routes (shortest paths)"><img src="icons/tool_odroutes.png" alt="" class="alg-icon">OD Routes (Shortest Paths)</a></li>
 <li><a href="#preparenetwork" data-name="preparenetwork" data-display="prepare network"><img src="icons/tool_preparenetwork.png" alt="" class="alg-icon">Prepare Network</a></li>
@@ -204,6 +206,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <span class="arrow">▼</span> 4. Accessibility
 </button>
 <ul class="toc-algs">
+<li><a href="#gravityaccess" data-name="gravityaccess" data-display="gravity accessibility (hansen and 2sfca)"><img src="icons/tool_gravityaccess.png" alt="" class="alg-icon">Gravity Accessibility (Hansen and 2SFCA)</a></li>
 <li><a href="#accessscore" data-name="accessscore" data-display="multi-amenity access score (15-minute city)"><img src="icons/tool_accessscore.png" alt="" class="alg-icon">Multi-Amenity Access Score (15-Minute City)</a></li>
 </ul></li>
 <li class="toc-group">
@@ -280,6 +283,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 </button>
 <ul class="toc-algs">
 <li><a href="#gtfsimport" data-name="gtfsimport" data-display="gtfs import and service stats"><img src="icons/tool_gtfsimport.png" alt="" class="alg-icon">GTFS Import and Service Stats</a></li>
+<li><a href="#ptal" data-name="ptal" data-display="public transport accessibility level (ptal)"><img src="icons/tool_ptal.png" alt="" class="alg-icon">Public Transport Accessibility Level (PTAL)</a></li>
 <li><a href="#transitaccess" data-name="transitaccess" data-display="transit travel-time access"><img src="icons/tool_transitaccess.png" alt="" class="alg-icon">Transit Travel-Time Access</a></li>
 <li><a href="#transitfrequency" data-name="transitfrequency" data-display="transit frequency map"><img src="icons/tool_transitfrequency.png" alt="" class="alg-icon">Transit Frequency Map</a></li>
 </ul></li>
@@ -345,6 +349,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <li><a href="#modesplit" data-name="modesplit" data-display="mode split"><img src="icons/tool_modesplit.png" alt="" class="alg-icon">Mode Split</a></li>
 <li><a href="#parkingdemand" data-name="parkingdemand" data-display="parking demand estimator"><img src="icons/tool_parkingdemand.png" alt="" class="alg-icon">Parking Demand Estimator</a></li>
 <li><a href="#parkingsupplybalance" data-name="parkingsupplybalance" data-display="parking supply-demand balance"><img src="icons/tool_parkingsupplybalance.png" alt="" class="alg-icon">Parking Supply-Demand Balance</a></li>
+<li><a href="#trafficassignment" data-name="trafficassignment" data-display="traffic assignment (user equilibrium)"><img src="icons/tool_trafficassignment.png" alt="" class="alg-icon">Traffic Assignment (User Equilibrium)</a></li>
 <li><a href="#tripgeneration" data-name="tripgeneration" data-display="trip generation"><img src="icons/tool_tripgeneration.png" alt="" class="alg-icon">Trip Generation</a></li>
 </ul></li>
 <li class="toc-group">
@@ -376,7 +381,7 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <div class="cover">
 <h1>PlanX</h1>
 <p class="subtitle">Urban Analytics Studio — Comprehensive Academic Reference Manual</p>
-<p class="version">Covering PlanX v4.19.0 &middot; 76 Algorithms &middot; 19 Tool Groups</p>
+<p class="version">Covering PlanX v4.20.0 &middot; 80 Algorithms &middot; 19 Tool Groups</p>
 <p class="date">September 2026</p>
 <p style="margin-top:2em;font-size:.9em;color:var(--muted)">
   Yusuf Emino&#287;lu &middot;
@@ -401,14 +406,14 @@ tr:nth-child(even) td { background: var(--table-stripe); }
 <h2 id="how-to-use">How to Use This Manual</h2>
 
 <p>This manual is the <strong>definitive academic reference</strong> for every
-algorithm in PlanX — Urban Analytics Studio (v4.19.0). It is written for urban
+algorithm in PlanX — Urban Analytics Studio (v4.20.0). It is written for urban
 planners, spatial analysts, researchers, and students who need to understand not
 just <em>what</em> a tool produces, but <em>why</em> the method works,
 <em>how</em> to configure it correctly, and <em>what</em> the results mean in a
 real planning context.</p>
 
 <h3>Structure of each algorithm entry</h3>
-<p>Every one of the 76 algorithms is documented to an identical eight-section
+<p>Every one of the 80 algorithms is documented to an identical eight-section
 template:</p>
 <ol>
 <li><strong>Overview</strong> — what problem it solves and how, in one page</li>
@@ -451,7 +456,7 @@ region.</div>
 <h2 id="introduction">Introduction to PlanX</h2>
 
 <p>PlanX — Urban Analytics Studio is a comprehensive geospatial analysis
-platform delivered as a QGIS Processing provider. Its 76 algorithms span the
+platform delivered as a QGIS Processing provider. Its 80 algorithms span the
 full urban-planning workflow: from understanding the existing city (network
 analysis, morphology, microclimate) through diagnosing problems (equity,
 accessibility, walkability) to designing and evaluating interventions
@@ -524,12 +529,13 @@ environmental impact assessment by a licensed professional.</li>
 for the entire PlanX platform. Streets are modelled as an <strong>undirected
 primal graph</strong> where junctions are nodes and street segments are edges
 weighted by length (or a user-specified cost field). On this graph, the group
-builds the six classic transport-network queries: preparation (topological
+builds the classic transport-network queries: preparation (topological
 cleaning and node assignment), origin–destination cost matrices and routes,
-service areas (isochrones), nearest-facility allocation, and link criticality
-screening.</p>
+service areas (isochrones), nearest-facility allocation, link criticality
+screening, dead-end analysis, and structural robustness — bridges, percolation
+under random failure and recalculated attack, and global efficiency.</p>
 
-<p>All six tools share a single Dijkstra engine (<code>engine/paths.py</code>)
+<p>All of these tools share a single Dijkstra engine (<code>engine/paths.py</code>)
 that uses <code>scipy.sparse.csgraph</code> when available and a pure-Python
 <code>heapq</code> kernel otherwise, with identical results asserted by unit
 tests. The engine tracks predecessor nodes and edge identifiers through the
@@ -1441,6 +1447,19 @@ not correct for it.</div>
 
 <h3>Interpretation Guide</h3>
 
+<h4>Whole-map summaries: intelligibility and synergy</h4>
+<p>The run log closes with two numbers that describe the map rather than a
+segment (Hillier 1996). <strong>Intelligibility</strong> is
+the squared correlation between connectivity and integration at the widest
+radius: how well what can be seen from a segment — its immediate connections —
+predicts its position in the whole. A legible grid scores high; a labyrinth of
+look-alike junctions scores low. <strong>Synergy</strong> is the squared
+correlation between integration at the smallest and at the widest radius:
+whether the neighbourhood centres lie on the city's through routes. Both are
+computed on the segment map, so they are not comparable with the axial-map
+values quoted in the older literature, and a constant column (a perfect grid at
+one radius) reports "undefined" rather than zero.</p>
+
 <h4>The dual reading: NACH × NAIN</h4>
 <p>The real power of space syntax lies in reading NACH and NAIN <em>together</em>
 on the same segment. The cross-classification yields four urban typologies:</p>
@@ -1522,6 +1541,9 @@ Symposium</em>, Atlanta, GA, pp. 30.1–30.11.
 <span class="no-doi">conference proceedings]</span>
 Available at: <a href="https://discovery.ucl.ac.uk/id/eprint/894/">UCL Discovery</a></p>
 
+<p class="ref">Hillier, B. (1996). <em>Space is the Machine: A Configurational
+Theory of Architecture</em>. Cambridge University Press, Cambridge.
+</p>
 <p class="ref">Hillier, B. &amp; Iida, S. (2005). "Network and Psychological Effects
 in Urban Movement." In: Cohn, A.G. &amp; Mark, D.M. (eds.), <em>Spatial Information
 Theory (COSIT 2005)</em>, LNCS 3693, pp. 475–490. Springer.
@@ -2944,6 +2966,192 @@ DOI: <a href="https://doi.org/10.1068/b32045">10.1068/b32045</a>
 </p>
 <p class="ref">Southworth, M. &amp; Ben-Joseph, E. (2003). <em>Streets and the
 Shaping of Towns and Cities</em>. Island Press. ISBN: 978-1559639163.
+</p>
+
+<div class="page-break"></div>
+<h2 id="networkrobustness">Network Robustness (Bridges and Percolation)</h2>
+<p><strong>Processing ID:</strong> <code>planx:networkrobustness</code>
+&middot; <strong>Engine:</strong> <code>engine/robustness.py</code>
+&middot; <strong>Group:</strong> Network Analysis (1)</p>
+
+<h3>Overview</h3>
+<p>Asks how much of the street network holds together when links fail — the
+structural question that comes before any demand. Link Criticality asks which
+street costs a given set of trips the most to lose; this tool asks which streets
+the network cannot do without at all, and how quickly it falls apart. It finds
+every <strong>bridge</strong> (a street whose loss alone splits the network),
+records the <strong>percolation curve</strong> — the share of junctions still
+connected as links are removed at random and under a targeted attack — and
+measures <strong>global efficiency</strong> and how much of it the most central
+links carry.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>Tarjan (1974) gave the linear-time test for bridges that every graph library
+still uses. Albert, Jeong and Barabási (2000) framed robustness as the
+contrast between <em>error</em> (random failure) and <em>attack</em> (removal of
+the most important elements), and Holme, Kim, Yoon and Han (2002) showed that
+an attack is most damaging when importance — betweenness — is recalculated as
+the network changes, since the element that matters most after the first
+removals is not the one that mattered most before. Latora and Marchiori (2001)
+defined global efficiency, the mean inverse shortest-path length, which stays
+finite on a fragmented network where average path length does not; Porta,
+Crucitti and Latora carried it into street-network analysis. Schneider et al.
+(2011) condensed a whole removal sequence into one robustness index, the area
+under the largest-component curve. Newman and Ziff (2000) showed that the
+whole curve can be had in one pass by adding links back in reverse with a
+union-find structure, which is how it is computed here.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Connectivity is undirected.</strong> Bridges, components and the
+percolation curves treat every street as two-way: they describe the physical
+network. Efficiency and betweenness use the network's routing costs and honour
+one-way rules.</li>
+<li><strong>A link is a polyline</strong> between two nodes, as Prepare Network
+produces them. A long street split into many segments has many bridges if it is
+a cul-de-sac — every segment of a dead-end chain is a bridge by
+definition.</li>
+<li><strong>The attack recalculates edge betweenness</strong> after every batch
+of removals (10 batches by default). Betweenness and efficiency use a seeded
+sample of source junctions on large networks; the same seed gives the same
+answer.</li>
+<li><strong>Random failure is averaged</strong> over seeded runs, with the
+10th–90th percentile band reported, so the curve is a distribution rather than
+one lucky draw.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> to find single points of failure for emergency
+planning and to compare network designs by how gracefully they degrade.</li>
+<li><strong>Use Link Criticality instead</strong> when the question is the
+detour cost a closure imposes on actual trips.</li>
+<li><strong>Do not read the attack as a forecast</strong> of hazard damage;
+overlay the bridges and the first attack ranks with the hazard layers for
+that.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>An edge $e = (u, v)$ is a bridge when, in a depth-first search tree with
+discovery times $d$ and low-links $\text{low}$, $v$ is the child of $u$ and</p>
+<div class="eq">
+$$\text{low}(v) \gt d(u), \qquad \text{low}(v) = \min\Big( d(v),\ \min_{(v,w)\ \text{back edge}} d(w),\ \min_{w\ \text{child of}\ v} \text{low}(w) \Big) \tag{1}$$
+</div>
+<p>For a removal order $e_1, e_2, \ldots, e_m$, let $G_k$ be the network
+without the first $k$ links and $S(k)$ the share of the $n$ junctions in its
+largest connected component. The robustness index and the critical fraction
+are:</p>
+<div class="eq">
+$$R = \frac{1}{m} \sum_{k=1}^{m} S(k), \qquad f_{50} = \frac{1}{m} \min\{ k : S(k) \lt 0.5 \} \tag{2}$$
+</div>
+<p>Random failure averages $S(k)$ over seeded permutations; the attack removes,
+in each of $B$ batches of $\lceil m/B \rceil$ links, the links of highest edge
+betweenness on the network that remains (Brandes' algorithm, ties broken by
+link id). Global efficiency over the routing costs $d_{ij}$ is</p>
+<div class="eq">
+$$E = \frac{1}{n(n-1)} \sum_{i \ne j} \frac{1}{d_{ij}} \tag{3}$$
+</div>
+<p>with unreachable pairs contributing zero, and the efficiency loss of losing
+$k = \operatorname{round}(0.05\, m)$ links is $1 - E(G_k)/E(G)$ for the first
+$k$ attack links and the mean over random sets of $k$.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Street network</td><td>Vector lines</td><td>Yes</td><td>Projected CRS; prepared topology. Optional cost field for efficiency (empty = ground length).</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>NETWORK</code>, <code>COST_FIELD</code></td><td>Vector, Field</td><td>—</td><td>Network and optional cost for betweenness and efficiency.</td></tr>
+<tr><td><code>RUNS</code></td><td>Integer</td><td>20</td><td>Random failure sequences averaged.</td></tr>
+<tr><td><code>SEED</code></td><td>Integer</td><td>42</td><td>Seed for the random sequences and the source sample.</td></tr>
+<tr><td><code>SAMPLE</code></td><td>Integer</td><td>400</td><td>Source junctions for betweenness and efficiency (0 = all).</td></tr>
+<tr><td><code>BATCHES</code></td><td>Integer</td><td>10</td><td>Attack batches; betweenness is recalculated after each.</td></tr>
+<tr><td><code>OUT_EDGES</code></td><td>Vector (Line)</td><td>—</td><td>Streets with robustness flags.</td></tr>
+<tr><td><code>OUT_CURVE</code></td><td>Table</td><td>—</td><td>Percolation curves at every whole percent of links removed.</td></tr>
+<tr><td><code>OUT_SUMMARY</code></td><td>Table</td><td>—</td><td>Thirteen metric/value rows.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<h4>Streets (OUT_EDGES)</h4>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>is_bridge</code></td><td>Integer</td><td>1 when the street's loss alone disconnects its two ends</td></tr>
+<tr><td><code>edge_btw</code></td><td>Double</td><td>Edge betweenness on the intact network (pairs, both directions halved)</td></tr>
+<tr><td><code>attack_rank</code></td><td>Integer</td><td>Position in the recalculated attack; 1 is removed first (default renderer)</td></tr>
+<tr><td><code>component</code></td><td>Integer</td><td>Connected component of the intact network</td></tr>
+<tr><td><code>link_m</code></td><td>Double</td><td>Ground length in metres</td></tr>
+</table>
+<h4>Curve (OUT_CURVE)</h4>
+<p><code>removed</code> (share of links), <code>links_out</code>,
+<code>gc_random</code> with <code>gc_rand_p10</code> and
+<code>gc_rand_p90</code>, and <code>gc_attack</code> — the largest-component
+share $S(k)$ under each strategy.</p>
+<h4>Summary (OUT_SUMMARY)</h4>
+<p><code>junctions</code>, <code>links</code>, <code>components</code>,
+<code>giant_share</code>, <code>bridges</code>,
+<code>bridge_length_share</code>, <code>R_random</code>, <code>R_attack</code>,
+<code>f50_random</code>, <code>f50_attack</code>, <code>efficiency</code>,
+<code>eff_loss_attack</code> and <code>eff_loss_random</code>, each with its
+unit.</p>
+
+<h3>Symbolic Representation</h3>
+<p>Draw <code>is_bridge = 1</code> heavy and red over a light grey network, and
+graduate <code>attack_rank</code> with a reversed ramp so the first 1–2 percent
+stand out. Plot the curve table with <code>removed</code> on the x-axis and the
+three <code>gc_*</code> series on the y-axis, shading the random band between
+its percentiles.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong>Bridges are single points of failure.</strong>
+<code>bridge_length_share</code> separates a few short cul-de-sac bridges from
+a network whose districts hang on one crossing; Dead-End Analysis says which
+bridges are only cul-de-sacs.</li>
+<li><strong><code>R_random</code> against <code>R_attack</code>.</strong> On the
+36-junction demo grid random failure gives R = 0.58 and the recalculated
+attack 0.35; a static ranking from the intact network gave 0.62 — less damaging
+than random failure on a grid, which is why the attack is recalculated. A
+large gap means the network depends on a few spines; a small one means it has
+none, which on a grid is the finding rather than a failure of the attack.</li>
+<li><strong><code>f50</code></strong> is the share of links whose loss leaves
+fewer than half of the junctions connected: 0.26 under attack against 0.57 at
+random on the demo grid.</li>
+<li><strong>Efficiency loss</strong> under attack exceeding the random loss is
+the price of losing the spines rather than ordinary streets.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Albert, R., Jeong, H. &amp; Barabási, A.-L. (2000). "Error and
+attack tolerance of complex networks." <em>Nature</em>, 406(6794), 378–382.
+DOI: <a href="https://doi.org/10.1038/35019019">10.1038/35019019</a>
+</p>
+<p class="ref">Holme, P., Kim, B.J., Yoon, C.N. &amp; Han, S.K. (2002).
+"Attack vulnerability of complex networks." <em>Physical Review E</em>, 65(5),
+056109.
+DOI: <a href="https://doi.org/10.1103/PhysRevE.65.056109">10.1103/PhysRevE.65.056109</a>
+</p>
+<p class="ref">Latora, V. &amp; Marchiori, M. (2001). "Efficient Behavior of
+Small-World Networks." <em>Physical Review Letters</em>, 87(19), 198701.
+DOI: <a href="https://doi.org/10.1103/PhysRevLett.87.198701">10.1103/PhysRevLett.87.198701</a>
+</p>
+<p class="ref">Newman, M.E.J. &amp; Ziff, R.M. (2000). "Efficient Monte Carlo
+Algorithm and High-Precision Results for Percolation." <em>Physical Review
+Letters</em>, 85(19), 4104–4107.
+DOI: <a href="https://doi.org/10.1103/PhysRevLett.85.4104">10.1103/PhysRevLett.85.4104</a>
+</p>
+<p class="ref">Schneider, C.M., Moreira, A.A., Andrade, J.S., Havlin, S. &amp;
+Herrmann, H.J. (2011). "Mitigation of malicious attacks on networks."
+<em>Proceedings of the National Academy of Sciences</em>, 108(10), 3838–3841.
+DOI: <a href="https://doi.org/10.1073/pnas.1009440108">10.1073/pnas.1009440108</a>
+</p>
+<p class="ref">Tarjan, R.E. (1974). "A note on finding the bridges of a
+graph." <em>Information Processing Letters</em>, 2(6), 160–161.
+DOI: <a href="https://doi.org/10.1016/0020-0190(74)90003-9">10.1016/0020-0190(74)90003-9</a>
 </p>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -4507,6 +4715,14 @@ $$
 <div class="page-break"></div>
 <h2 id="group4" class="group-header">4. Accessibility</h2>
 
+<p>Two complementary questions. <strong>Multi-Amenity Access Score</strong>
+asks whether every daily need has at least one destination within a walk — the
+15-minute-city audit, one category at a time. <strong>Gravity
+Accessibility</strong> counts the opportunities themselves — jobs, school
+places, hospital beds — with cumulative, Hansen gravity and two-step floating
+catchment area measures over a library of six distance-decay functions, so that
+capacity and competition enter the answer.</p>
+
 <div class="page-break"></div>
 <h2 id="accessscore">Multi-Amenity Access Score (15-Minute City)</h2>
 <p><strong>Processing ID:</strong> <code>planx:accessscore</code></p>
@@ -4528,6 +4744,7 @@ $$
 <li><strong>Nearest amenity of each category:</strong> the tool finds the minimum travel time to any amenity in a category. It does not allocate demand to capacity — for that, use <strong>Facility Adequacy</strong>.</li>
 <li><strong>Snapping tolerance:</strong> origins and amenities are snapped to the nearest network node. If an origin is 200 m from the nearest network edge, its travel times will be overestimated by that approach distance.</li>
 <li><strong>Edge cost = length:</strong> all edges are assumed walkable at uniform speed. The tool does not model pedestrian crossing delays, gradient, footpath quality, or safety.</li>
+<li><strong>Ground metres:</strong> since v4.20.0 walking minutes are the edge's <em>ground</em> length over the speed, converted from the layer's coordinate units through its CRS and ellipsoid. Before, the raw coordinate length was used, which on EPSG:3857 at 41°N made every walk 1.33&times; too long and every threshold correspondingly too strict.</li>
 <li><strong>2x threshold reporting limit:</strong> times beyond double the threshold are reported as -1 (unreachable) to bound the Dijkstra search radius.</li>
 </ul>
 
@@ -4641,6 +4858,212 @@ $$
 <p class="ref"><span class="check">&#10003;</span> Geurs, K.T. &amp; van Wee, B. (2004). "Accessibility evaluation of land-use and transport strategies: review and research directions." <em>Journal of Transport Geography</em>, 12(2), 127–140. DOI: <a href="https://doi.org/10.1016/j.jtrangeo.2003.10.005">10.1016/j.jtrangeo.2003.10.005</a></p>
 <p class="ref"><span class="check">&#10003;</span> Talen, E. &amp; Anselin, L. (1998). "Assessing Spatial Equity: An Evaluation of Measures of Accessibility to Public Playgrounds." <em>Environment and Planning A</em>, 30(4), 595–613. DOI: <a href="https://doi.org/10.1068/a300595">10.1068/a300595</a></p>
 <p class="ref"><span class="check">&#10003;</span> Ewing, R. &amp; Cervero, R. (2010). "Travel and the Built Environment: A Meta-Analysis." <em>Journal of the American Planning Association</em>, 76(3), 265–294. DOI: <a href="https://doi.org/10.1080/01944361003766766">10.1080/01944361003766766</a></p>
+
+<div class="page-break"></div>
+<h2 id="gravityaccess">Gravity Accessibility (Hansen and 2SFCA)</h2>
+<p><strong>Processing ID:</strong> <code>planx:gravityaccess</code>
+&middot; <strong>Engine:</strong> <code>engine/accessibility.py</code>
+&middot; <strong>Group:</strong> Accessibility (4)</p>
+
+<h3>Overview</h3>
+<p>Measures how many <strong>opportunities</strong> — jobs, school places,
+hospital beds, retail floorspace — every origin can reach over the street
+network, weighted by how far away they are. The Multi-Amenity Access Score asks
+whether there is <em>one</em> amenity of each kind within a threshold; this tool
+counts the opportunities themselves, which is the question behind "jobs within
+30 minutes", "GPs per 1 000 residents in reach" or the potential of a site for
+retail. Three measures come out of one run: cumulative opportunities within a
+cutoff, Hansen's gravity potential with a choice of six decay functions, and
+the two-step floating catchment area (2SFCA) measure, which shares each
+facility's capacity among everyone who can reach it.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>Hansen (1959) defined accessibility as the potential of opportunities for
+interaction and showed that it predicted where residential development went
+next; his index — every opportunity counted with a weight that falls with
+travel time — is still the reference form. Wachs and Kumagai (1973) proposed the
+cumulative-opportunities measure as a social indicator, valued because it can
+be read aloud. Kwan (1998) compared the families and introduced the Gaussian
+decay among others. Geurs and van Wee (2004) set out the criteria a good measure
+must meet and classified the place-based measures implemented here. Radke and
+Mu (2000) and Luo and Wang (2003) added competition: the two-step floating
+catchment area divides each facility's supply by the population inside its
+catchment before summing what each place can reach, so that a clinic counted by
+50 000 people is not counted 50 000 times. Luo and Qi (2009) replaced the hard
+catchment edge with distance-decay weights (the "enhanced" E2SFCA), which is
+what this tool computes for every decay but the cumulative one.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Travel cost in minutes.</strong> A time field on the network, or
+ground length (metres on the layer's ellipsoid) over a speed. One-way rules
+from Prepare Network are honoured in the origin-to-opportunity direction:
+searches run outward from every opportunity over the <em>reversed</em>
+graph.</li>
+<li><strong>Every decay is cut to zero beyond the cutoff.</strong> Without the
+cutoff an exponential or power decay never reaches zero, a facility across a
+region contributes a sliver to every place, and a 2SFCA catchment covers the
+whole region. The cutoff keeps the measure local and bounds the searches.</li>
+<li><strong>Points on nodes.</strong> Origins and opportunities are snapped to
+their nearest network node; opportunities on one node are summed and searched
+once.</li>
+<li><strong>Supply is additive and population is the demand.</strong> 2SFCA
+treats every resident as an equal claimant on every facility in reach; age
+structure, choice and capacity utilisation are outside the model.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use the cumulative measure</strong> for jobs and other abundant
+opportunities where the count itself is the message.</li>
+<li><strong>Use 2SFCA</strong> for capacity-limited services — GPs, school
+places, hospital beds, childcare — where a large facility shared by many is not
+more accessible than a small one shared by few.</li>
+<li><strong>Use Hansen</strong> to rank places when nearer opportunities should
+weigh more, and compare decays by their half-weight time, which the log
+prints.</li>
+<li><strong>Do not use it</strong> for "is there a school within 15 minutes?"
+— the Multi-Amenity Access Score answers that directly, per category.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>With $c_{ij}$ the network travel time from origin $i$ to opportunity $j$ in
+minutes, $T$ the cutoff and $p$ the decay parameter, the decay functions
+are:</p>
+<div class="eq">
+$$f(c) = \mathbb{1}[c \le T] \cdot \begin{cases}
+1 & \text{cumulative} \\
+1 - c/T & \text{linear} \\
+e^{-p c} & \text{negative exponential} \\
+e^{-c^2 / (2 p^2)} & \text{Gaussian} \\
+\min(1,\, c^{-p}) & \text{inverse power} \\
+\left[ 1 + e^{(c - p) \cdot 4/p} \right]^{-1} & \text{logistic}
+\end{cases} \tag{1}$$
+</div>
+<p>The power form is capped at 1 so a trip under a minute is not worth more than
+a doorstep one, and the logistic form crosses one half at $c = p$ with a slope
+that scales with $p$. With supply $S_j$ at opportunity $j$ the three measures
+are:</p>
+<div class="eq">
+$$A^{cum}_i = \sum_j S_j\, \mathbb{1}[c_{ij} \le T], \qquad A^{H}_i = \sum_j S_j\, f(c_{ij}) \tag{2}$$
+</div>
+<div class="eq">
+$$R_j = \frac{S_j}{\sum_k P_k\, f(c_{kj})}, \qquad A^{FCA}_i = \sum_j R_j\, f(c_{ij}) \tag{3}$$
+</div>
+<p>where $P_k$ is the population of origin $k$. Summing (3) over origins
+weighted by population gives the conservation identity that makes 2SFCA a
+share rather than a count:</p>
+<div class="eq">
+$$\sum_i P_i\, A^{FCA}_i = \sum_j S_j \cdot \mathbb{1}\Big[\sum_k P_k\, f(c_{kj}) \gt 0\Big] \tag{4}$$
+</div>
+<p>— the total supply that anyone can reach. The tool prints both sides of (4)
+after every run. The half-weight time $c_{1/2}$ with $f(c_{1/2}) = 1/2$ is
+$\ln 2 / p$ for the exponential, $p\sqrt{2 \ln 2}$ for the Gaussian,
+$2^{1/p}$ for the power form, $p$ for the logistic and $T/2$ for the linear
+cone.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Origins</td><td>Any geometry</td><td>Yes</td><td>Homes, zones or grid cells; a population field is needed for 2SFCA.</td></tr>
+<tr><td>Opportunities</td><td>Any geometry</td><td>Yes</td><td>Jobs, facilities, floorspace; a supply field (empty = one per feature).</td></tr>
+<tr><td>Street network</td><td>Vector lines</td><td>Yes</td><td>Projected CRS; optional travel-time field in minutes.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>ORIGINS</code>, <code>POP_FIELD</code></td><td>Vector, Field</td><td>—</td><td>Origins and their population (optional; without it <code>fca</code> is empty).</td></tr>
+<tr><td><code>OPPORTUNITIES</code>, <code>SUPPLY_FIELD</code></td><td>Vector, Field</td><td>—</td><td>Opportunities and their supply (optional; empty = 1 each).</td></tr>
+<tr><td><code>NETWORK</code>, <code>COST_FIELD</code></td><td>Vector, Field</td><td>—</td><td>Network and an optional travel-time field in minutes.</td></tr>
+<tr><td><code>SPEED</code></td><td>Double</td><td>4.8 km/h</td><td>Speed over ground length when no time field is given.</td></tr>
+<tr><td><code>DECAY</code></td><td>Enum</td><td>Negative exponential</td><td>One of the six kinds of Equation (1).</td></tr>
+<tr><td><code>DECAY_PARAM</code></td><td>Double</td><td>0.1</td><td>$p$: beta per minute, sigma in minutes, power exponent or half-weight minutes. Not used by the cumulative and linear kinds.</td></tr>
+<tr><td><code>CUTOFF</code></td><td>Double</td><td>30 min</td><td>$T$ in Equation (1).</td></tr>
+<tr><td><code>PER_POP</code></td><td>Double</td><td>1000</td><td>2SFCA values are reported per this many residents.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector (Point)</td><td>—</td><td>Origins with the measures.</td></tr>
+<tr><td><code>OUT_OPPORTUNITIES</code></td><td>Vector (Point)</td><td>optional</td><td>Opportunities with their catchment population and supply ratio.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>acc_cum</code></td><td>Double</td><td>Supply within the cutoff, Equation (2) left</td></tr>
+<tr><td><code>acc_hansen</code></td><td>Double</td><td>Hansen potential, Equation (2) right</td></tr>
+<tr><td><code>acc_share</code></td><td>Double</td><td><code>acc_hansen</code> as a share of all supply</td></tr>
+<tr><td><code>acc_index</code></td><td>Double</td><td><code>acc_hansen</code> scaled 0–100 by the best-served origin (default renderer)</td></tr>
+<tr><td><code>n_opps</code></td><td>Integer</td><td>Opportunity nodes within the cutoff</td></tr>
+<tr><td><code>near_min</code></td><td>Double</td><td>Minutes to the nearest opportunity; empty beyond the cutoff</td></tr>
+<tr><td><code>fca</code></td><td>Double</td><td>2SFCA supply per <code>PER_POP</code> residents, Equation (3)</td></tr>
+</table>
+<p>The optional opportunities layer carries <code>supply</code>,
+<code>catchment_pop</code> (the decay-weighted population competing for the
+node, the denominator of $R_j$) and <code>ratio</code> (its supply per
+<code>PER_POP</code> of that population — low values are the overloaded
+facilities).</p>
+
+<h3>Symbolic Representation</h3>
+<p>Graduate <code>acc_index</code> or <code>fca</code> with a sequential ramp in
+quantile classes; on a 100 m grid of origins the result reads as a surface.
+Size the opportunities by <code>supply</code> and colour them by
+<code>ratio</code> on a diverging ramp centred on the area-wide supply per
+resident, so overloaded and under-used facilities separate at a glance.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong><code>acc_cum</code> is the quotable sentence</strong> ("12 400
+jobs within 30 minutes"); <code>acc_hansen</code> ranks the same places with
+nearer opportunities counted more.</li>
+<li><strong><code>fca</code> is the fair-share measure.</strong> A place next to
+a large clinic that half the city also reaches scores lower than its Hansen
+value suggests. Compare <code>fca</code> with the area-wide ratio of total
+supply to total population: above it is better served than average.</li>
+<li><strong>Decays differ more than their parameters suggest.</strong> Compare
+them by the half-weight time in the log — an exponential with $p = 0.1$ halves
+at 6.9 minutes, a Gaussian with $p = 10$ at 11.8.</li>
+<li><strong>Origins reaching nothing</strong> and the residents living there are
+counted in the log: they are the first target of any facility plan.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Geurs, K.T. &amp; van Wee, B. (2004). "Accessibility evaluation
+of land-use and transport strategies: review and research directions."
+<em>Journal of Transport Geography</em>, 12(2), 127–140.
+DOI: <a href="https://doi.org/10.1016/j.jtrangeo.2003.10.005">10.1016/j.jtrangeo.2003.10.005</a>
+</p>
+<p class="ref">Hansen, W.G. (1959). "How Accessibility Shapes Land Use."
+<em>Journal of the American Institute of Planners</em>, 25(2), 73–76.
+DOI: <a href="https://doi.org/10.1080/01944365908978307">10.1080/01944365908978307</a>
+</p>
+<p class="ref">Kwan, M.-P. (1998). "Space-Time and Integral Measures of
+Individual Accessibility: A Comparative Analysis Using a Point-based
+Framework." <em>Geographical Analysis</em>, 30(3), 191–216.
+DOI: <a href="https://doi.org/10.1111/j.1538-4632.1998.tb00396.x">10.1111/j.1538-4632.1998.tb00396.x</a>
+</p>
+<p class="ref">Luo, W. &amp; Qi, Y. (2009). "An enhanced two-step floating
+catchment area (E2SFCA) method for measuring spatial accessibility to primary
+care physicians." <em>Health &amp; Place</em>, 15(4), 1100–1107.
+DOI: <a href="https://doi.org/10.1016/j.healthplace.2009.06.002">10.1016/j.healthplace.2009.06.002</a>
+</p>
+<p class="ref">Luo, W. &amp; Wang, F. (2003). "Measures of Spatial
+Accessibility to Health Care in a GIS Environment: Synthesis and a Case Study
+in the Chicago Region." <em>Environment and Planning B: Planning and
+Design</em>, 30(6), 865–884.
+DOI: <a href="https://doi.org/10.1068/b29120">10.1068/b29120</a>
+</p>
+<p class="ref">Radke, J. &amp; Mu, L. (2000). "Spatial Decompositions,
+Modeling and Mapping Service Regions to Predict Access to Social Programs."
+<em>Geographic Information Sciences</em> (now <em>Annals of GIS</em>), 6(2),
+105–112.
+DOI: <a href="https://doi.org/10.1080/10824000009480538">10.1080/10824000009480538</a>
+</p>
+<p class="ref">Wachs, M. &amp; Kumagai, T.G. (1973). "Physical accessibility
+as a social indicator." <em>Socio-Economic Planning Sciences</em>, 7(5),
+437–456.
+DOI: <a href="https://doi.org/10.1016/0038-0121(73)90041-4">10.1016/0038-0121(73)90041-4</a>
+</p>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- GROUP 5: MICROCLIMATE                                               -->
@@ -8716,14 +9139,16 @@ Available at: <a href="https://www.epa.gov/ejscreen">epa.gov/ejscreen</a></p>
 <h2 id="group11" class="group-header">11. Transit</h2>
 
 <p>The Transit group lifts public transport data from the raw GTFS schedule into
-spatial analysis. Three tools form a pipeline: <strong>GTFS Import</strong>
+spatial analysis. Three tools form a pipeline, and a fourth rates the result: <strong>GTFS Import</strong>
 validates and geocodes the feed, producing stop layers and route summaries for
 immediate visual audit; <strong>Transit Frequency Map</strong> answers "how often
 does it come?" for any time window on any service day — the service-intensity view
 that separates genuine frequent corridors from paper routes; <strong>Transit
 Travel-Time Access</strong> computes door-to-door travel times using walking on
 the street network plus timetable riding via a RAPTOR-style earliest-arrival
-algorithm, answering the rider's question: "how long does it actually take?" The
+algorithm, answering the rider's question: "how long does it actually take?";
+<strong>Public Transport Accessibility Level (PTAL)</strong> rates every place
+0 to 6b by the service it can walk to, with Transport for London's method. The
 entire pipeline is pure Python with zero external libraries beyond NumPy — GTFS
 reading, service-day resolution, and timetable search all run inside QGIS.</p>
 
@@ -9195,7 +9620,11 @@ fast enough (~seconds) and avoids the complexity of route-pattern indexing.</p>
 <h3>Mathematical Formulation</h3>
 
 <p><strong>Access walk.</strong> For origin nodes $\mathcal{O}$, walking speed
-$v$ (m/s), and street-network edge walking times $w_{\text{sec}}(e) = \ell_e / v$:</p>
+$v$ (m/s), and street-network edge walking times $w_{\text{sec}}(e) = \ell_e / v$,
+where $\ell_e$ is the edge's <em>ground</em> length in metres (converted from
+the layer's coordinate units through its CRS and ellipsoid since v4.20.0; the
+snapping offsets and the stop-to-stop transfer distances are converted the same
+way):</p>
 $$t_{\text{access}}(stop_i) = \min_{o \in \mathcal{O}} \left[ d_{\text{walk}}(o, node(stop_i)) + \frac{\|stop_i - node(stop_i)\|_2}{v} \right] \tag{5}$$
 
 <p>Stops for which $t_{\text{access}} > max\_walk\_min \times 60$ are excluded.
@@ -9362,6 +9791,157 @@ DOI: <a href="https://doi.org/10.1016/j.jtrangeo.2016.03.004">10.1016/j.jtrangeo
 Share of Transit Using Continuous Accessibility to Jobs." <em>Transportation
 Research Part A: Policy and Practice</em>, 74, 110–122.
 DOI: <a href="https://doi.org/10.1016/j.tra.2015.02.002">10.1016/j.tra.2015.02.002</a>
+</p>
+
+<div class="page-break"></div>
+<h2 id="ptal">Public Transport Accessibility Level (PTAL)</h2>
+<p><strong>Processing ID:</strong> <code>planx:ptal</code>
+&middot; <strong>Engine:</strong> <code>engine/ptal.py</code>
+&middot; <strong>Group:</strong> Transit (11)</p>
+
+<h3>Overview</h3>
+<p>Rates every place from <strong>0 to 6b</strong> by the public transport
+service it can walk to, using Transport for London's PTAL method. A place
+scores high when many routes stop within a short walk and run often; where the
+routes go is deliberately not part of the measure. PTAL is the accessibility
+rating British planning policy ties residential density ranges and parking
+standards to, and it is used far beyond London because it needs nothing but a
+timetable and a walking network. This tool computes it from a GTFS feed and the
+street network for any set of places — typically a 100 m grid or address
+points — and reports the band, the index behind it, its split by mode, and the
+route contributing most.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>The method was developed by the London Borough of Hammersmith &amp; Fulham in
+1992 and adopted and maintained by Transport for London, whose 2015 guidance
+<em>Assessing transport connectivity in London</em> is the reference this tool
+follows. Wu and Hine (2003) used it to measure the effect of bus service changes
+on accessibility and discussed its sensitivities: the catchment walk, the
+treatment of reliability and the deliberate blindness to destinations. The
+measure's appeal is that it is an index of <em>service at the doorstep</em> —
+an equivalent doorstep frequency — rather than of travel to anywhere, which is
+why it pairs with, rather than replaces, travel-time measures such as Transit
+Travel-Time Access.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Service access points within a walk.</strong> A stop is usable when
+it lies within 8 minutes' walk (640 m at the TfL speed of 80 m/min) for buses
+and trams, or 12 minutes (960 m) for rail and metro. Walks are measured on the
+street network supplied, from the place's nearest node to the stop's nearest
+node plus both snapping offsets, in ground metres.</li>
+<li><strong>Each route counts once, at its nearest stop,</strong> with its
+departures in the analysis window divided by the window's length. TfL's window
+is the weekday AM peak, 08:15–09:15. Route direction is not distinguished; on
+a two-way corridor the nearest stop is usually one side of the street, which is
+what TfL's one-direction rule approximates.</li>
+<li><strong>Mode from GTFS <code>route_type</code>.</strong> Metro, rail,
+monorail and the extended rail codes take the rail catchment and the 0.75
+minute reliability allowance; tram and light rail take the bus catchment with
+the rail allowance; everything else is bus, with the 2 minute allowance.</li>
+<li><strong>A place is a point.</strong> TfL rates the centroids of a 100 m
+grid; rate a grid built with QGIS's own grid tool to reproduce that.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> to map public transport provision for density,
+parking or site-allocation policy, and to measure what a timetable change or a
+new route does to the bands.</li>
+<li><strong>Do not use it</strong> to answer "how long does it take to get to
+work?" — PTAL ignores destinations, speed and transfers. Transit Travel-Time
+Access answers that.</li>
+<li><strong>Do not compare PTAL computed on different walking networks or
+windows</strong>; the catchments and the window are part of the definition.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>For a place, let $w_r$ be the walk in minutes to the nearest stop served by
+route $r$ (within that route's mode catchment) and $f_r$ the route's departures
+per hour there. With reliability allowance $K_m$ for the route's mode $m$:</p>
+<div class="eq">
+$$\text{SWT}_r = 0.5 \cdot \frac{60}{f_r}, \qquad \text{AWT}_r = \text{SWT}_r + K_m, \qquad \text{TAT}_r = w_r + \text{AWT}_r \tag{1}$$
+</div>
+<div class="eq">
+$$\text{EDF}_r = \frac{30}{\text{TAT}_r} \tag{2}$$
+</div>
+<p>Within each mode the best route counts in full and every other one at half
+weight, and the modes add up:</p>
+<div class="eq">
+$$\text{AI}_m = \text{EDF}_{\max,m} + 0.5 \sum_{r \in m,\, r \ne \max} \text{EDF}_r, \qquad \text{AI} = \sum_m \text{AI}_m \tag{3}$$
+</div>
+<p>The bands are 0 for AI = 0; 1a up to 2.5; 1b up to 5; 2 up to 10; 3 up to
+15; 4 up to 20; 5 up to 25; 6a up to 40; 6b above 40. One bus every 5 minutes
+at a 4-minute walk gives SWT 2.5, AWT 4.5, TAT 8.5 and EDF 3.53 — band 1b on its
+own; a second bus route every 10 minutes from the same stop adds
+0.5 × 30/11 = 1.36, still 1b; a rail route every 3 minutes at a 10-minute walk
+adds 30/12.25 = 2.45, lifting the place to band 2 (AI 7.34). These three cases
+are the engine's own unit tests.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>GTFS feed</td><td>Zip</td><td>Yes</td><td>stops, routes, trips, stop_times and a calendar. <code>route_type</code> decides the mode.</td></tr>
+<tr><td>Street network</td><td>Vector lines</td><td>Yes</td><td>Projected CRS; the walking network.</td></tr>
+<tr><td>Places</td><td>Any geometry</td><td>Yes</td><td>Grid points, addresses or parcels (rated at a point on their surface).</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>FILE</code>, <code>DAY</code></td><td>File, String</td><td>—, first active day</td><td>GTFS zip and service day (YYYYMMDD). Choose a weekday.</td></tr>
+<tr><td><code>WINDOW_START</code>, <code>WINDOW_END</code></td><td>Double (hour)</td><td>8.25, 9.25</td><td>Analysis window, TfL's 08:15–09:15.</td></tr>
+<tr><td><code>NETWORK</code>, <code>ORIGINS</code></td><td>Vector</td><td>—</td><td>Walking network and the places to rate.</td></tr>
+<tr><td><code>WALK_SPEED</code></td><td>Double</td><td>4.8 km/h</td><td>TfL's 80 m/min.</td></tr>
+<tr><td><code>BUS_CATCHMENT</code>, <code>RAIL_CATCHMENT</code></td><td>Double (advanced)</td><td>8, 12 min</td><td>Walk catchments.</td></tr>
+<tr><td><code>BUS_RELIABILITY</code>, <code>RAIL_RELIABILITY</code></td><td>Double (advanced)</td><td>2.0, 0.75 min</td><td>Reliability allowances $K_m$; the rail value also applies to trams.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector (Point)</td><td>—</td><td>Places with PTAL.</td></tr>
+<tr><td><code>OUT_SUMMARY</code></td><td>Table</td><td>optional</td><td>Places and share per band.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>ptal</code></td><td>String</td><td>Band: 0, 1a, 1b, 2, 3, 4, 5, 6a, 6b</td></tr>
+<tr><td><code>ptal_ai</code></td><td>Double</td><td>Accessibility index AI, Equation (3)</td></tr>
+<tr><td><code>ptal_rank</code></td><td>Integer</td><td>Band as 0–8, for graduated styling (default renderer)</td></tr>
+<tr><td><code>ai_bus</code>, <code>ai_tram</code>, <code>ai_rail</code></td><td>Double</td><td>AI by mode; they add up to <code>ptal_ai</code></td></tr>
+<tr><td><code>n_routes</code></td><td>Integer</td><td>Routes counted</td></tr>
+<tr><td><code>n_saps</code></td><td>Integer</td><td>Distinct stops those routes were counted at</td></tr>
+<tr><td><code>best_route</code></td><td>String</td><td>Route with the highest EDF (short name, else long name, else id)</td></tr>
+</table>
+
+<h3>Symbolic Representation</h3>
+<p>TfL's convention is a nine-step ramp from dark blue (0) through green and
+yellow to red (6b), on a 100 m grid of squares. Style <code>ptal_rank</code>
+as categories with that ramp, or graduate it 0–8; overlay the stops sized by
+departures from Transit Frequency Map to show where the high bands come
+from.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong>0 and 1a–2 are poor, 3 moderate, 4–5 good, 6a–6b
+excellent.</strong> The step from 2 to 3 is usually the threshold planning
+policy cares about for higher density.</li>
+<li><strong>Read the mode split.</strong> A place at band 4 on buses alone
+(<code>ai_rail</code> = 0) depends on a timetable that can change next year; the
+same band built on rail is structural.</li>
+<li><strong><code>best_route</code></strong> is usually the route residents
+would name — the single service whose cut would cost the place the most.</li>
+<li><strong>A place at band 0 next to a stop</strong> means that stop has no
+departure in the window: check the day and the window against the feed.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Transport for London (2015). <em>Assessing transport
+connectivity in London</em>. Transport for London, London.
+</p>
+<p class="ref">Wu, B.M. &amp; Hine, J.P. (2003). "A PTAL approach to measuring
+changes in bus service accessibility." <em>Transport Policy</em>, 10(4),
+307–320.
+DOI: <a href="https://doi.org/10.1016/S0967-070X(03)00053-2">10.1016/S0967-070X(03)00053-2</a>
 </p>
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -10385,7 +10965,6 @@ scenarios, not a single value.</li>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- HOUSING NEEDS ASSESSMENT                                  -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="housingneeds">Housing Needs Assessment</h2>
 <p><strong>Processing ID:</strong> <code>planx:housingneeds</code></p>
 
@@ -10606,7 +11185,6 @@ physically accommodate the projected households.</li>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- RESIDENTIAL CAPACITY                                      -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="residentialcapacity">Residential Capacity</h2>
 <p><strong>Processing ID:</strong> <code>planx:residentialcapacity</code></p>
 
@@ -10806,7 +11384,6 @@ matches the <em>plan's tenure target</em>, not the market's current average.</li
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- ALLOCATE POPULATION GROWTH                                -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="popallocate">Allocate Population Growth</h2>
 <p><strong>Processing ID:</strong> <code>planx:popallocate</code></p>
 
@@ -10997,7 +11574,6 @@ The best green-infrastructure plans close both gaps.</p>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- GREEN SPACE ACCESS                                         -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="greenaccess">Green Space Access</h2>
 <p><strong>Processing ID:</strong> <code>planx:greenaccess</code></p>
 
@@ -11224,7 +11800,6 @@ coverage by population. Always use the population field when available.</li>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- URBAN GREEN CONNECTIVITY                                  -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="greenconnectivity">Urban Green Connectivity</h2>
 <p><strong>Processing ID:</strong> <code>planx:greenconnectivity</code></p>
 
@@ -11457,7 +12032,6 @@ the resulting pattern efficient or wasteful (sprawl metrics)?</p>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- LAND-COVER CHANGE ANALYSIS                                 -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="landcoverchange">Land-Cover Change Analysis</h2>
 <p><strong>Processing ID:</strong> <code>planx:landcoverchange</code></p>
 
@@ -11655,7 +12229,6 @@ to track whether the plan's land-use policies are being observed.</li>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- URBAN GROWTH SIMULATION (CA)                               -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="growthsim">Urban Growth Simulation (CA)</h2>
 <p><strong>Processing ID:</strong> <code>planx:growthsim</code></p>
 
@@ -11892,7 +12465,6 @@ by a few kilometres if the boundary coincides with the urban fringe.</li>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- URBAN SPRAWL METRICS                                       -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="sprawlmetrics">Urban Sprawl Metrics</h2>
 <p><strong>Processing ID:</strong> <code>planx:sprawlmetrics</code></p>
 
@@ -12165,7 +12737,6 @@ portion (connectivity islands)?</p>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- CYCLING STRESS (LTS)                                       -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="cyclingstress">Cycling Stress (LTS)</h2>
 <p><strong>Processing ID:</strong> <code>planx:cyclingstress</code></p>
 
@@ -12448,7 +13019,6 @@ discriminating.</li>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- LOW-STRESS CONNECTIVITY                                    -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-===ALGORITHM===
 <h2 id="lowstressislands">Low-Stress Connectivity</h2>
 <p><strong>Processing ID:</strong> <code>planx:lowstressislands</code></p>
 
@@ -13010,7 +13580,6 @@ depression-filling and watershed-labeling algorithm for digital elevation models
 DOI: <a href="https://doi.org/10.1016/j.cageo.2013.04.024">10.1016/j.cageo.2013.04.024</a>
 </p>
 
-===ALGORITHM===
 
 <div class="page-break"></div>
 
@@ -13312,7 +13881,6 @@ inundation simulation." <em>Journal of Hydrology</em>, 236(1–2), 54–77.
 DOI: <a href="https://doi.org/10.1016/S0022-1694(00)00278-X">10.1016/S0022-1694(00)00278-X</a>
 </p>
 
-===ALGORITHM===
 
 <div class="page-break"></div>
 
@@ -13560,7 +14128,6 @@ DOI: <a href="https://doi.org/10.1016/S0022-1694(00)00278-X">10.1016/S0022-1694(
 United Nations Office for Disaster Risk Reduction, Geneva.
 Available at: <a href="https://www.undrr.org/publication/sendai-framework-disaster-risk-reduction-2015-2030">undrr.org</a></p>
 
-===ALGORITHM===
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- GROUP 18: TRAVEL DEMAND                                              -->
@@ -13570,14 +14137,17 @@ Available at: <a href="https://www.undrr.org/publication/sendai-framework-disast
 
 <p>The Travel Demand group implements the <strong>classic four-step
 transportation model</strong> — trip generation, trip distribution (gravity),
-mode split, and assignment — as three PlanX tools. Trip Generation estimates
+mode split, and assignment — end to end. Trip Generation estimates
 productions (home-end trips) and attractions (work-end trips) per traffic
 analysis zone from population and employment using linear rates. Gravity
 Distribution balances these productions and attractions against network travel
 costs via a doubly constrained Furness/IPF procedure, producing an OD flow
 matrix. Mode Split applies a multinomial logit choice model to each OD pair,
 splitting the total flow into mode-specific shares based on travel time
-differences and alternative-specific constants.</p>
+differences and alternative-specific constants. Traffic Assignment closes the
+chain: it loads the OD table onto the network and solves Wardrop's user
+equilibrium with BPR volume-delay functions, reporting the relative gap of
+every iteration.</p>
 
 <p>These are <strong>aggregate, zone-based models</strong> — they predict trips
 between zones, not individual traveller choices. They are "screening-quality"
@@ -13851,7 +14421,6 @@ Victoria Transport Policy Institute.
 Available at: <a href="https://www.vtpi.org/landuse.pdf">vtpi.org/landuse.pdf</a>
 </p>
 
-===ALGORITHM===
 
 <div class="page-break"></div>
 
@@ -13877,7 +14446,9 @@ $\beta$ controls the sensitivity of trip-making to distance.</p>
 
 <p>The output is an OD flow table — a complete matrix of estimated trips between
 every zone pair — plus optional desire lines for visualisation. The table feeds
-directly into Mode Split (Step 3).</p>
+directly into Mode Split (Step 3) and Traffic Assignment (Step 4). Zone pairs
+with no network path exchange no trips, and beta can be calibrated so that the
+modelled mean interzonal trip cost matches an observed one.</p>
 
 <h3>2. Theoretical Background</h3>
 
@@ -13982,9 +14553,18 @@ this but is not implemented in PlanX.</li>
 <li><strong>Cost matrix is static.</strong> The network cost matrix is
 computed once for all zone pairs. The model does not account for congestion
 (travel time increases with flow), which is the domain of equilibrium
-assignment (Step 4, not implemented in PlanX). For uncongested networks (most
+assignment (Step 4, <strong>Traffic Assignment</strong>). For uncongested networks (most
 non-motorway urban streets at daily, not peak-hour, resolution), this is
 acceptable.</li>
+<li><strong>Unreachable pairs exchange nothing.</strong> A zone pair with no
+network path gets a deterrence of exactly zero under both forms. Before v4.20.0
+such pairs were given a stand-in cost of $10^9$, which the exponential form does
+send to zero but the power form does not: $(10^9)^{-0.1} = 0.126$, a quarter of
+the deterrence of a 1 km trip, so disconnected zones traded trips.</li>
+<li><strong>Intrazonal trips are balanced but not written.</strong> The log
+reports their share; above one half it warns that beta is probably too large
+for the cost units (a beta of 0.1 suits minutes, not metres) — calibrate it with
+<code>TARGET_COST</code>.</li>
 </ul>
 
 <h3>3. Mathematical Formulation</h3>
@@ -14040,6 +14620,7 @@ iteration count exceeds <code>MAX_ITER</code>.</p>
 <tr><td><code>KIND</code></td><td>Enum</td><td>Exponential</td><td>Deterrence function: Exponential ($\exp(-\beta c)$) or Power ($c^{-\beta}$). Exponential is standard for person trips; power is common for freight and migration.</td></tr>
 <tr><td><code>MAX_ITER</code></td><td>Integer</td><td>100</td><td>Maximum Furness/IPF balancing iterations. 100 is adequate for most problems; convergence is typically reached in 10–50 iterations.</td></tr>
 <tr><td><code>TOL</code></td><td>Double</td><td>$10^{-4}$</td><td>Convergence tolerance: the maximum absolute difference between modelled and target marginals. Reducing below $10^{-6}$ rarely changes flows meaningfully but increases iterations.</td></tr>
+<tr><td><code>TARGET_COST</code></td><td>Double</td><td>0 (off)</td><td>Calibrate beta so that the modelled mean <em>interzonal</em> trip cost equals this value, in the network's cost units (e.g. a travel survey's mean trip length). The root is bracketed in $[10^{-8}, 50]$ and found by bisection on $\log\beta$ — slower than Hyman's (1969) secant update but unable to overshoot into a negative beta on a lumpy cost matrix. A target outside what any beta can produce is reported as infeasible together with the closest mean reached, never silently matched. When set, the <code>BETA</code> value is ignored.</td></tr>
 <tr><td><code>OUTPUT</code></td><td>Table (FeatureSink)</td><td>—</td><td>OD flow table. One row per non-zero zone pair (excluding the diagonal). No geometry.</td></tr>
 <tr><td><code>LINES</code></td><td>Vector layer (Line)</td><td>(optional)</td><td>Straight desire lines between zone centroids, styled by flow magnitude.</td></tr>
 </table>
@@ -14172,7 +14753,6 @@ and Distance." <em>American Sociological Review</em>, 5(6), 845–867.
 DOI: <a href="https://doi.org/10.2307/2084520">10.2307/2084520</a>
 </p>
 
-===ALGORITHM===
 
 <div class="page-break"></div>
 
@@ -14495,7 +15075,270 @@ DOI: <a href="https://doi.org/10.1007/BF00133443">10.1007/BF00133443</a>
 DOI: <a href="https://doi.org/10.1002/9781119993308">10.1002/9781119993308</a>
 </p>
 
-===ALGORITHM===
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TRAFFIC ASSIGNMENT                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h2 id="trafficassignment">Traffic Assignment (User Equilibrium)</h2>
+<p><strong>Processing ID:</strong> <code>planx:trafficassignment</code>
+&middot; <strong>Engine:</strong> <code>engine/assignment.py</code>
+&middot; <strong>Group:</strong> Travel Demand (18)</p>
+
+<h3>Overview</h3>
+<p>Loads an origin–destination matrix onto the street network and lets
+congestion redistribute it: <strong>step four of the four-step model</strong>.
+Until this tool, the chain Trip Generation → Gravity Distribution → Mode Split
+ended in an OD table that nothing consumed. Traffic Assignment reads that table
+(or any table with origin, destination and flow columns), routes every zone pair
+over the network, slows each street down with the volume it receives, and
+repeats until traffic has settled into <strong>Wardrop's user
+equilibrium</strong> — the state in which no driver can arrive sooner by
+switching route. The output is every street with its volume in each direction,
+its volume/capacity ratio, a screening level-of-service letter, its congested
+travel time and the vehicle-hours of delay it causes, plus a convergence table
+that reports the relative gap of every iteration rather than asserting that the
+answer converged.</p>
+
+<h3>Theoretical Background</h3>
+
+<h4>Academic lineage</h4>
+<p>Wardrop (1952) stated the two principles every assignment model since has
+been built on: under the <em>first</em> (user equilibrium), the journey times on
+all routes actually used between an origin and a destination are equal and no
+greater than on any unused route; under the <em>second</em> (system optimum),
+total travel time is minimised. Beckmann, McGuire and Winsten (1956) showed that
+the first principle is the solution of a convex optimisation problem — the
+link volumes that minimise the sum, over links, of the integral of the
+volume-delay function — which turned a behavioural statement into something a
+computer can solve and proved that the equilibrium link volumes are unique.
+The Bureau of Public Roads (1964) supplied the volume-delay function that is
+still the default in practice. Frank and Wolfe (1956) had published the
+optimisation method a few years earlier for quadratic programs; LeBlanc, Morlok
+and Pierskalla (1975) recognised that its linear subproblem is an
+all-or-nothing assignment on current costs, which made it the standard
+equilibrium algorithm for four decades (Sheffi 1985). Mitradjieva and Lindberg
+(2013) removed its main weakness — a zig-zagging search that crawls once the
+network is congested — with conjugate search directions at no extra cost per
+iteration. Boyce, Ralevic-Dekic and Bar-Gera (2004) established the relative gap
+as the convergence measure to report, and showed how loosely converged
+assignments produce link volumes that differ between scenarios for reasons that
+have nothing to do with the scenarios.</p>
+
+<h4>Key assumptions</h4>
+<ul>
+<li><strong>Static and deterministic.</strong> One period, one demand matrix,
+perfect information: every driver knows every route's current time. Queues do
+not spill back across junctions and the period's demand is served within the
+period, so a link "over capacity" is a link asked to carry more than it can,
+not a literal flow.</li>
+<li><strong>Link-based volume-delay.</strong> Each directed link slows down with
+its own volume only; junction delay, turning conflicts and signal timing are not
+modelled (a turn-restriction graph is out of scope for the plugin).</li>
+<li><strong>Zones load at the network node nearest to their representative
+point.</strong> Demand between two zones that share a node is intrazonal and
+never enters the network; it is reported, not assigned.</li>
+<li><strong>Arcs, not edges.</strong> A two-way street is two directed arcs with
+their own volume, capacity and congested time. One-way rules prepared by
+Prepare Network are honoured. Of two parallel arcs between the same pair of
+nodes only the faster one can carry a shortest path, and only it is used for
+routing.</li>
+<li><strong>Capacity is per direction.</strong> Either a capacity field in
+vehicles per hour per direction, or lanes per direction × capacity per lane.</li>
+</ul>
+
+<h4>When to use vs. when NOT to use</h4>
+<ul>
+<li><strong>Use it</strong> to close the four-step chain on a plan: which
+corridors does a land-use scenario load, where does the network saturate, how
+many vehicle-hours of delay does a new link save?</li>
+<li><strong>Use the all-or-nothing method</strong> to see the desire-line
+pattern on the network with no congestion feedback, and compare it with the
+equilibrium to find the corridors that only work because traffic spills onto
+alternatives.</li>
+<li><strong>Do not use it</strong> as a junction or corridor design tool, for
+public transport assignment, or where queues spill back across junctions in
+the period studied — those need dynamic or microscopic models.</li>
+<li><strong>Do not compare two scenarios</strong> at a gap above about
+10<sup>−3</sup>: the noise of an unconverged solution can exceed the effect of
+the scenario.</li>
+</ul>
+
+<h3>Mathematical Formulation</h3>
+<p>Let $A$ be the set of directed arcs, $v_a$ the volume on arc $a$, $c_a$ its
+capacity and $t^0_a$ its free-flow time. The Bureau of Public Roads function
+gives the congested time:</p>
+<div class="eq">
+$$t_a(v_a) = t^0_a \left[ 1 + \alpha \left( \frac{v_a}{c_a} \right)^{\beta} \right], \qquad \alpha = 0.15,\ \beta = 4 \tag{1}$$
+</div>
+<p>Free-flow time is a time field when one is given; otherwise ground length
+$\ell_a$ (metres on the layer's ellipsoid) over the speed $s_a$ in km/h:</p>
+<div class="eq">
+$$t^0_a = \frac{60\, \ell_a}{1000\, s_a} \ \text{minutes} \tag{2}$$
+</div>
+<p>User equilibrium is the solution of Beckmann's convex program over the
+feasible link flows $\Omega$ that route every OD demand $q_{rs}$:</p>
+<div class="eq">
+$$\min_{v \in \Omega} \; Z(v) = \sum_{a \in A} \int_0^{v_a} t_a(x)\, dx = \sum_{a} t^0_a \left[ v_a + \frac{\alpha\, c_a}{\beta + 1} \left( \frac{v_a}{c_a} \right)^{\beta + 1} \right] \tag{3}$$
+</div>
+<p>At iteration $k$ the auxiliary flow $y^k$ is an all-or-nothing assignment of
+all demand to the shortest paths at the current times $t(v^k)$. Frank–Wolfe
+moves towards it by the step that minimises $Z$ exactly:</p>
+<div class="eq">
+$$v^{k+1} = v^k + \lambda^k \left( y^k - v^k \right), \qquad \lambda^k = \arg\min_{\lambda \in [0,1]} Z\!\left( v^k + \lambda (y^k - v^k) \right) \tag{4}$$
+</div>
+<p>found by bisection on the directional derivative
+$\sum_a (y_a - v_a)\, t_a(v + \lambda(y - v))$, which is non-decreasing because
+$Z$ is convex. The method of successive averages replaces the line search by
+the predetermined step $\lambda^k = 1/(k+1)$. Conjugate Frank–Wolfe (the
+default) moves instead towards a target $s^k$ that mixes the new auxiliary
+flow with the previous target so that consecutive directions are conjugate
+under the diagonal Hessian $H = \operatorname{diag}(t'_a(v_a))$:</p>
+<div class="eq">
+$$s^k = a_k\, s^{k-1} + (1 - a_k)\, y^k, \qquad a_k = \frac{(s^{k-1} - v^k)^{\top} H\, (y^k - v^k)}{(s^{k-1} - v^k)^{\top} H\, (y^k - s^{k-1})} \tag{5}$$
+</div>
+<p>with $a_k$ clipped to $[0, 1 - 10^{-4}]$, and the step from $v^k$ towards
+$s^k$ again found by exact line search. Convergence is measured by the relative
+gap — the share of total travel time that would be saved if every driver
+switched to the current shortest path at the current costs, with $u_{rs}$ the
+shortest-path time:</p>
+<div class="eq">
+$$\text{gap}^k = \frac{\sum_a t_a(v^k_a)\, v^k_a - \sum_{rs} q_{rs}\, u_{rs}(v^k)}{\sum_a t_a(v^k_a)\, v^k_a} \;\ge\; 0 \tag{6}$$
+</div>
+<p>Delay on an arc is $D_a = v_a \left( t_a(v_a) - t^0_a \right) / 60$
+vehicle-hours, and the level-of-service letter is a screening band of
+$v/c$: A $\le 0.60$, B $\le 0.70$, C $\le 0.80$, D $\le 0.90$,
+E $\le 1.00$, F above. These bands are a reporting convention, not the
+Highway Capacity Manual's facility LOS, which is defined on density or
+delay.</p>
+
+<h3>Input Data Requirements</h3>
+<table>
+<tr><th>Input</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+<tr><td>Street network</td><td>Vector lines</td><td>Yes</td><td>Projected CRS; prepared topology. Optional speed (km/h), time (minutes), capacity (veh/h per direction) and lanes-per-direction fields.</td></tr>
+<tr><td>Zones</td><td>Points or polygons</td><td>Yes</td><td>The layer whose ids the OD table uses. Each id must be unique.</td></tr>
+<tr><td>OD table</td><td>Table</td><td>Yes</td><td>Origin, destination and flow columns — the Gravity Distribution output fits directly. Rows naming an unknown zone are reported and left out.</td></tr>
+</table>
+
+<h3>Parameters</h3>
+<table class="param-table">
+<tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>NETWORK</code></td><td>Vector (Line)</td><td>—</td><td>Street network.</td></tr>
+<tr><td><code>ZONES</code>, <code>ZONE_ID</code></td><td>Vector, Field</td><td>—</td><td>Zone layer and its id field.</td></tr>
+<tr><td><code>OD</code></td><td>Table</td><td>—</td><td>OD table to assign.</td></tr>
+<tr><td><code>ORIGIN_FIELD</code>, <code>DEST_FIELD</code>, <code>FLOW_FIELD</code></td><td>Field</td><td>origin_id, dest_id, flow</td><td>Columns of the OD table.</td></tr>
+<tr><td><code>DEMAND_FACTOR</code></td><td>Double</td><td>1.0</td><td>Multiplies every OD flow into vehicles in the assignment period (e.g. 0.1 for a daily table and a peak hour carrying 10% of the day, divided by car occupancy for person trips).</td></tr>
+<tr><td><code>TIME_FIELD</code></td><td>Field (optional)</td><td>—</td><td>Free-flow time in minutes; overrides speed.</td></tr>
+<tr><td><code>SPEED_FIELD</code>, <code>DEFAULT_SPEED</code></td><td>Field, Double</td><td>—, 40 km/h</td><td>Free-flow speed per street; the default fills missing values (counted in the log).</td></tr>
+<tr><td><code>CAPACITY_FIELD</code></td><td>Field (optional)</td><td>—</td><td>Vehicles per hour per direction.</td></tr>
+<tr><td><code>LANES_FIELD</code>, <code>LANE_CAPACITY</code></td><td>Field, Double</td><td>—, 900 veh/h</td><td>Used when no capacity field is given: lanes per direction × capacity per lane (one lane when missing).</td></tr>
+<tr><td><code>METHOD</code></td><td>Enum</td><td>Conjugate Frank–Wolfe</td><td>Conjugate Frank–Wolfe, Frank–Wolfe, MSA or all-or-nothing.</td></tr>
+<tr><td><code>MAX_ITER</code>, <code>GAP</code></td><td>Integer, Double</td><td>100, 10<sup>−4</sup></td><td>Stop at this relative gap or after this many iterations, whichever comes first. A run that hits the limit says so.</td></tr>
+<tr><td><code>ALPHA</code>, <code>BETA</code></td><td>Double</td><td>0.15, 4</td><td>BPR coefficients.</td></tr>
+<tr><td><code>OUTPUT</code></td><td>Vector (Line)</td><td>—</td><td>Loaded network.</td></tr>
+<tr><td><code>CONVERGENCE</code></td><td>Table</td><td>—</td><td>One row per iteration.</td></tr>
+</table>
+
+<h3>Output Description</h3>
+<h4>Loaded network (OUTPUT)</h4>
+<p>Every input field is kept; the tool's own columns are named so that they do
+not collide with the <code>volume</code>, <code>length_m</code> or
+<code>speed</code> columns a network layer usually already carries.</p>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>vol_ab</code>, <code>vol_ba</code></td><td>Double</td><td>Vehicles in digitising direction and against it</td></tr>
+<tr><td><code>vol_total</code></td><td>Double</td><td>Sum of both directions</td></tr>
+<tr><td><code>cap_ab</code>, <code>cap_ba</code></td><td>Double</td><td>Capacity per direction; empty for a direction a one-way rule closes</td></tr>
+<tr><td><code>vc_ab</code>, <code>vc_ba</code>, <code>vc_max</code></td><td>Double</td><td>Volume/capacity per direction and the larger of the two</td></tr>
+<tr><td><code>los</code></td><td>String</td><td>Screening letter A–F from <code>vc_max</code></td></tr>
+<tr><td><code>t0_min</code></td><td>Double</td><td>Free-flow time, minutes</td></tr>
+<tr><td><code>tc_ab_min</code>, <code>tc_ba_min</code></td><td>Double</td><td>Congested time per direction, minutes</td></tr>
+<tr><td><code>delay_vh</code></td><td>Double</td><td>Vehicle-hours of delay on the street, both directions</td></tr>
+<tr><td><code>link_m</code></td><td>Double</td><td>Ground length in metres</td></tr>
+</table>
+<h4>Convergence table (CONVERGENCE)</h4>
+<table class="field-table">
+<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td><code>iteration</code></td><td>Integer</td><td>1, 2, …</td></tr>
+<tr><td><code>rel_gap</code></td><td>Double</td><td>Relative gap of Equation (6) at the start of the iteration</td></tr>
+<tr><td><code>tstt_vh</code>, <code>sptt_vh</code></td><td>Double</td><td>Total system travel time and its shortest-path lower bound, vehicle-hours</td></tr>
+<tr><td><code>step</code></td><td>Double</td><td>Step length taken</td></tr>
+<tr><td><code>objective</code></td><td>Double</td><td>Beckmann's objective after the step (vehicle-hours); never increases under Frank–Wolfe or its conjugate form</td></tr>
+</table>
+
+<h3>Symbolic Representation</h3>
+<p>The default renderer colours <code>vc_max</code>. For a flow map, use a
+graduated line width on <code>vol_total</code> (0.2–3 mm) with colour on
+<code>vc_max</code> from green through amber to red at 1.0, and draw the two
+directions with an offset when the network is two-way. Label the ten streets
+with the highest <code>delay_vh</code>. Plot the convergence table's
+<code>rel_gap</code> on a logarithmic axis: a straight descent means the run is
+converging; a flattening curve means more iterations will buy little.</p>
+
+<h3>Interpretation Guide</h3>
+<ul>
+<li><strong>Read <code>vc_max</code> above 1.0 as "over capacity",</strong> not
+as a flow that physically passes: in reality the excess spreads the peak in
+time. Between 0.85 and 1.0 the BPR curve is at its steepest, and small demand
+changes move delay most there.</li>
+<li><strong>Rank bottlenecks by <code>delay_vh</code>,</strong> not by v/c: a
+short street at v/c 1.2 can cost fewer vehicle-hours than a long arterial at
+0.95.</li>
+<li><strong>Check the gap before comparing scenarios.</strong> Below
+10<sup>−3</sup> volumes are stable to a few vehicles; at 10<sup>−2</sup> two
+runs of the same scenario with different iteration limits can differ by more
+than the scenario's effect. Link-based methods converge slowly under heavy
+oversaturation: on a 6 × 6 test grid loaded far beyond capacity, conjugate
+Frank–Wolfe reached 1.6 × 10<sup>−3</sup> after 100 iterations and
+7 × 10<sup>−4</sup> after 400 (plain Frank–Wolfe: 1.2 × 10<sup>−2</sup> and
+3.8 × 10<sup>−3</sup>). That is a property of link-based methods, reported
+rather than hidden; at realistic loads the same tool converges to
+10<sup>−4</sup> in tens of iterations.</li>
+<li><strong>The log's intrazonal and unreachable totals</strong> explain a
+loaded total smaller than the OD table: intrazonal trips never touch a street,
+and demand against one-way rules or across a disconnected network has no
+route.</li>
+<li><strong>Mean network speed</strong> (vehicle-km over vehicle-hours) is the
+single headline number for a scenario comparison.</li>
+</ul>
+
+<h3>Academic References</h3>
+<p class="ref">Beckmann, M., McGuire, C.B. &amp; Winsten, C.B. (1956).
+<em>Studies in the Economics of Transportation</em>. Yale University Press,
+New Haven.
+</p>
+<p class="ref">Boyce, D., Ralevic-Dekic, B. &amp; Bar-Gera, H. (2004).
+"Convergence of Traffic Assignments: How Much is Enough?" <em>Journal of
+Transportation Engineering</em>, 130(1), 49–55.
+DOI: <a href="https://doi.org/10.1061/(ASCE)0733-947X(2004)130:1(49)">10.1061/(ASCE)0733-947X(2004)130:1(49)</a>
+</p>
+<p class="ref">Bureau of Public Roads (1964). <em>Traffic Assignment
+Manual</em>. U.S. Department of Commerce, Urban Planning Division, Washington,
+DC.
+</p>
+<p class="ref">Frank, M. &amp; Wolfe, P. (1956). "An algorithm for quadratic
+programming." <em>Naval Research Logistics Quarterly</em>, 3(1–2), 95–110.
+DOI: <a href="https://doi.org/10.1002/nav.3800030109">10.1002/nav.3800030109</a>
+</p>
+<p class="ref">LeBlanc, L.J., Morlok, E.K. &amp; Pierskalla, W.P. (1975). "An
+efficient approach to solving the road network equilibrium traffic assignment
+problem." <em>Transportation Research</em>, 9(5), 309–318.
+DOI: <a href="https://doi.org/10.1016/0041-1647(75)90030-1">10.1016/0041-1647(75)90030-1</a>
+</p>
+<p class="ref">Mitradjieva, M. &amp; Lindberg, P.O. (2013). "The Stiff Is
+Moving — Conjugate Direction Frank-Wolfe Methods with Applications to Traffic
+Assignment." <em>Transportation Science</em>, 47(2), 280–293.
+DOI: <a href="https://doi.org/10.1287/trsc.1120.0409">10.1287/trsc.1120.0409</a>
+</p>
+<p class="ref">Sheffi, Y. (1985). <em>Urban Transportation Networks:
+Equilibrium Analysis with Mathematical Programming Methods</em>. Prentice-Hall,
+Englewood Cliffs, NJ.
+</p>
+<p class="ref">Wardrop, J.G. (1952). "Some theoretical aspects of road traffic
+research." <em>Proceedings of the Institution of Civil Engineers</em>, 1(3),
+325–362.
+DOI: <a href="https://doi.org/10.1680/ipeds.1952.11259">10.1680/ipeds.1952.11259</a>
+</p>
 
 <div class="page-break"></div>
 
@@ -14798,7 +15641,6 @@ Victoria Transport Policy Institute.
 Available at: <a href="https://www.vtpi.org/park_man.pdf">vtpi.org/park_man.pdf</a>
 </p>
 
-===ALGORITHM===
 
 <div class="page-break"></div>
 
@@ -15082,7 +15924,6 @@ DOI: <a href="https://doi.org/10.1016/S0965-8564(99)00007-5">10.1016/S0965-8564(
 </p>
 
 
-===ALGORITHM===
 
 <!-- ═══════════════════════════════════════════════════════════════════ -->
 <!-- GROUP 19: SEISMIC RISK                                              -->
@@ -17511,7 +18352,7 @@ Available at: <a href="https://pubs.usgs.gov/of/1998/ofr-98-113/">pubs.usgs.gov/
 
 <p style="text-align:center;color:var(--muted);margin:3em 0;">
   <em>— End of PlanX Comprehensive Academic Reference Manual —<br>
-  Covering PlanX v4.19.0 &middot; 76 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
+  Covering PlanX v4.20.0 &middot; 80 Algorithms &middot; 19 Tool Groups &middot; October 2026</em>
 </p>
 
 
