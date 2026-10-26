@@ -457,9 +457,9 @@ instead. A zero `a_c` is refused rather than substituted, because
 `(a_c/a_max)^−1.478` diverges there: a material with no strength to mobilise is
 not a slope with a displacement, it is a flow, which is the liquefaction
 question rather than this one. The paper is paywalled and was **not** read; the
-coefficients were transcribed from Yiğit (2026), *Pamukkale Üniversitesi
-Mühendislik Bilimleri Dergisi* 32(1), 191-199, which prints the equation as its
-own Equation 8 beside its own refit of the same data (exponent 1.3593 against
+coefficients were transcribed from Yiğit (2026), *Pamukkale University Journal
+of Engineering Sciences* 32(1), 191-199, which prints the equation as its own
+Equation 8 beside its own refit of the same data (exponent 1.3593 against
 the published 2.335). The equation *number* is taken from the paper's own
 numbering, not from that transcription: the USGS `groundfailure` package
 documents the same four constants as "equation 7 from Jibson (2007)". The

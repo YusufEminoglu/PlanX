@@ -54,8 +54,8 @@ import math
 #: The paper is paywalled and the USGS publication page offers no free full
 #: text, so these five numbers were **not** read off it. They were read from an
 #: open-access, peer-reviewed article that prints the equation and lists Jibson
-#: (2007) as its reference [26] - Yiğit, *Pamukkale Üniversitesi Mühendislik
-#: Bilimleri Dergisi* 32(1), 191-199, 2026, DOI 10.5505/pajes.2025.29499, as
+#: (2007) as its reference [26] - Yiğit, *Pamukkale University Journal of
+#: Engineering Sciences* 32(1), 191-199, 2026, DOI 10.5505/pajes.2025.29499, as
 #: its own Equation 8 - Yiğit's numbering, which differs from the paper's. Two
 #: things argue against a garbled transcription there: that
 #: article's own refit of the same functional form on Turkish records prints

@@ -1,5 +1,21 @@
 # Changelog
 
+## [4.22.1] - 2026-10-26
+
+### Fixed
+- English only. The landslide citation named its journal in Turkish; it now
+  uses the journal's English title, *Pamukkale University Journal of
+  Engineering Sciences* (engine, `THIRD_PARTY_NOTICES.md`, `docs/METHODS.md`,
+  the reference manual and this changelog). The reference manual no longer
+  quotes the Turkish name of the Spatial Plans Regulation.
+- `THIRD_PARTY_NOTICES.md` credited that article to "M. E. Yiğit"; the author
+  is Adil Yiğit, as the article's own record under DOI
+  10.5505/pajes.2025.29499 states, and as the manual already had it.
+- Practical guide: the link to the reference manual pointed one level too deep
+  and returned a 404 on the portal.
+- `CITATION.cff` gives the Zenodo concept DOI, which always resolves to the
+  newest archived version, instead of the first archived version (v2.5.1).
+
 ## [4.22.0] - 2026-10-26
 
 ### Added
@@ -292,7 +308,7 @@ Coseismic Landslide Screening (`planx:coseismiclandslide`) is new. One algorithm
 - `THIRD_PARTY_NOTICES.md` gained three sections: the Jibson (2007) coefficients with the open-access source they were transcribed from, the Hazus Section 4.2.2.2 tables, and the USGS Open-File Report 98-113 Arias-intensity model that is deliberately **not** implemented.
 
 ### Notes
-- **The paper was not read, and the coefficients say so.** Jibson (2007) is paywalled; its Equation 7 coefficients were transcribed from Yiğit (2026), *Pamukkale Üniversitesi Mühendislik Bilimleri Dergisi* 32(1), 191-199, an open-access article that prints the equation as its own Equation 8 beside its own refits of the same data. That side-by-side is what makes it usable as a transcription rather than only as a citation: its own fit of the same data prints a different exponent (1.3593 against 2.335), and its Equation 9 prints the Arias-intensity form with the same 0.616 dispersion the CRAN `newmark` package uses, though its coefficient reads 3.8331 where the paper and that package both print 3.833. The provenance record is the `JIBSON_2007` docstring in `engine/landslide.py`, which names the transcription source and the fact that the original was not read.
+- **The paper was not read, and the coefficients say so.** Jibson (2007) is paywalled; its Equation 7 coefficients were transcribed from Yiğit (2026), *Pamukkale University Journal of Engineering Sciences* 32(1), 191-199, an open-access article that prints the equation as its own Equation 8 beside its own refits of the same data. That side-by-side is what makes it usable as a transcription rather than only as a citation: its own fit of the same data prints a different exponent (1.3593 against 2.335), and its Equation 9 prints the Arias-intensity form with the same 0.616 dispersion the CRAN `newmark` package uses, though its coefficient reads 3.8331 where the paper and that package both print 3.833. The provenance record is the `JIBSON_2007` docstring in `engine/landslide.py`, which names the transcription source and the fact that the original was not read.
 - **Jibson Equation 10 and the Arias-intensity regression of Jibson, Harp & Michael (1998) are deliberately not implemented, and the manual says why.** Both are Arias forms — Equation 10 is `0.561 log10 I_a - 3.833 log10(ac/amax) - 1.474` — and Arias intensity is the total energy the shaking deposits, which Ground Motion Scenario does not produce and no other tool in this plugin does. Deriving one would mean a ground-motion model of its own. Equation 7 is the only regression in the paper that takes exactly the two quantities the seismic chain already produces, the critical-acceleration ratio and the magnitude, with nothing to import from outside it. The USGS Open-File Report 98-113 is listed in the manual's references as the model most often misremembered as the one this tool uses.
 - **The runtime matrix grew a check that re-derives its rows instead of snapshotting them.** `_expect_coseismic_rows` puts every output row back on the synthetic surface's own closed form - the slope is recomputed from the terrain's analytic gradient at the row's own sample x - then re-runs the Hazus chain and the displacement from the tool's parameters and compares. It tests the tool's wiring, not the engine's constants, which is the right division: mutating a constant would move the run and the check together and stay green, and that is `test_engine.py`'s job. So the check was falsified with wiring mutations, and both were caught. Scaling the slope by 57 instead of using the right conversion failed with `row 1: slope_deg is 6.301205433 where the synthetic surface gives 6.333903108`; writing the wrong route prefix into `ac_src` failed with `row 1: ac_src is 'hazus-cat:V', which is not one of the routes this run takes (field)`. Both were reverted, and the file was restored to green.
 - **A check that only ever passes is a check nobody has tested, so the new one carries its own guards against going quiet.** It reads the grid the terrain was sampled on from a module-level record filled in by the fixture builder rather than inferring it from an output row, and complains out loud if that record is empty - because the slope angle alone cannot be inverted back to a cell, and a slope check that quietly stops checking is exactly the failure the fixture was rebuilt to close. It also asserts that the run actually touched every route it was asked for, all ten Table 4-16 categories on the category route, all six slope bands on the group route, and that the sampled slopes span at least 15 degrees, so a future fixture edit that stops reaching a branch fails instead of narrowing coverage in silence.

@@ -125,8 +125,8 @@ of 5.3 ≤ M ≤ 7.6.
 - The paper is **paywalled and was not read for this implementation.** Its
   coefficients were transcribed from an open-access article that prints the
   equation as **its own** Equation 8 alongside its own refit of the same data:
-  **Yiğit, M. E. (2026)**, *Pamukkale Üniversitesi Mühendislik Bilimleri
-  Dergisi* 32(1), 191–199, DOI 10.5505/pajes.2025.29499, open access. That
+  **Yiğit, A. (2026)**, *Pamukkale University Journal of Engineering Sciences*
+  32(1), 191–199, DOI 10.5505/pajes.2025.29499, open access. That
   side-by-side presentation is what makes the source usable as a transcription
   rather than only as a citation — its own fit prints a different exponent
   (1.3593 against the published 2.335).
