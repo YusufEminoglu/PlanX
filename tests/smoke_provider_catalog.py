@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import os
 import re
 import struct
 import sys
@@ -32,7 +33,8 @@ ICONS = ROOT / "icons"
 METADATA = ROOT / "metadata.txt"
 README = ROOT / "README.md"
 STUDIO_DOCK = ROOT / "studio_dock.py"
-MANUAL = ROOT / "docs" / "PLANX_REFERENCE_MANUAL.html"
+# The manual is kept in the portal repository (geophilo_project/_manual_sources).
+MANUAL = Path(os.environ.get("GEOPHILO_MANUALS") or ROOT.parents[1] / "geophilo_project" / "_manual_sources") / "planx" / "PLANX_REFERENCE_MANUAL.html"
 
 #: The count may only go up. A drop means algorithms were dropped by accident.
 MIN_EXPECTED_ALGORITHM_COUNT = 84
