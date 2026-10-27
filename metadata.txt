@@ -26,7 +26,7 @@ about=PlanX is an urban analytics studio for city planners and researchers. It b
     REPORTING AND DASHBOARD (7): Scenario snapshots, A/B comparison in which every metric knows which direction is better, weighted multi-scenario ranking, a LUTI-lite pipeline that chains growth, population allocation and re-evaluation, a Batch Plan Auditor that runs the core analyses from a plan's main layers in one call, a one-click single-file HTML Plan Dashboard and Performance Report, and a demo city for trying every tool in minutes. The PlanX Studio dock shows live score cards and a Plan Performance Index history.
     Everything is computed by the plugin's own engine on the Python that ships with QGIS; SciPy speeds up some tools when it is present.
     Manual: https://geophilo.com/planx/manual.html
-version=4.22.1
+version=4.22.2
 tracker=https://gitlab.com/geophilo1/planx/-/issues
 repository=https://gitlab.com/geophilo1/planx
 
