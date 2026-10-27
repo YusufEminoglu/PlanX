@@ -62,7 +62,7 @@ PLUGIN_DIR = os.path.dirname(os.path.dirname(__file__))
 #: it moved off yusufeminoglu.github.io and only metadata.txt was updated,
 #: which left all 69 deep links returning 404. studio_dock.py imports this
 #: rather than repeating the literal.
-DOC_BASE_URL = "https://geophilo.com/planx/PLANX_REFERENCE_MANUAL.html"
+DOC_BASE_URL = "https://geophilo.com/planx/manual.html"
 
 GROUP_NETWORK = ("Network Analysis", "network")
 GROUP_CENTRALITY = ("Centrality and Space Syntax", "centrality")

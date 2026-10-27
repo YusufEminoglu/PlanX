@@ -1,7 +1,7 @@
 # PlanX Practical Guide — applied workflows & screenshots
 
-**Live page:** <https://yusufeminoglu.github.io/PlanX/PRACTICAL_GUIDE/>
-**Theory companion:** <https://yusufeminoglu.github.io/PlanX/PLANX_REFERENCE_MANUAL.html>
+**Live page:** <https://geophilo.com/planx/guide/>
+**Theory companion:** <https://geophilo.com/planx/manual.html>
 
 The [Academic Reference Manual](../PLANX_REFERENCE_MANUAL.html) explains the *theory* —
 formulas, 350 numbered equations, 410 academic references. This guide shows the
