@@ -4,18 +4,17 @@
 Build the final PlanX Practical Guide HTML with the real screenshots embedded.
 
 Produces:
-  practical_guide.html            - interactive, tabs, search, screenshots inline (base64)
+  practical_guide.html            - interactive, tabs, search, screenshots linked from screenshots/
   practical_guide_static_en.html  - print/PDF-optimised, same content
   Copies both to the user's Downloads folder as single self-contained files.
 """
-import base64
 import html
 import json
 import os
 import re
 from pathlib import Path
 
-GUIDE = Path(__file__).resolve().parent
+GUIDE = Path(__file__).resolve().parents[1]  # docs/PRACTICAL_GUIDE (this script lives in scripts/)
 # The public manual lives in the portal repository (geophilo_project), not
 # in this plugin repository or its Hub zip. GEOPHILO_MANUALS overrides it.
 MANUALS = Path(os.environ.get("GEOPHILO_MANUALS") or Path(__file__).resolve().parents[3].parents[1] / "geophilo_project" / "_manual_sources") / "planx" / "PRACTICAL_GUIDE"
@@ -30,24 +29,18 @@ with open(MAN / "screenshots_all.json", encoding="utf-8") as f:
 results = shots.get("results", {})
 
 
-def b64(path):
-    try:
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode("ascii")
-    except Exception:
-        return None
+def shot_path(algo_id):
+    """Relative URL of the 4-panel screenshot, JPEG first (much smaller).
 
-
-def shot_b64(algo_id):
-    """Prefer the JPEG (much smaller) and fall back to the PNG."""
-    jpg = SHOT / algo_id / f"{algo_id}_4panel.jpg"
-    if jpg.exists():
-        d = b64(jpg)
-        if d:
-            return d, "image/jpeg"
-    png = SHOT / algo_id / f"{algo_id}_4panel.png"
-    d = b64(png)
-    return d, "image/png"
+    The images are published next to the guide (guide/screenshots/...), so the
+    page links to them instead of embedding them: embedded, the 84 screenshots
+    pushed the page past the 25 MiB file limit of the hosting.
+    """
+    for ext in ("jpg", "png"):
+        shot = SHOT / algo_id / f"{algo_id}_4panel.{ext}"
+        if shot.exists():
+            return f"screenshots/{algo_id}/{shot.name}"
+    return None
 
 
 # --------------------------------------------------------------- CSS / shell
@@ -212,8 +205,8 @@ function page(d){
   h+='</div>';
 
   h+='<div class="tab-panel active" id="t-shot">';
-  if(d.png_b64){
-    h+='<figure class="shot"><img src="data:' + (d.mime||'image/png') + ';base64,' + d.png_b64 +
+  if(d.img){
+    h+='<figure class="shot"><img src="' + d.img +
        '" alt="'+esc(d.display_name)+' 4-panel screenshot" loading="lazy">';
     h+='<figcaption><span class="step-badge">4-panel</span>'+
        esc(d.display_name)+' &mdash; Panel 1: input data &middot; Panel 2: parameters used '+
@@ -300,8 +293,7 @@ def build_data():
             order.append(a["group_order"])
         groups[a["group_order"]]["algos"].append(aid)
 
-        png = SHOT / aid / f"{aid}_4panel.png"
-        b, mime = shot_b64(aid)
+        img = shot_path(aid)
 
         data[aid] = {
             "algo_id": aid,
@@ -310,8 +302,7 @@ def build_data():
             "help_text": det.get("help_summary", ""),
             "params": det.get("parameters", []),
             "outputs": det.get("outputs", []),
-            "png_b64": b,
-            "mime": mime,
+            "img": img,
             "seconds": r.get("seconds"),
             "run_params": r.get("params", {}),
         }
@@ -528,7 +519,7 @@ document.addEventListener('DOMContentLoaded',function(){{
   const g=document.getElementById('cover-grid');
   const n=Object.keys(DATA).length;
   const gcount=GROUPS.length;
-  const shots=Object.values(DATA).filter(d=>d.png_b64).length;
+  const shots=Object.values(DATA).filter(d=>d.img).length;
   g.innerHTML=
     '<div class="card"><div class="n">'+n+'</div><h3>Algorithms</h3>'+
     '<p>across '+gcount+' tool groups, each with parameters, outputs, '+
